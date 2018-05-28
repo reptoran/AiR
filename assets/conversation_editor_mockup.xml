@@ -1,0 +1,127 @@
+<mockup version="1.0" skin="sketch" fontFace="Balsamiq Sans" measuredW="840" measuredH="660" mockupW="800" mockupH="620">
+  <controls>
+    <control controlID="36" controlTypeID="com.balsamiq.mockups::Canvas" x="40" y="40" w="800" h="620" measuredW="100" measuredH="70" zOrder="0" locked="false" isInGroup="-1"/>
+    <control controlID="37" controlTypeID="com.balsamiq.mockups::List" x="61" y="62" w="274" h="576" measuredW="100" measuredH="153" zOrder="1" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>The%20Mayor%0AMinmax%20the%20Warrior%0ASwordy%20McSworderson%0AGoodwife%20Gertrude%0AKing%20Arthur%0ADoraleous%0ABelkar%20Bitterleaf</text>
+      </controlProperties>
+    </control>
+    <control controlID="38" controlTypeID="com.balsamiq.mockups::VerticalScrollBar" x="321" y="62" w="-1" h="576" measuredW="16" measuredH="100" zOrder="2" locked="false" isInGroup="-1"/>
+    <control controlID="43" controlTypeID="com.balsamiq.mockups::TextArea" x="342" y="62" w="483" h="140" measuredW="200" measuredH="140" zOrder="3" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Greeting%201a%0AGreeting%201b%0AQuest%201%20Offer%0AQuest%201%20Complete%0AQuest%202%20Offer%0AQuest%202%20In%20Progress%0AQuest%202%20Complete</text>
+      </controlProperties>
+    </control>
+    <control controlID="44" controlTypeID="com.balsamiq.mockups::VerticalScrollBar" x="809" y="62" w="-1" h="140" measuredW="16" measuredH="100" zOrder="4" locked="false" isInGroup="-1"/>
+    <control controlID="45" controlTypeID="com.balsamiq.mockups::Label" x="342" y="208" w="-1" h="-1" measuredW="26" measuredH="21" zOrder="5" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Text</text>
+      </controlProperties>
+    </control>
+    <control controlID="46" controlTypeID="com.balsamiq.mockups::TextArea" x="344" y="229" w="481" h="89" measuredW="200" measuredH="140" zOrder="6" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Hello%2C%20brave%20warrior%21%20Are%20you%20new%20in%20town%3F</text>
+      </controlProperties>
+    </control>
+    <control controlID="48" controlTypeID="com.balsamiq.mockups::List" x="342" y="355" w="225" h="245" measuredW="100" measuredH="126" zOrder="7" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Yes%2C%20I%20am.%20%20Nice%20to%20meet%20you%21%0AWhat%27s%20it%20to%20you%2C%20jerk%3F%0ASorry%2C%20I%27ve%20got%20to%20go.</text>
+      </controlProperties>
+    </control>
+    <control controlID="49" controlTypeID="com.balsamiq.mockups::Label" x="342" y="330" w="-1" h="-1" measuredW="67" measuredH="21" zOrder="8" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Responses</text>
+      </controlProperties>
+    </control>
+    <control controlID="50" controlTypeID="com.balsamiq.mockups::VerticalScrollBar" x="551" y="355" w="-1" h="245" measuredW="16" measuredH="100" zOrder="9" locked="false" isInGroup="-1"/>
+    <control controlID="51" controlTypeID="com.balsamiq.mockups::Button" x="342" y="611" w="-1" h="-1" measuredW="108" measuredH="27" zOrder="10" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Add%20Response</text>
+      </controlProperties>
+    </control>
+    <control controlID="52" controlTypeID="com.balsamiq.mockups::Button" x="450" y="611" w="-1" h="-1" measuredW="115" measuredH="27" zOrder="11" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Save%20Response</text>
+      </controlProperties>
+    </control>
+    <control controlID="53" controlTypeID="com.balsamiq.mockups::Label" x="582" y="330" w="-1" h="-1" measuredW="83" measuredH="21" zOrder="12" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Requirements</text>
+      </controlProperties>
+    </control>
+    <control controlID="54" controlTypeID="com.balsamiq.mockups::List" x="582" y="356" w="126" h="85" measuredW="100" measuredH="126" zOrder="13" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Charisma%2010%0AFame%205%0ALevel%20%3C%203</text>
+      </controlProperties>
+    </control>
+    <control controlID="55" controlTypeID="com.balsamiq.mockups::ComboBox" x="721" y="355" w="104" h="-1" measuredW="81" measuredH="24" zOrder="14" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Attribute</text>
+      </controlProperties>
+    </control>
+    <control controlID="56" controlTypeID="com.balsamiq.mockups::ComboBox" x="721" y="417" w="-1" h="-1" measuredW="48" measuredH="24" zOrder="15" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>%3E%3D</text>
+      </controlProperties>
+    </control>
+    <control controlID="57" controlTypeID="com.balsamiq.mockups::NumericStepper" x="778" y="417" w="-1" h="-1" measuredW="47" measuredH="24" zOrder="16" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>10</text>
+      </controlProperties>
+    </control>
+    <control controlID="58" controlTypeID="com.balsamiq.mockups::ComboBox" x="721" y="385" w="104" h="-1" measuredW="57" measuredH="24" zOrder="17" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>CHA</text>
+      </controlProperties>
+    </control>
+    <control controlID="59" controlTypeID="com.balsamiq.mockups::VerticalScrollBar" x="692" y="355" w="-1" h="86" measuredW="16" measuredH="100" zOrder="18" locked="false" isInGroup="-1"/>
+    <control controlID="60" controlTypeID="com.balsamiq.mockups::Button" x="582" y="449" w="-1" h="-1" measuredW="116" measuredH="27" zOrder="19" locked="false" isInGroup="-1">
+      <controlProperties>
+        <size>12</size>
+        <text>Add%20Requirement</text>
+      </controlProperties>
+    </control>
+    <control controlID="61" controlTypeID="com.balsamiq.mockups::Button" x="702" y="449" w="-1" h="-1" measuredW="123" measuredH="27" zOrder="20" locked="false" isInGroup="-1">
+      <controlProperties>
+        <size>12</size>
+        <text>Save%20Requirement</text>
+      </controlProperties>
+    </control>
+    <control controlID="62" controlTypeID="com.balsamiq.mockups::Label" x="582" y="484" w="-1" h="-1" measuredW="49" measuredH="21" zOrder="21" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Triggers</text>
+      </controlProperties>
+    </control>
+    <control controlID="63" controlTypeID="com.balsamiq.mockups::List" x="582" y="512" w="126" h="88" measuredW="100" measuredH="126" zOrder="22" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Item%20Gained%0ANew%20Chat</text>
+      </controlProperties>
+    </control>
+    <control controlID="64" controlTypeID="com.balsamiq.mockups::ComboBox" x="721" y="512" w="104" h="-1" measuredW="91" measuredH="24" zOrder="23" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Name%20Tag</text>
+      </controlProperties>
+    </control>
+    <control controlID="65" controlTypeID="com.balsamiq.mockups::ComboBox" x="721" y="544" w="104" h="-1" measuredW="67" measuredH="24" zOrder="24" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Player</text>
+      </controlProperties>
+    </control>
+    <control controlID="66" controlTypeID="com.balsamiq.mockups::NumericStepper" x="721" y="576" w="104" h="-1" measuredW="39" measuredH="24" zOrder="25" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>1</text>
+      </controlProperties>
+    </control>
+    <control controlID="67" controlTypeID="com.balsamiq.mockups::VerticalScrollBar" x="692" y="512" w="-1" h="88" measuredW="16" measuredH="100" zOrder="26" locked="false" isInGroup="-1"/>
+    <control controlID="68" controlTypeID="com.balsamiq.mockups::Button" x="583" y="611" w="125" h="27" measuredW="91" measuredH="27" zOrder="27" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Add%20Trigger</text>
+      </controlProperties>
+    </control>
+    <control controlID="69" controlTypeID="com.balsamiq.mockups::Button" x="721" y="611" w="104" h="27" measuredW="98" measuredH="27" zOrder="28" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Save%20Trigger</text>
+      </controlProperties>
+    </control>
+  </controls>
+</mockup>
