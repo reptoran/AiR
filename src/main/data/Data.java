@@ -1,6 +1,7 @@
 package main.data;
 
 import java.awt.Point;
+import java.util.List;
 
 import main.data.event.Event;
 import main.entity.actor.Actor;
@@ -17,43 +18,35 @@ import main.entity.world.WorldTile;
 import main.entity.zone.Zone;
 import main.entity.zone.ZoneFactory;
 import main.entity.zone.ZoneKey;
-import main.logic.AI.AiType;
+import main.entity.zone.predefined.PredefinedZone;
+import main.entity.zone.predefined.PredefinedZoneLoader;
 import main.presentation.Logger;
 
 public class Data
 {
-	// entities actually in the game
-	// private Map<Point, String> gameZones; //we're saving space by only storing the predefined zones; note that new Points must be used for both assigning and
-	// accessing so that their hashes match
-
 	protected Zone currentZone;
 	private Overworld overworld;
 	private Actor player;
 
-	private DataSaveUtils dataSaveUtils;
+	private DataSaveUtils dataSaveUtils = null;
+	List<PredefinedZone> predefinedZones;
+	
 
-	private String playerName;
-	private ActorTurnQueue worldTravelQueue;
+	private String playerName = null;
+	private ActorTurnQueue worldTravelQueue = new ActorTurnQueue();
 
-	private boolean worldTravel;
+	private boolean worldTravel = false;
 
 	public Data()
 	{
-		// gameZones = new HashMap<Point, String>(); //the string is the name of the field; it's also the file name we're saving to and loading from
-		dataSaveUtils = null;
-
-		playerName = null;
-		worldTravelQueue = null;
-
-		 worldTravel = true;
-//		worldTravel = false;
+		PredefinedZoneLoader predefinedZoneLoader = new PredefinedZoneLoader();
+		predefinedZones = predefinedZoneLoader.loadAllPredefinedZones();
 	}
 
 	public void begin(String newPlayerName)
 	{
 		playerName = newPlayerName;
 		dataSaveUtils = new DataSaveUtils(playerName);
-		worldTravelQueue = new ActorTurnQueue();
 
 		if (!dataSaveUtils.loadSavedGame(this))
 			newGame();
@@ -63,19 +56,16 @@ public class Data
 
 	public void newGame()
 	{
-		// create the overworld
+		SpecialLevelManager.populateSpecialZonesForLevels(predefinedZones);
+		
 		overworld = new Overworld();
 
-		// generate some actors to play around with
-		Actor playerActor = createNewActor(ActorType.NO_TYPE);
+		Actor playerActor = ActorFactory.generateNewActor(ActorType.PLAYER);
 		playerActor.setName(playerName);
-		playerActor.setIcon('@');
-		playerActor.setColor(15);
-		playerActor.setAI(AiType.HUMAN_CONTROLLED);
 		updatePlayerWorldCoords(2, 2);
 		player = playerActor;
 
-//		enterLocalZoneFromWorldTravel();
+		enterLocalZoneFromWorldTravel();
 	}
 
 	public Zone getZoneAtLocation(int x, int y)
@@ -91,6 +81,11 @@ public class Data
 	public Zone getZoneAtLocation(Point coords)
 	{
 		return getZoneAtLocation(coords.x, coords.y);
+	}
+	
+	public List<PredefinedZone> getPredefinedZones()
+	{
+		return predefinedZones;
 	}
 
 	public Actor getPlayer()
@@ -192,7 +187,7 @@ public class Data
 			dataSaveUtils.cacheZone(originZone);
 		}
 		
-		currentZone.addActor(actor, newZoneKey.getEntryPoint());
+		currentZone.addActor(actor, newZoneKey.getEntryPoint());		//TODO: naturally, if there is a null entry point (like when generated a special level with no up staircase), this fails
 	}
 
 	// events are assumed to be checked and sanitized by the logic layer, so just
@@ -250,23 +245,13 @@ public class Data
 	{
 		Actor actor = player;
 		currentZone = getZoneAtLocation(overworld.getPlayerCoords());
-		currentZone.addActor(actor, new Point(20, 80));
+		currentZone.addActor(actor, new Point(2, 2));
 		worldTravel = false;
-	}
-
-	private Actor createNewActor(ActorType actorType)
-	{
-		return getGenericActor(actorType);
 	}
 
 	private void updateActorLocalCoords(Actor actor, int x, int y)
 	{
 		currentZone.updateActorCoords(actor, new Point(x, y));
-	}
-
-	private void addActorToZone(Actor actor, int x, int y, Zone zone)
-	{
-		zone.addActor(actor, new Point(x, y));
 	}
 
 	private void updatePlayerWorldCoords(int x, int y)

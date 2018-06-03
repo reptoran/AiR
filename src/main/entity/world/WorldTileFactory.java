@@ -4,6 +4,7 @@ import java.text.ParseException;
 
 import main.entity.save.EntityMap;
 import main.entity.zone.ZoneType;
+import main.presentation.Logger;
 
 public class WorldTileFactory
 {
@@ -23,9 +24,10 @@ public class WorldTileFactory
 				return new WorldTile(zoneType, "forest", '&', 2, false, false, 14000, "");
 			case DESERT:
 				return new WorldTile(zoneType, "desert", '.', 14, false, false, 12000, "");
-			case DUNGEON:
-				return new WorldTile(zoneType, "dungeon", '*', 8, false, false, 10000, "");
+			case LABYRINTH:
+				return new WorldTile(zoneType, "labyrinth", '*', 8, false, false, 10000, "");
 			default:
+				Logger.warn("Cannot generate a world tile for undefined type [" + zoneType + "].");
 				break;
 		}
 		

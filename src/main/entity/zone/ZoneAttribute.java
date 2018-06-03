@@ -2,5 +2,5 @@ package main.entity.zone;
 
 public enum ZoneAttribute
 {
-	MINLEVEL, MAXLEVEL;
+	MINLEVEL, MAXLEVEL, NAME;
 }

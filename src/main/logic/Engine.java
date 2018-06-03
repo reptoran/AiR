@@ -24,30 +24,22 @@ public class Engine
 
 	private StringBuilder messageBuffer;
 
-	private String queuedCommand;
+	private boolean acceptInput = false;
 	private long turnIndex;
 
 	public Engine(Data theData)
 	{
-		gameData = theData;
-
-		messageBuffer = new StringBuilder();
-
 		gameAIs = new HashMap<AiType, ActorAI>();
-
-		// define AIs
 		gameAIs.put(AiType.RAND_MOVE, new MoveRandomAI());
-
-		queuedCommand = "";
+		
 		turnIndex = 0;
+		messageBuffer = new StringBuilder();
+		gameData = theData;
 	}
 
 	public void beginGame()
 	{
-		while (true)
-		{
-			runTurn();
-		}
+		acceptInput = true;
 	}
 
 	public boolean isWorldTravel()
@@ -70,9 +62,14 @@ public class Engine
 		return gameData;
 	}
 
-	public void receiveCommand(String theCommand)
+	public void receiveCommand(String command)
 	{
-		queuedCommand = theCommand;
+		if (!acceptInput)
+			return;
+		
+		acceptInput = false;
+		runTurns(command);
+		acceptInput = true;
 	}
 
 	@Deprecated	//TODO: only deprecated so I have a visual reminder to move this to Data (assuming that's best in MM, anyway)
@@ -83,47 +80,50 @@ public class Engine
 
 		return messages;
 	}
-
-	// increases the game turn counter, and lets each actor able to do so perform an action
-	private void runTurn()
+	
+	private void runTurns(String command)
 	{
-		turnIndex++;
-
 		ActorTurnQueue localActors = gameData.getActorQueue();
-		Actor curActor = localActors.popNextActor();
+		Actor playerActor = localActors.popNextActor();
+		
+		if (!AiType.HUMAN_CONTROLLED.equals(playerActor.getAI()))
+		{
+			Logger.warn("Next actor is not human controlled; simulating AI turns now.");
+			runAiTurns();
+			return;
+		}	
 
-		int actorIndex = gameData.getActorIndex(curActor);
+		int actorIndex = gameData.getActorIndex(playerActor);
 
 		if (actorIndex == -1)
-		{
 			throw new IllegalStateException("localActors contained an actor not in zone");
-		}
-
-		AiType aiIndex = curActor.getAI();
-
-		String command = "";
-
-		if (aiIndex == AiType.HUMAN_CONTROLLED)
-		{
-			while (queuedCommand.equals(""))
-			{
-				// loop here until an input is received
-			}
-
-			command = queuedCommand;
-			queuedCommand = "";
-		} else
-		{
-			ActorAI curAI = gameAIs.get(aiIndex);
-			command = curAI.getNextCommand(curActor);
-		}
-
+		
 		executeActorCommand(actorIndex, command);
-		localActors.add(curActor);
-
-		if (aiIndex == AiType.HUMAN_CONTROLLED)
+		localActors.add(playerActor);
+		
+		runAiTurns();
+		UiManager.getInstance().refreshInterface();
+	}
+	
+	private void runAiTurns()
+	{
+		ActorTurnQueue localActors = gameData.getActorQueue();
+		
+		while (!AiType.HUMAN_CONTROLLED.equals(localActors.getNextActorAi()))
 		{
-			UiManager.getInstance().refreshInterface();
+			turnIndex++;	//TODO: not completely accurate, because this only updates every time an actor acts, rather than with every game tick
+			
+			Actor curActor = localActors.popNextActor();
+			int actorIndex = gameData.getActorIndex(curActor);
+			
+			if (actorIndex == -1)
+				throw new IllegalStateException("localActors contained an actor not in zone");
+			
+			AiType aiType = curActor.getAI();
+			ActorAI curAI = gameAIs.get(aiType);
+			String command = curAI.getNextCommand(curActor);
+			executeActorCommand(actorIndex, command);
+			localActors.add(curActor);
 		}
 	}
 

@@ -9,6 +9,7 @@ import main.entity.world.WorldTile;
 import main.entity.zone.generator.AbstractGenerator;
 import main.entity.zone.generator.DesertGenerator;
 import main.entity.zone.generator.ForestGenerator;
+import main.entity.zone.generator.LabyrinthGenerator;
 import main.entity.zone.generator.OceanGenerator;
 import main.entity.zone.generator.PersistentCaveGenerator;
 import main.entity.zone.generator.PlainsGenerator;
@@ -67,7 +68,9 @@ public class ZoneFactory
 		zoneKey.setId(generatedMaps++);
 		Zone zone = zoneGenerator.generateZone(zoneKey, goingDown, oldZone);
 		
-		populateZone(zone);	//TODO: perhaps put this somewhere else
+		//TODO: perhaps put this somewhere else
+		if (zone.getType() != ZoneType.PERMANENT)
+			populateZone(zone);
 		
 		return zone;
 	}
@@ -106,7 +109,7 @@ public class ZoneFactory
 
 	private void setGenerator(ZoneType zoneType)
 	{
-		switch (zoneType)
+		switch(zoneType)	
 		{
 			case FOREST:
 				zoneGenerator = new ForestGenerator();
@@ -122,6 +125,9 @@ public class ZoneFactory
 				break;
 			case CAVE:
 				zoneGenerator = new PersistentCaveGenerator();
+				break;
+			case LABYRINTH:
+				zoneGenerator = new LabyrinthGenerator();
 				break;
 			case PERMANENT:
 				throw new IllegalArgumentException("Zone has already been generated.");

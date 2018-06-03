@@ -4,9 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import main.entity.actor.Actor;
+import main.logic.AI.AiType;
 
 public class ActorTurnQueue {
 	private List<Actor> actors = new ArrayList<Actor>();
+	
+	public AiType getNextActorAi() {
+		return actors.get(0).getAI();
+	}
 	
 	public Actor getNextActor() {
 		Actor nextActor = actors.get(0);

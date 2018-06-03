@@ -1,5 +1,7 @@
 package main.presentation;
 
+import javax.swing.JOptionPane;
+
 public class Logger
 {
 	public static final int INFO = 0;
@@ -7,6 +9,7 @@ public class Logger
 	public static final int WARN = 2;
 	public static final int ERROR = 3;
 	public static final int OUTPUT = 4;		//this is because we always want to display info text ("loading map"), even if we're not showing warnings and the like
+	public static final int POPUP = 5;
 	
 	private static int logLevelToShow = 0;
 	private static String[] levelStrings = {"[INFO] ", "[DEBUG] ", "[WARN] ", "[ERROR] ", ""}; 
@@ -23,8 +26,6 @@ public class Logger
 	
 	public static void logMessage(String message, int logLevel, boolean newLine)
 	{
-		
-		
 		if (logLevel < logLevelToShow)
 			return;
 		
@@ -52,5 +53,9 @@ public class Logger
 	
 	public static void output(String message) {
 		logMessage(message, OUTPUT);
+	}
+	
+	public static void popup(String message) {
+		JOptionPane.showMessageDialog(null, message);
 	}
 }

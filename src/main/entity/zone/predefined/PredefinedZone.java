@@ -30,4 +30,10 @@ public class PredefinedZone extends Zone
 	{
 		zoneAttributes = zoneAttributeMap;
 	}
+	
+	@Override
+	public String toString()
+	{
+		return super.toString();		//TODO: add attributes to this string
+	}
 }

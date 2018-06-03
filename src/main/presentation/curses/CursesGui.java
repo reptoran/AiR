@@ -5,6 +5,7 @@ import java.awt.event.KeyListener;
 
 import main.logic.Engine;
 import main.presentation.AbstractGui;
+import main.presentation.Logger;
 import main.presentation.curses.terminal.CursesTerminal;
 import main.presentation.curses.terminal.CursesTerminalAsciiPanelImpl;
 
@@ -78,8 +79,8 @@ public class CursesGui extends AbstractGui implements KeyListener
 		int code = ke.getKeyCode();
 		char keyChar = ke.getKeyChar();
 		
-//		System.out.println("GUI - Key press detected, code is: " + code);
-//		System.out.println("GUI - Key press detected, char is: " + keyChar);
+		Logger.debug("GUI - Key press detected, code is: " + code);
+		Logger.debug("GUI - Key press detected, char is: " + keyChar);
 
 		if (code == KeyEvent.VK_NUMPAD1)
 		{
@@ -124,8 +125,6 @@ public class CursesGui extends AbstractGui implements KeyListener
 			engine.receiveCommand("EXIT");
 			terminal.close();
 		}
-		
-//		refreshInterface();	//TODO: this can happen before the logic is executed and the data is updated, resulting in no screen change
 	}
 
 	private void handleDirection(int rowChange, int colChange)
@@ -145,8 +144,6 @@ public class CursesGui extends AbstractGui implements KeyListener
 			if (colChange > 0)
 				command = command + "E";
 		}
-
-		// System.out.println("GUI - Command being sent: " + command);
 
 		engine.receiveCommand(command);
 	}

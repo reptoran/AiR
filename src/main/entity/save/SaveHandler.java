@@ -11,6 +11,7 @@ import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.world.WorldTile;
 import main.entity.zone.Zone;
+import main.presentation.Logger;
 
 public class SaveHandler extends FileHandler
 {
@@ -124,9 +125,15 @@ public class SaveHandler extends FileHandler
 		zipDirectory(cachePath + File.separator + zoneId, ".zn");
 	}
 
-	public void zipSaveDir() throws IOException
+	public void zipSaveDir()
 	{
-		zipDirectory(playerPath, ".sav");
+		try
+		{
+			zipDirectory(playerPath, ".sav");
+		} catch (IOException e)
+		{
+			Logger.error("Could not compress save directory!");
+		}
 	}
 
 	public void unzipZoneCache(String zoneId) throws IOException

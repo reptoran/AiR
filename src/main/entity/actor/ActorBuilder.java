@@ -1,5 +1,7 @@
 package main.entity.actor;
 
+import main.logic.AI.AiType;
+
 public class ActorBuilder
 {
 	private static final int TOTAL_ATTRIBUTES = 5;
@@ -47,6 +49,12 @@ public class ActorBuilder
 	public ActorBuilder setColor(int color)
 	{
 		actor.setColor(color);
+		return this;
+	}
+	
+	public ActorBuilder setAI(AiType AI)
+	{
+		actor.setAI(AI);
 		return this;
 	}
 	

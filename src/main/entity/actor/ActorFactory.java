@@ -3,6 +3,7 @@ package main.entity.actor;
 import java.text.ParseException;
 
 import main.entity.save.EntityMap;
+import main.logic.AI.AiType;
 import main.presentation.Logger;
 
 
@@ -16,6 +17,8 @@ public class ActorFactory
 		
 		switch (actorType)
 		{
+			case PLAYER:
+				return ActorBuilder.generateActor(ActorType.NO_TYPE).setIcon('@').setColor(15).setAI(AiType.HUMAN_CONTROLLED).build();
 			case HUMAN:
 				return ActorBuilder.generateActor(ActorType.HUMAN).setName("human").setIcon('H').setColor(12).build();
 			case RAT:
@@ -32,12 +35,13 @@ public class ActorFactory
 				return ActorBuilder.generateActor(ActorType.FOX).setName("fox").setIcon('f').setColor(12).build();
 			case BANDIT:
 				return ActorBuilder.generateActor(ActorType.BANDIT).setName("bandit").setIcon('H').setColor(3).build();
+			case OGRE:
+				return ActorBuilder.generateActor(ActorType.OGRE).setName("ogre").setIcon('O').setColor(10).build();
 			case NO_TYPE:
 				return ActorBuilder.generateActor(ActorType.NO_TYPE).setName("generic actor").setIcon('0').setColor(7).build();
 			default:
 				Logger.warn("Generating an actor for a type not yet defined.");
 				return new ActorBuilder(ActorType.NO_TYPE).build();
-			
 		}
 	}
 	

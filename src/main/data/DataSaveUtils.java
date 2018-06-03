@@ -18,10 +18,13 @@ import main.entity.world.WorldTile;
 import main.entity.world.WorldTileFactory;
 import main.entity.zone.Zone;
 import main.entity.zone.ZoneFactory;
+import main.entity.zone.generator.LabyrinthGenerator;
 import main.presentation.Logger;
 
 public class DataSaveUtils
 {
+	private static final String VERSION = "0.0.1";
+	
 	private SaveHandler saveHandler;
 
 	public DataSaveUtils(String playerName)
@@ -219,22 +222,17 @@ public class DataSaveUtils
 		}
 
 		// save game information
+		saveHandler.saveGameDataElement(VERSION);
 		saveHandler.saveGameDataElement(EntityMap.getSimpleKey(player.getUniqueId())); // player
 		saveHandler.saveGameDataElement(Boolean.toString(worldTravel)); // whether or not the player is using world travel
 		saveHandler.saveGameDataElement(currentZoneName); // current zone name
 		saveHandler.saveGameDataElement(currentZoneId); // current zone ID
 		saveHandler.saveGameDataElement(String.valueOf(ZoneFactory.getGeneratedMapCount())); //determines the number of the next zone to be generated
+		saveHandler.saveGameDataElement(LabyrinthGenerator.saveState());
+		saveHandler.saveGameDataElement(SpecialLevelManager.saveState());
 		//TODO: consider saving the current random seed (and loading it later in the appropriate method)
 
-		// zip the individual files into a single save file
-		try
-		{
-			saveHandler.zipSaveDir();
-		} catch (IOException e)
-		{
-			Logger.error("Could not compress save directory!");
-		}
-
+		saveHandler.zipSaveDir();	// zip the individual files into a single save file
 		saveHandler.deleteSaveDir();
 		EntityMap.clearMappings();
 	}
@@ -249,8 +247,34 @@ public class DataSaveUtils
 			System.out.println("Data - Error occured while uncompressing save directory!");
 		}
 
+		// load game information
+		List<String> entityLines = saveHandler.loadGameDataElements();
+
+		String saveGameVersion = entityLines.get(0);
+		
+		if (!VERSION.equalsIgnoreCase(saveGameVersion))
+		{
+			Logger.popup("Version mismatch; cannot load game.");
+			saveHandler.zipSaveDir();
+			saveHandler.deleteSaveDir();
+			saveHandler.deleteCacheDir();
+			System.exit(0);
+		}
+		
+		String currentPlayerId = entityLines.get(1);
+		String worldTravel = entityLines.get(2);
+		String currentZoneName = entityLines.get(3);
+		String currentZoneId = entityLines.get(4);
+		ZoneFactory.setGeneratedMapCount(Integer.parseInt(entityLines.get(5)));
+		LabyrinthGenerator.loadState(entityLines.get(6));
+		SpecialLevelManager.loadState(entityLines.get(7));
+
+		data.setWorldTravel(Boolean.valueOf(worldTravel));
+		data.setCurrentZone(null);
+		
+		SpecialLevelManager.populateSpecialZonesForLevels(data.getPredefinedZones());
+		
 		EntityMap.clearMappings();
-		List<String> entityLines;
 
 		// load world tiles
 		entityLines = saveHandler.loadWorldTiles();
@@ -265,18 +289,6 @@ public class DataSaveUtils
 		Overworld world = new Overworld();
 		world.loadFromText(saveString);
 		data.setOverworld(world);
-
-		// load game information
-		entityLines = saveHandler.loadGameDataElements();
-
-		String currentPlayerId = entityLines.get(0);
-		String worldTravel = entityLines.get(1);
-		String currentZoneName = entityLines.get(2);
-		String currentZoneId = entityLines.get(3);
-		ZoneFactory.setGeneratedMapCount(Integer.parseInt(entityLines.get(4)));
-
-		data.setWorldTravel(Boolean.valueOf(worldTravel));
-		data.setCurrentZone(null);
 		
 		if (!data.isWorldTravel())
 		{

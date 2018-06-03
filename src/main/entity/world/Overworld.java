@@ -56,7 +56,7 @@ public class Overworld extends SaveableEntity
 			}
 		}
 		
-		tiles[2][2] = WorldTileFactory.generateNewTile(ZoneType.DUNGEON);
+		tiles[2][2] = WorldTileFactory.generateNewTile(ZoneType.LABYRINTH);
 		
 		playerCoords = new Point(2, 2);
 	}

@@ -3,6 +3,7 @@ package main.entity.actor;
 public enum ActorType
 {
 	NO_TYPE(-1, -1),
+	PLAYER(-1, -1),
 	HUMAN(1, 1),
 	RAT(2, 4),
 	RATTLESNAKE(3, 6),
@@ -10,7 +11,8 @@ public enum ActorType
 	BEAR(0, 3),
 	WOLF(0, 2),
 	FOX(0, 1),
-	BANDIT(0, 0);
+	BANDIT(0, 0),
+	OGRE(12, 22);
 	
 	private int minDepth;
 	private int maxDepth;

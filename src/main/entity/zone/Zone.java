@@ -21,6 +21,7 @@ import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
 import main.entity.save.SaveTokenTag;
 import main.entity.tile.Tile;
+import main.presentation.Logger;
 
 public class Zone extends SaveableEntity
 {
@@ -112,6 +113,11 @@ public class Zone extends SaveableEntity
 	{
 		return depth;
 	}
+	
+	public void setDepth(int depth)
+	{
+		this.depth = depth;
+	}
 
 	public Tile getTile(int row, int column)
 	{
@@ -140,8 +146,19 @@ public class Zone extends SaveableEntity
 
 	public int addActor(Actor actor, Point coords)
 	{
-		if (actor == null || actors.contains(actor))
-			return -1; // possibly throw exception, or at least debug
+		if (actor == null)
+			throw new IllegalArgumentException("Cannot add null actor.");
+		
+		Logger.info("Attempting to add actor [" + actor.getName() + "] to zone at [" + coords + "]");
+		
+		if (coords == null)
+			throw new IllegalArgumentException("Cannot add actor with null coordinates.");
+		
+		if (coords.x < 0 || coords.y < 0 || coords.x >= height || coords.y >= width)
+			throw new IllegalArgumentException("Cannot add actor outside the bounds of the zone; attempted coordinates were: " + coords);
+			
+		if (actors.contains(actor))
+			throw new IllegalArgumentException("Actor is already present in the zone.");
 
 		actors.add(actor);
 		actorQueue.add(actor);
@@ -281,6 +298,9 @@ public class Zone extends SaveableEntity
 	
 	public void addZoneKey(Point point, ZoneKey zoneKey)
 	{
+		if (zoneEntryKeys.containsKey(point))
+			zoneEntryKeys.remove(point);
+		
 		zoneEntryKeys.put(point, zoneKey);
 	}
 	

@@ -2,7 +2,6 @@ package main.entity.zone.generator;
 
 import main.entity.zone.Zone;
 import main.entity.zone.ZoneKey;
-import main.entity.zone.ZoneType;
 import main.presentation.Logger;
 
 public abstract class AbstractGenerator
@@ -20,10 +19,5 @@ public abstract class AbstractGenerator
 	protected boolean canTransitionToOverworld()
 	{
 		return false;
-	}
-	
-	protected ZoneType getDefaultZoneTypeForNextLevel()
-	{
-		return ZoneType.NO_TYPE;
 	}
 }
