@@ -9,6 +9,8 @@ import main.entity.actor.Actor;
 import main.entity.actor.ActorFactory;
 import main.entity.feature.Feature;
 import main.entity.feature.FeatureFactory;
+import main.entity.item.Item;
+import main.entity.item.ItemFactory;
 import main.entity.save.EntityMap;
 import main.entity.save.SaveHandler;
 import main.entity.tile.Tile;
@@ -70,8 +72,6 @@ public class DataSaveUtils
 	
 	public void cacheZone(Zone zone, boolean clearMappings)
 	{
-		// TODO: THIS WAS "not clearing mappings before or after, because we want the map to persist all items (tiles, etc.)", but now I'm trying it to see what happens
-		
 		if (clearMappings)
 			EntityMap.clearMappings();	//caching the zone will put in all of its mappings, so we don't need anything in the map
 		
@@ -109,6 +109,15 @@ public class DataSaveUtils
 			Feature feature = EntityMap.getFeature(key);
 			saveHandler.cacheZoneFeature(feature, zoneId);
 		}
+
+		// save items (should be stored from both the actors and the tiles)
+		keys = EntityMap.getItemKeys();
+
+		for (String key : keys)
+		{
+			Item item = EntityMap.getItem(key);
+			saveHandler.cacheZoneItem(item, zoneId);
+		}
 		
 		if (clearMappings)
 			EntityMap.clearMappings();	//all the mappings have been used and recorded, so we can clear them
@@ -133,8 +142,6 @@ public class DataSaveUtils
 	public Zone uncacheZone(String zoneId, boolean clearMappings)
 	{
 		Zone uncachedZone = null;
-
-		// TODO: OLD - "not clearing mappings before or after, because we want the map to persist all items (tiles, etc.)"
 		
 		if (clearMappings)
 			EntityMap.clearMappings();	//we don't need the mappings to just pull the data strings from the cache files, and the factories will add the mappings as we go
@@ -148,6 +155,14 @@ public class DataSaveUtils
 		}
 
 		List<String> entityLines;
+		
+		// uncache items
+		entityLines = saveHandler.uncacheZoneItems(zoneId);
+
+		for (String saveString : entityLines)
+		{
+			ItemFactory.loadAndMapItemFromSaveString(saveString); // the factory sticks it in EntityMap, so we don't need to save it anywhere else for now
+		}
 
 		// uncache actors
 		entityLines = saveHandler.uncacheZoneActors(zoneId);

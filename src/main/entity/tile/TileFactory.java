@@ -13,23 +13,23 @@ public class TileFactory
 		switch (tileType)
 		{
 			case GRASS:
-				return new Tile(tileType, "grass", '.', 10, false, false, 100, "");
+				return TileBuilder.generateTile(tileType).setName("grass").setIcon('.').setColor(10).build();
 			case OCEAN:
-				return new Tile(tileType, "ocean", '=', 1, false, true, 0, "That water looks much too treacherous for swimming.");
+				return TileBuilder.generateTile(tileType).setName("ocean").setIcon('=').setColor(1).setObstructsMotion(true).setBlockedMessage("That water looks much too treacherous for swimming.").build();
 			case RIVER:
-				return new Tile(tileType, "river", '=', 9, false, true, 0, "You'd rather not get wet right now.");
+				return TileBuilder.generateTile(tileType).setName("river").setIcon('=').setColor(9).setObstructsMotion(true).setBlockedMessage("You'd rather not get wet right now.").build();
 			case SAND:
-				return new Tile(tileType, "sand", '.', 14, false, false, 120, "");
+				return TileBuilder.generateTile(tileType).setName("sand").setIcon('.').setColor(14).setMoveCostModifier(1.2).build();
 			case ROCK:
-				return new Tile(tileType, "rock", '*', 8, false, true, 0, "The rocky wall is too steep to climb.");
+				return TileBuilder.generateTile(tileType).setName("rock").setIcon('*').setColor(8).setObstructsMotion(true).setBlockedMessage("The rocky wall is too steep to climb.").build();
 			case ROAD:
-				return new Tile(tileType, "road", '.', 6, false, false, 90, "");
+				return TileBuilder.generateTile(tileType).setName("road").setIcon('.').setColor(6).setMoveCostModifier(.9).build();
 			case FLOOR:
-				return new Tile(tileType, "floor", '.', 7, false, false, 100, "");
+				return TileBuilder.generateTile(tileType).setName("floor").setIcon('.').setColor(7).build();
 			case STAIRS_DOWN:
-				return new Tile(tileType, "stairs down", '>', 7, false, false, 100, "");
+				return TileBuilder.generateTile(tileType).setName("stairs down").setIcon('>').setColor(7).build();
 			case STAIRS_UP:
-				return new Tile(tileType, "stairs up", '<', 7, false, false, 100, "");
+				return TileBuilder.generateTile(tileType).setName("stairs up").setIcon('<').setColor(7).build();
 			case NO_TYPE:	//falls through
 			default:
 				throw new IllegalArgumentException("No tile definition for tile type: " + tileType);

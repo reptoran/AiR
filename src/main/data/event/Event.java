@@ -42,6 +42,13 @@ public class Event
 		return toRet;
 	}
 
+	public static Event waitEvent(int actorIndex, int movementCost)
+	{
+		Event event = actorOnlyEvent(EventType.WAIT, actorIndex);
+		event.actionCost = movementCost;
+		return event;
+	}
+
 	public static Event localMoveEvent(int actorIndex, int targetRow, int targetCol, int actionCost)
 	{
 		return moveEvent(EventType.LOCAL_MOVE, actorIndex, targetRow, targetCol, actionCost);
@@ -74,6 +81,24 @@ public class Event
 	public static Event enterLocalEvent(int actorIndex)
 	{
 		return actorOnlyEvent(EventType.ENTER_LOCAL, actorIndex);
+	}
+	
+	public static Event attackEvent(int attackerIndex, int defenderIndex, int damage, int actionCost)
+	{
+		Event toRet = new Event(EventType.ATTACK);
+		
+		toRet.flags[0] = attackerIndex;
+		toRet.flags[1] = defenderIndex;
+		toRet.flags[2] = damage;
+		
+		toRet.actionCost = actionCost;
+		
+		return toRet;
+	}
+	
+	public static Event deathEvent(int deadActorIndex)
+	{
+		return actorOnlyEvent(EventType.DEATH, deadActorIndex);
 	}
 	
 	public static Event saveEvent()

@@ -7,6 +7,7 @@ import java.util.List;
 import main.data.file.FileHandler;
 import main.entity.actor.Actor;
 import main.entity.feature.Feature;
+import main.entity.item.Item;
 import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.world.WorldTile;
@@ -21,6 +22,7 @@ public class SaveHandler extends FileHandler
 	private static final String WORLD_TILE_PATH = "wTiles.dat";
 	private static final String ZONE_PATH = "zones.dat";
 	private static final String TILE_PATH = "tiles.dat";
+	private static final String ITEM_PATH = "items.dat";
 	private static final String FEATURE_PATH = "features.dat";
 	private static final String ACTOR_PATH = "actors.dat";
 	private static final String GAMEDATA_PATH = "game.dat";
@@ -167,6 +169,11 @@ public class SaveHandler extends FileHandler
 		return loadFile(playerPath + File.separator + TILE_PATH);
 	}
 
+	public List<String> loadItems()
+	{
+		return loadFile(playerPath + File.separator + ITEM_PATH);
+	}
+
 	public List<String> loadZones()
 	{
 		return loadFile(playerPath + File.separator + ZONE_PATH);
@@ -206,6 +213,13 @@ public class SaveHandler extends FileHandler
 		if (EntityMap.getTile(tile.getUniqueId()) == null)
 			EntityMap.put(tile.getUniqueId(), tile);
 		return writeLine(playerPath + File.separator + TILE_PATH, tile.saveAsText());
+	}
+
+	public boolean saveItem(Item item)
+	{
+		if (EntityMap.getTile(item.getUniqueId()) == null)
+			EntityMap.put(item.getUniqueId(), item);
+		return writeLine(playerPath + File.separator + ITEM_PATH, item.saveAsText());
 	}
 
 	public boolean saveZone(Zone zone)
@@ -257,6 +271,13 @@ public class SaveHandler extends FileHandler
 		return writeLine(cachePath + File.separator + zoneId + File.separator + TILE_PATH, tile.saveAsText());
 	}
 
+	public boolean cacheZoneItem(Item item, String zoneId)
+	{
+		if (EntityMap.getItem(item.getUniqueId()) == null)
+			EntityMap.put(item.getUniqueId(), item);
+		return writeLine(cachePath + File.separator + zoneId + File.separator + ITEM_PATH, item.saveAsText());
+	}
+
 	public List<String> uncacheZones(String zoneId)
 	{
 		return loadFile(cachePath + File.separator + zoneId + File.separator + ZONE_PATH);
@@ -275,5 +296,10 @@ public class SaveHandler extends FileHandler
 	public List<String> uncacheZoneTiles(String zoneId)
 	{
 		return loadFile(cachePath + File.separator + zoneId + File.separator + TILE_PATH);
+	}
+
+	public List<String> uncacheZoneItems(String zoneId)
+	{
+		return loadFile(cachePath + File.separator + zoneId + File.separator + ITEM_PATH);
 	}
 }

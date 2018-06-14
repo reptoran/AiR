@@ -12,7 +12,7 @@ public class RPGlib
 		return random.nextInt(upper + 1 - lower) + lower;
 	}
 	
-	public static int dist(int x1, int y1, int x2, int y2)
+	public static int distance(int x1, int y1, int x2, int y2)
 	{
 	    return (int)Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 	}

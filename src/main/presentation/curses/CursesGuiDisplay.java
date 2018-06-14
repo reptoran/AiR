@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.Point;
 
 import main.entity.actor.Actor;
-import main.entity.feature.Feature;
 import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.world.WorldTile;
@@ -15,11 +14,12 @@ import main.presentation.curses.terminal.CursesTerminal;
 public class CursesGuiDisplay extends CursesGuiUtil
 {
 	private static final Color BORDER_COLOR = Color.LIGHT_GRAY;
+	private static final Color PLAYER_INFO_COLOR = Color.LIGHT_GRAY;
 
-	private int displayStartRow = 4;
-	private int displayStartCol = 1;
-	private int displayHeight = 20;
-	private int displayWidth = 78;
+	private int displayStartRow = 2;
+	private int displayStartCol = 0;
+	private int displayHeight = 21;
+	private int displayWidth = 80;
 	
 	private Engine engine;
 	
@@ -90,28 +90,11 @@ public class CursesGuiDisplay extends CursesGuiUtil
 		int bg = 0;
 		String icon = " ";
 
-		// print the tile at this location
+		// print the tile at this location (getColor() and getIcon() within Tile check the features, actors, etc.
 		if (tile != null)
 		{
 			fg = tile.getColor();
 			icon = "" + tile.getIcon();
-			
-			Feature feature = tile.getFeatureHere();
-			Actor actor = tile.getActorHere();
-			
-			if (feature != null)
-			{
-				fg = feature.getColor();
-				icon = "" + feature.getIcon();
-			}
-			
-			//TODO: display item if one exists
-			
-			if (actor != null)
-			{
-				fg = actor.getColor();
-				icon = "" + actor.getIcon();
-			}
 		}
 
 		terminal.print(col, row, icon, fg, bg);
@@ -149,5 +132,31 @@ public class CursesGuiDisplay extends CursesGuiUtil
 
 		terminal.print(col, row, icon, fg, bg);
 	}
+
+	protected void showPlayerInfo()
+	{
+		clearPlayerInfoArea();
+		
+		Actor player = engine.getData().getPlayer();
+		Zone localMap = engine.getCurrentZone();
+		
+		terminal.print(0, 23, player.getName(), PLAYER_INFO_COLOR);
+		terminal.print(10, 23, "HP: " + player.getCurHp() + "/" + player.getMaxHp(), PLAYER_INFO_COLOR);
+		terminal.print(0, 24, "Depth: " + localMap.getDepth(), PLAYER_INFO_COLOR);
+		
+		terminal.refresh();
+	}
 	
+	private void clearPlayerInfoArea()
+	{
+		for (int i = 23; i < 24; i++)
+		{
+			for (int j = 0; j < 80; j++)
+			{
+				terminal.print(j, i, " ", Color.BLACK);
+			}
+		}
+		
+		terminal.refresh();
+	}
 }

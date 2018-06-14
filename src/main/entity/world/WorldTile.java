@@ -22,10 +22,10 @@ public class WorldTile extends FieldCoord
 																							// (multiply by 100)
 	}
 
-	public WorldTile(ZoneType zoneType, String name, char icon, int color, boolean sightObstruct, boolean moveObstruct, int moveCost,
+	public WorldTile(ZoneType zoneType, String name, char icon, int color, boolean sightObstruct, boolean moveObstruct, double moveCostModifier,
 			String blockedMessage)
 	{
-		super(name, icon, color, sightObstruct, moveObstruct, moveCost, blockedMessage);
+		super(name, icon, color, sightObstruct, moveObstruct, moveCostModifier, blockedMessage);
 
 		this.zoneType = zoneType;
 		this.zoneId = null;
@@ -70,8 +70,8 @@ public class WorldTile extends FieldCoord
 			ssb.addToken(new SaveToken(SaveTokenTag.C_ICO, String.valueOf(icon)));
 		if (color != baseTile.color)
 			ssb.addToken(new SaveToken(SaveTokenTag.C_CLR, String.valueOf(color)));
-		if (moveCost != baseTile.moveCost)
-			ssb.addToken(new SaveToken(SaveTokenTag.C_MOV, String.valueOf(moveCost)));
+		if (moveCostModifier != baseTile.moveCostModifier)
+			ssb.addToken(new SaveToken(SaveTokenTag.C_MOV, String.valueOf(moveCostModifier)));
 		if (blockedMessage != baseTile.blockedMessage)
 			ssb.addToken(new SaveToken(SaveTokenTag.C_BLK, blockedMessage));
 		if (obstructsSight != baseTile.obstructsSight)
@@ -89,6 +89,7 @@ public class WorldTile extends FieldCoord
 
 		String toRet = getContentsForTag(ssb, SaveTokenTag.W_UID); // assumed to be defined
 
+		setMember(ssb, SaveTokenTag.W_TYP);
 		setMember(ssb, SaveTokenTag.C_NAM);
 		setMember(ssb, SaveTokenTag.C_ICO);
 		setMember(ssb, SaveTokenTag.C_CLR);
@@ -96,7 +97,6 @@ public class WorldTile extends FieldCoord
 		setMember(ssb, SaveTokenTag.C_OMV);
 		setMember(ssb, SaveTokenTag.C_MOV);
 		setMember(ssb, SaveTokenTag.C_BLK);
-		setMember(ssb, SaveTokenTag.W_TYP);
 
 		return toRet;
 	}
@@ -146,7 +146,7 @@ public class WorldTile extends FieldCoord
 
 		case C_MOV:
 			saveToken = ssb.getToken(saveTokenTag);
-			this.moveCost = Integer.parseInt(saveToken.getContents());
+			this.moveCostModifier = Double.parseDouble(saveToken.getContents());
 			break;
 
 		case C_BLK:
@@ -215,7 +215,7 @@ public class WorldTile extends FieldCoord
 	@Override
 	public WorldTile clone()
 	{
-		WorldTile toRet = new WorldTile(zoneType, name, icon, color, obstructsSight, obstructsMotion, moveCost, blockedMessage);
+		WorldTile toRet = new WorldTile(zoneType, name, icon, color, obstructsSight, obstructsMotion, moveCostModifier, blockedMessage);
 		toRet.zoneId = zoneId;
 
 		return toRet;

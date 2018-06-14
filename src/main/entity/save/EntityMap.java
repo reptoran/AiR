@@ -7,6 +7,7 @@ import java.util.Map;
 
 import main.entity.actor.Actor;
 import main.entity.feature.Feature;
+import main.entity.item.Item;
 import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.world.WorldTile;
@@ -17,6 +18,7 @@ public class EntityMap
 	private static Map<String, Actor> knownActors = new HashMap<String, Actor>();
 	private static Map<String, Feature> knownFeatures = new HashMap<String, Feature>();
 	private static Map<String, Tile> knownTiles = new HashMap<String, Tile>();
+	private static Map<String, Item> knownItems = new HashMap<String, Item>();
 	private static Map<String, Zone> knownZones = new HashMap<String, Zone>();
 	private static Map<String, WorldTile> knownWorldTiles = new HashMap<String, WorldTile>();
 	private static Map<String, Overworld> knownOverworlds = new HashMap<String, Overworld>();
@@ -50,6 +52,11 @@ public class EntityMap
 		{
 			knownTiles.put(key, (Tile)value);
 			simpleKey = entityType + String.valueOf(knownTiles.size());
+		}
+		if (entityType.equals("I"))
+		{
+			knownItems.put(key, (Item)value);
+			simpleKey = entityType + String.valueOf(knownItems.size());
 		}
 		if (entityType.equals("Z"))
 		{
@@ -88,6 +95,11 @@ public class EntityMap
 		return knownTiles.get(key);
 	}
 	
+	public static Item getItem(String key)
+	{
+		return knownItems.get(key);
+	}
+	
 	public static Zone getZone(String key)
 	{
 		return knownZones.get(key);
@@ -121,6 +133,13 @@ public class EntityMap
 	{
 		List<String> toRet = new ArrayList<String>();
 		toRet.addAll(knownTiles.keySet());
+		return toRet;
+	}
+	
+	public static List<String> getItemKeys()
+	{
+		List<String> toRet = new ArrayList<String>();
+		toRet.addAll(knownItems.keySet());
 		return toRet;
 	}
 	
@@ -160,6 +179,7 @@ public class EntityMap
 		knownActors.clear();
 		knownFeatures.clear();
 		knownTiles.clear();
+		knownItems.clear();
 		knownZones.clear();
 		knownWorldTiles.clear();
 		knownOverworlds.clear();

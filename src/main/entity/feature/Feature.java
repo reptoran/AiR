@@ -17,12 +17,12 @@ public class Feature extends FieldCoord
 	
 	public Feature()
 	{
-		this(FeatureType.NO_TYPE, "empty feature", 'F', 15, false, false, 100, "");
+		this(FeatureType.NO_TYPE, "empty feature", 'F', 15, false, false, 1, "");
 	}
 	
-	public Feature(FeatureType featureType, String name, char icon, int color, boolean obstructsSight, boolean obstructsMotion, int moveCost, String blockedMessage)
+	public Feature(FeatureType featureType, String name, char icon, int color, boolean obstructsSight, boolean obstructsMotion, double moveCostModifier, String blockedMessage)
 	{
-		super(name, icon, color, obstructsSight, obstructsMotion, moveCost, blockedMessage);
+		super(name, icon, color, obstructsSight, obstructsMotion, moveCostModifier, blockedMessage);
 		
 		type = featureType;
 		curHP = 100;
@@ -32,11 +32,16 @@ public class Feature extends FieldCoord
 	@Override
 	public Feature clone()
 	{
-		Feature toRet = new Feature(type, name, icon, color, obstructsSight, obstructsMotion, moveCost, blockedMessage);
+		Feature toRet = new Feature(type, name, icon, color, obstructsSight, obstructsMotion, moveCostModifier, blockedMessage);
 		toRet.curHP = curHP;
 		toRet.maxHP = maxHP;
 		
 		return toRet;
+	}
+
+	public void setType(FeatureType type)
+	{
+		this.type = type;
 	}
 	
 	private void convertToType(FeatureType featureType)
@@ -87,7 +92,7 @@ public class Feature extends FieldCoord
 		if (name != baseFeature.name) ssb.addToken(new SaveToken(SaveTokenTag.C_NAM, name));
 		if (icon != baseFeature.icon) ssb.addToken(new SaveToken(SaveTokenTag.C_ICO, String.valueOf(icon)));
 		if (color != baseFeature.color) ssb.addToken(new SaveToken(SaveTokenTag.C_CLR, String.valueOf(color)));
-		if (moveCost != baseFeature.moveCost) ssb.addToken(new SaveToken(SaveTokenTag.C_MOV, String.valueOf(moveCost)));
+		if (moveCostModifier != baseFeature.moveCostModifier) ssb.addToken(new SaveToken(SaveTokenTag.C_MOV, String.valueOf(moveCostModifier)));
 		if (blockedMessage != baseFeature.blockedMessage) ssb.addToken(new SaveToken(SaveTokenTag.C_BLK, blockedMessage));
 		if (curHP != baseFeature.curHP) ssb.addToken(new SaveToken(SaveTokenTag.F_CHP, String.valueOf(curHP)));
 		if (maxHP != baseFeature.maxHP) ssb.addToken(new SaveToken(SaveTokenTag.F_MHP, String.valueOf(maxHP)));
@@ -104,6 +109,7 @@ public class Feature extends FieldCoord
 		
 		String toRet = getContentsForTag(ssb, SaveTokenTag.F_UID);	//assumed to be defined
 		
+		setMember(ssb, SaveTokenTag.F_TYP);
 		setMember(ssb, SaveTokenTag.C_NAM);
 		setMember(ssb, SaveTokenTag.C_ICO);
 		setMember(ssb, SaveTokenTag.C_CLR);
@@ -111,7 +117,6 @@ public class Feature extends FieldCoord
 		setMember(ssb, SaveTokenTag.C_OMV);
 		setMember(ssb, SaveTokenTag.C_MOV);
 		setMember(ssb, SaveTokenTag.C_BLK);
-		setMember(ssb, SaveTokenTag.F_TYP);
 		setMember(ssb, SaveTokenTag.F_CHP);
 		setMember(ssb, SaveTokenTag.F_MHP);
 		
@@ -172,7 +177,7 @@ public class Feature extends FieldCoord
 			
 			case C_MOV:
 				saveToken = ssb.getToken(saveTokenTag);
-				this.moveCost = Integer.parseInt(saveToken.getContents());
+				this.moveCostModifier = Double.parseDouble(saveToken.getContents());
 				break;
 				
 			case C_BLK:

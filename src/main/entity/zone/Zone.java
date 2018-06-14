@@ -16,6 +16,7 @@ import main.data.ActorTurnQueue;
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
 import main.entity.actor.Actor;
+import main.entity.item.Item;
 import main.entity.save.EntityMap;
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
@@ -142,6 +143,36 @@ public class Zone extends SaveableEntity
 	public void setTile(Point coords, Tile tile)
 	{
 		setTile(coords.x, coords.y, tile);
+	}
+	
+	public void resetVisible()
+	{
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				tiles[i][j].setVisible(false);
+			}
+		}
+	}
+	
+	public boolean containsPoint(Point point)
+	{
+		if (point == null)
+			return false;
+		
+		if (point.x < 0 || point.y < 0 || point.x >= height || point.y >= width)
+			return false;
+		
+		return true;
+	}
+	
+	public void setItem(Item item, Point coords)
+	{
+		if (coords == null)
+			throw new IllegalArgumentException("Cannot add item with null coordinates.");
+		
+		getTile(coords).setItemHere(item);
 	}
 
 	public int addActor(Actor actor, Point coords)
@@ -396,8 +427,8 @@ public class Zone extends SaveableEntity
 
 		String toRet = getContentsForTag(ssb, SaveTokenTag.Z_UID); // assumed to be defined
 
-		setMember(ssb, SaveTokenTag.Z_NAM);
 		setMember(ssb, SaveTokenTag.Z_TYP);
+		setMember(ssb, SaveTokenTag.Z_NAM);
 		setMember(ssb, SaveTokenTag.Z_PER);
 		setMember(ssb, SaveTokenTag.Z_CEW);
 		setMember(ssb, SaveTokenTag.Z_TRN);

@@ -1,22 +1,19 @@
 package main.presentation.curses;
 
 import java.awt.Color;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 import main.presentation.curses.terminal.CursesTerminal;
+import main.presentation.message.MessageBuffer;
 
 public class CursesGuiMessages extends CursesGuiUtil
 {
 	private static final Color DEFAULT_MESSAGE_COLOR = Color.LIGHT_GRAY;
 	
-	private int messageStartRow = 1;
-	private int messageStartCol = 1;
+	private int messageStartRow = 0;
+	private int messageStartCol = 0;
 	private int messageHeight = 2;
-	private int messageWidth = 78;
-	
-	private List<String> messageLines;
+	private int messageWidth = 80;
 	
 	private CursesGui parentGui;
 	
@@ -25,7 +22,6 @@ public class CursesGuiMessages extends CursesGuiUtil
 		super(terminal);
 		
 		this.parentGui = parentGui;
-		messageLines = new ArrayList<String>();
 	}
 
 	
@@ -48,6 +44,8 @@ public class CursesGuiMessages extends CursesGuiUtil
 	
 	protected void displayNextMessages()
 	{
+		List<String> messageLines = MessageBuffer.parseMessageBuffer(messageWidth);
+		
 		for (int i = messageStartRow; i < messageStartRow + messageHeight; i++)
 		{
 			if (!messageLines.isEmpty())
@@ -57,41 +55,9 @@ public class CursesGuiMessages extends CursesGuiUtil
 			}
 		}
 		
-		if (messageLines.isEmpty())
-		{
-			parentGui.setCurrentState(CursesGuiState.STATE_NONE);
-		}
-	}
-	
-	protected void parseMessageBuffer(String bufferedMessages)
-	{
-		Scanner splitter = new Scanner(bufferedMessages);
-		
-		String currentLine = "";
-		String toAdd = "";
-		
-		while (splitter.hasNext())
-		{
-			toAdd = splitter.next();
-			int newLength = toAdd.length() + currentLine.length();
-			
-			if (newLength > messageWidth - 2)
-			{
-				messageLines.add(currentLine);
-				currentLine = toAdd + " ";
-			}
-			else
-			{
-				currentLine = currentLine + toAdd + " ";
-			}
-		}
-		
-		splitter.close();
-		
-		if (currentLine.length() > 0)
-			messageLines.add(currentLine);
-		
 		if (!messageLines.isEmpty())
 			parentGui.setCurrentState(CursesGuiState.STATE_MESSAGE);
+		else
+			parentGui.setCurrentState(CursesGuiState.STATE_NONE);
 	}
 }

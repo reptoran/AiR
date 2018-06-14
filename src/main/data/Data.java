@@ -3,6 +3,8 @@ package main.data;
 import java.awt.Point;
 import java.util.List;
 
+import javax.swing.JOptionPane;
+
 import main.data.event.Event;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorFactory;
@@ -205,12 +207,22 @@ public class Data
 
 		switch (event.getEventType())
 		{
+		case WAIT:
+			break;	//the only thing that happens here is the action cost reduction, which is already done
+		case DEATH:
+			killActor(actor);
+			break;
+			
 		case LOCAL_MOVE:
 			updateActorLocalCoords(actor, event.getFlag(1), event.getFlag(2));
 			break;
 
 		case WORLD_MOVE:
 			updatePlayerWorldCoords(event.getFlag(1), event.getFlag(2));
+			break;
+			
+		case ATTACK:
+			damageActor(getActor(event.getFlag(1)), event.getFlag(2));
 			break;
 			
 		case ZONE_TRANSITION:
@@ -241,6 +253,19 @@ public class Data
 		}
 	}
 
+	private void killActor(Actor actor)
+	{
+		if (actor == player)
+		{
+			//TODO: ideally refresh the GUI so the messages get displayed
+			JOptionPane.showMessageDialog(null,"You have been killed.", "Game Over", JOptionPane.ERROR_MESSAGE);
+			receiveEvent(Event.exitEvent());
+		}
+		
+		currentZone.removeActor(actor);
+		//TODO: disperse all items the actor is carrying
+	}
+
 	private void enterLocalZoneFromWorldTravel()
 	{
 		Actor actor = player;
@@ -260,5 +285,10 @@ public class Data
 
 		currentZone = null;
 		overworld.setPlayerCoords(new Point(x, y));
+	}
+
+	private void damageActor(Actor actor, int damage)
+	{
+		actor.setCurHp(actor.getCurHp() - damage);
 	}
 }

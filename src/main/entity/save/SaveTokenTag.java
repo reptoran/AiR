@@ -5,6 +5,8 @@ public enum SaveTokenTag
 	A_UID,	//actor unique identifier
 	A_TYP,	//actor type
 	A_NAM,	//actor name
+	A_GEN,	//actor gender
+	A_UNQ,	//actor unique flag
 	A_ICO,	//actor icon
 	A_CLR,	//actor color
 	A_MHP,	//actor max hp
@@ -20,6 +22,8 @@ public enum SaveTokenTag
 	C_OMV,	//fieldcoord obstructs movement
 	C_MOV,	//fieldcoord movement cost
 	C_BLK,	//fieldcoord blocking message
+	C_VIS,	//fieldcoord visible boolean
+	C_SEN,	//fieldcoord seen boolean
 	
 	F_UID,	//feature unique identifier
 	F_TYP,	//feature type
@@ -30,6 +34,23 @@ public enum SaveTokenTag
 	T_TYP,	//tile type
 	T_AHR,	//tile actor here 
 	T_FHR,	//tile feature here
+	T_IHR,	//tile item here
+	
+	I_UID,	//item unique identifier
+	I_NAM,	//item name
+	I_PLR,	//item plural
+	I_TYP,	//item type
+	I_ICO,	//item icon
+	I_CLR,	//item color
+	I_DAM,	//item damage string
+	I_SIZ,	//item size
+	I_AMT,	//item size
+	I_INV,	//item inventory slot
+	I_MHP,	//item max hp
+	I_CHP,	//item current hp
+	I_CR_,	//item cover rating
+	I_AR_,	//item armor rating
+	I_DR_,	//item damage reduction
 	
 	Z_UID,	//zone unique identifier
 	Z_TYP,	//zone type

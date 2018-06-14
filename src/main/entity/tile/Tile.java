@@ -6,6 +6,7 @@ import main.entity.EntityType;
 import main.entity.FieldCoord;
 import main.entity.actor.Actor;
 import main.entity.feature.Feature;
+import main.entity.item.Item;
 import main.entity.save.EntityMap;
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
@@ -16,27 +17,32 @@ public class Tile extends FieldCoord
 	private TileType type;
 	private Actor actorHere;
 	private Feature featureHere;
+	private Item itemHere;
 	
 	public Tile()
 	{
-		this(TileType.NO_TYPE, "empty tile", 'T', 15, false, false, 100, "");
+		this(TileType.NO_TYPE, "empty tile", 'T', 15, false, false, 1, "");
 	}
 	
-	public Tile(TileType tileType, String name, char icon, int color, boolean obstructsSight, boolean obstructsMotion, int moveCost, String blockedMessage)
+	public Tile(TileType tileType, String name, char icon, int color, boolean obstructsSight, boolean obstructsMotion, double moveCostModifier, String blockedMessage)
 	{
-		super(name, icon, color, obstructsSight, obstructsMotion, moveCost, blockedMessage);
+		super(name, icon, color, obstructsSight, obstructsMotion, moveCostModifier, blockedMessage);
 		
 		type = tileType;
 		actorHere = null;
 		featureHere = null;
+		itemHere = null;
 	}
 	
 	@Override
 	public Tile clone()
 	{
-		Tile toRet = new Tile(type, name, icon, color, obstructsSight, obstructsMotion, moveCost, blockedMessage);
+		Tile toRet = new Tile(type, name, icon, color, obstructsSight, obstructsMotion, moveCostModifier, blockedMessage);
+		toRet.visible = visible;
+		toRet.seen = seen;
 		toRet.actorHere = actorHere;
 		toRet.featureHere = (featureHere == null) ? null : featureHere.clone();
+		toRet.itemHere = itemHere;
 		
 		return toRet;
 	}
@@ -56,8 +62,17 @@ public class Tile extends FieldCoord
 		this.obstructsSight = baseTile.obstructsSight;
 		this.obstructsMotion = baseTile.obstructsMotion;
 		
+		this.visible = false;
+		this.seen = false;
+		
 		this.actorHere = null;
 		this.featureHere = null;
+		this.itemHere = null;
+	}
+	
+	public void setType(TileType type)
+	{
+		this.type = type;
 	}
 	
 	public TileType getType()
@@ -84,16 +99,51 @@ public class Tile extends FieldCoord
 	{
 		this.featureHere = featureHere;
 	}
-	
-	public char getDisplayIcon()
+
+	public Item getItemHere()
 	{
-		if (actorHere != null)
+		return itemHere;
+	}
+
+	public void setItemHere(Item itemHere)
+	{
+		this.itemHere = itemHere;
+	}
+	
+	@Override
+	public char getIcon()
+	{
+		if (!seen)
+			return ' ';
+		
+		if (actorHere != null && visible)
 			return actorHere.getIcon();
+		
+		if (itemHere != null && visible)
+			return itemHere.getIcon();
 		
 		if (featureHere != null)
 			return featureHere.getIcon();
 		
 		return icon;
+	}
+	
+	@Override
+	public int getColor()
+	{
+		if (!seen)
+			return 0;
+		
+		if (actorHere != null && visible)
+			return actorHere.getColor();
+		
+		if (itemHere != null && visible)
+			return itemHere.getColor();
+		
+		if (featureHere != null)
+			return featureHere.getColor();
+		
+		return color;
 	}
 	
 	@Override
@@ -112,6 +162,15 @@ public class Tile extends FieldCoord
 			return featureHere.obstructsSight();
 		
 		return obstructsSight;
+	}
+	
+	@Override
+	public String getBlockedMessage()
+	{
+		if (featureHere != null)
+			return featureHere.getBlockedMessage();
+		
+		return blockedMessage;
 	}
 
 	@Override
@@ -135,10 +194,12 @@ public class Tile extends FieldCoord
 		if (name != baseTile.name) ssb.addToken(new SaveToken(SaveTokenTag.C_NAM, name));
 		if (icon != baseTile.icon) ssb.addToken(new SaveToken(SaveTokenTag.C_ICO, String.valueOf(icon)));
 		if (color != baseTile.color) ssb.addToken(new SaveToken(SaveTokenTag.C_CLR, String.valueOf(color)));
-		if (moveCost != baseTile.moveCost) ssb.addToken(new SaveToken(SaveTokenTag.C_MOV, String.valueOf(moveCost)));
+		if (moveCostModifier != baseTile.moveCostModifier) ssb.addToken(new SaveToken(SaveTokenTag.C_MOV, String.valueOf(moveCostModifier)));
 		if (blockedMessage != baseTile.blockedMessage) ssb.addToken(new SaveToken(SaveTokenTag.C_BLK, blockedMessage));
 		if (obstructsSight != baseTile.obstructsSight) ssb.addToken(new SaveToken(SaveTokenTag.C_OST, String.valueOf(obstructsSight)));
 		if (obstructsMotion != baseTile.obstructsMotion) ssb.addToken(new SaveToken(SaveTokenTag.C_OMV, String.valueOf(obstructsMotion)));
+		if (visible != baseTile.visible) ssb.addToken(new SaveToken(SaveTokenTag.C_VIS, String.valueOf(visible)));
+		if (seen != baseTile.seen) ssb.addToken(new SaveToken(SaveTokenTag.C_SEN, String.valueOf(seen)));
 		
 		if (actorHere != baseTile.actorHere)
 		{
@@ -163,6 +224,24 @@ public class Tile extends FieldCoord
 			ssb.addToken(new SaveToken(SaveTokenTag.T_FHR, featureUid.substring(1)));
 		}
 		
+		//TODO: this is only for debugging
+		if (itemHere != null)
+		{
+			System.out.println(itemHere.getName());
+		}
+		
+		if (itemHere != baseTile.itemHere)
+		{
+			String itemUid = itemHere.getUniqueId();
+
+			if (EntityMap.getItem(itemUid) == null)
+				itemUid = EntityMap.put(itemUid, itemHere);
+			else
+				itemUid = EntityMap.getSimpleKey(itemUid);
+			
+			ssb.addToken(new SaveToken(SaveTokenTag.T_IHR, itemUid.substring(1)));
+		}
+		
 		return ssb.getSaveString();
 	}
 	
@@ -173,6 +252,7 @@ public class Tile extends FieldCoord
 		
 		String toRet = getContentsForTag(ssb, SaveTokenTag.T_UID);	//assumed to be defined
 		
+		setMember(ssb, SaveTokenTag.T_TYP);
 		setMember(ssb, SaveTokenTag.C_NAM);
 		setMember(ssb, SaveTokenTag.C_ICO);
 		setMember(ssb, SaveTokenTag.C_CLR);
@@ -180,9 +260,11 @@ public class Tile extends FieldCoord
 		setMember(ssb, SaveTokenTag.C_OMV);
 		setMember(ssb, SaveTokenTag.C_MOV);
 		setMember(ssb, SaveTokenTag.C_BLK);
-		setMember(ssb, SaveTokenTag.T_TYP);
+		setMember(ssb, SaveTokenTag.C_VIS);
+		setMember(ssb, SaveTokenTag.C_SEN);
 		setMember(ssb, SaveTokenTag.T_AHR);
 		setMember(ssb, SaveTokenTag.T_FHR);
+		setMember(ssb, SaveTokenTag.T_IHR);
 		
 		return toRet;
 	}
@@ -234,19 +316,31 @@ public class Tile extends FieldCoord
 				this.featureHere = feature;
 				break;
 			
+			case T_IHR:
+				saveToken = ssb.getToken(saveTokenTag);
+				referenceKey = "I" + saveToken.getContents();
+				Item item = EntityMap.getItem(referenceKey).clone();
+				this.itemHere = item;
+				break;
+			
 			case C_OST:
 				saveToken = ssb.getToken(saveTokenTag);
 				this.obstructsSight = Boolean.parseBoolean(saveToken.getContents());
 				break;
-			
-			case C_OMV:
+				
+			case C_VIS:
 				saveToken = ssb.getToken(saveTokenTag);
-				this.obstructsMotion = Boolean.parseBoolean(saveToken.getContents());
+				this.visible = Boolean.parseBoolean(saveToken.getContents());
+				break;
+				
+			case C_SEN:
+				saveToken = ssb.getToken(saveTokenTag);
+				this.seen = Boolean.parseBoolean(saveToken.getContents());
 				break;
 			
 			case C_MOV:
 				saveToken = ssb.getToken(saveTokenTag);
-				this.moveCost = Integer.parseInt(saveToken.getContents());
+				this.moveCostModifier = Double.parseDouble(saveToken.getContents());
 				break;
 				
 			case C_BLK:
@@ -257,8 +351,6 @@ public class Tile extends FieldCoord
 			default:
 				throw new IllegalArgumentException("Tile - Unhandled token: " + saveTokenTag.toString());
 		}
-		
-		return;
 	}
 
 	@Override
@@ -290,6 +382,11 @@ public class Tile extends FieldCoord
 		if (featureHere != null && !featureHere.equals(tile.featureHere))
 			return false;
 		else if (featureHere == null && tile.featureHere != null)
+			return false;
+		
+		if (itemHere != null && !itemHere.equals(tile.itemHere))
+			return false;
+		else if (itemHere == null && tile.itemHere != null)
 			return false;
 		
 		return true;

@@ -8,8 +8,8 @@ import java.util.Scanner;
 import main.data.file.FileHandler;
 import main.entity.actor.ActorType;
 import main.entity.feature.FeatureType;
+import main.entity.item.ItemType;
 import main.entity.tile.TileType;
-import main.presentation.Logger;
 
 public class PredefinedZoneLoader extends FileHandler
 {
@@ -54,7 +54,7 @@ public class PredefinedZoneLoader extends FileHandler
 		return zone;
 	}
 
-	private PredefinedZone	 generateZoneFromData(List<String> lines)
+	private PredefinedZone generateZoneFromData(List<String> lines)
 	{
 		for (String line : lines)
 		{
@@ -128,10 +128,19 @@ public class PredefinedZoneLoader extends FileHandler
 		predefinedZoneBuilder.defineActor(row, col, actorType);
 	}
 
-	@SuppressWarnings("unused")
 	private void interpretItemData(List<String> lineElements)
 	{
-		Logger.warn("Items not yet implemented; cannot parse item information from data file.");
+		int row = Integer.valueOf(lineElements.get(0));
+		int col = Integer.valueOf(lineElements.get(1));
+		ItemType itemType = ItemType.valueOf(lineElements.get(2));
+		
+		if (lineElements.size() > 3)
+		{
+			int amount = Integer.valueOf(lineElements.get(3));
+			predefinedZoneBuilder.defineItem(row, col, itemType, amount);
+		} else {
+			predefinedZoneBuilder.defineItem(row, col, itemType);
+		}
 	}
 
 	private void interpretAttributeData(List<String> lineElements)

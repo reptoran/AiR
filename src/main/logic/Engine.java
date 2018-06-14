@@ -7,7 +7,10 @@ import java.util.Map;
 import main.data.ActorTurnQueue;
 import main.data.Data;
 import main.data.event.Event;
+import main.data.event.EventType;
 import main.entity.actor.Actor;
+import main.entity.item.Item;
+import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.zone.Zone;
 import main.logic.AI.ActorAI;
@@ -15,14 +18,16 @@ import main.logic.AI.AiType;
 import main.logic.AI.MoveRandomAI;
 import main.presentation.Logger;
 import main.presentation.UiManager;
+import main.presentation.message.FormattedMessageBuilder;
+import main.presentation.message.MessageBuffer;
 
 public class Engine
 {
+	private static final int PLAYER_SIGHT_RADIUS = 8;
+	
 	private Data gameData; // remember that the presentation layer can't see this; it can only see what the logic layer provides
 
 	private Map<AiType, ActorAI> gameAIs;
-
-	private StringBuilder messageBuffer;
 
 	private boolean acceptInput = false;
 	private long turnIndex;
@@ -33,12 +38,14 @@ public class Engine
 		gameAIs.put(AiType.RAND_MOVE, new MoveRandomAI());
 		
 		turnIndex = 0;
-		messageBuffer = new StringBuilder();
 		gameData = theData;
 	}
 
 	public void beginGame()
 	{
+		runAiTurns();
+		refreshPlayerFov(gameData.getPlayer());
+		
 		acceptInput = true;
 	}
 
@@ -71,28 +78,20 @@ public class Engine
 		runTurns(command);
 		acceptInput = true;
 	}
-
-	@Deprecated	//TODO: only deprecated so I have a visual reminder to move this to Data (assuming that's best in MM, anyway)
-	public String getBufferedMessages()
-	{
-		String messages = messageBuffer.toString();
-		messageBuffer.delete(0, messageBuffer.capacity());
-
-		return messages;
-	}
 	
 	private void runTurns(String command)
 	{
 		ActorTurnQueue localActors = gameData.getActorQueue();
-		Actor playerActor = localActors.popNextActor();
+		Actor playerActor = localActors.getNextActor();
 		
 		if (!AiType.HUMAN_CONTROLLED.equals(playerActor.getAI()))
 		{
 			Logger.warn("Next actor is not human controlled; simulating AI turns now.");
 			runAiTurns();
 			return;
-		}	
-
+		}
+		
+		playerActor = localActors.popNextActor();
 		int actorIndex = gameData.getActorIndex(playerActor);
 
 		if (actorIndex == -1)
@@ -102,9 +101,17 @@ public class Engine
 		localActors.add(playerActor);
 		
 		runAiTurns();
-		UiManager.getInstance().refreshInterface();
+		refreshPlayerFov(playerActor);
 	}
 	
+	private void refreshPlayerFov(Actor playerActor)
+	{
+		Zone currentZone = gameData.getCurrentZone();
+		currentZone.resetVisible();
+		SightRadiusUtil.updateFieldOfView(currentZone, currentZone.getCoordsOfActor(playerActor), PLAYER_SIGHT_RADIUS);	//TODO: base this on perception, and update that as it changes
+		UiManager.getInstance().refreshInterface();
+	}
+
 	private void runAiTurns()
 	{
 		ActorTurnQueue localActors = gameData.getActorQueue();
@@ -154,8 +161,15 @@ public class Engine
 
 			if (event == null)
 				return;
-
+			
+			if (event.getEventType() == EventType.ATTACK)
+			{
+				resolveAttackEvent(event);
+				return;
+			}
+			
 			gameData.receiveEvent(event);
+			return;
 		}
 	}
 	
@@ -210,23 +224,82 @@ public class Engine
 				// TODO: world travel should take a lot longer than local travel (massively increased movement cost)
 				// actionCost = tile.getMoveCost();
 
-				event = Event.worldMoveEvent(actorIndex, x2, y2, actor.getMovementCost());
-			}
-		} else
-		{
-			Zone curZone = getCurrentZone();
-
-			if (x2 >= 0 && y2 >= 0 && x2 < curZone.getHeight() && y2 < curZone.getWidth())
-			{
-				// Tile tile = curZone.getTile(x2, y2);
-				// TODO: check for obstructions
-				// TODO: base the speed on the tile itself
-				// actionCost = tile.getMoveCost();
-
-				event = Event.localMoveEvent(actorIndex, x2, y2, actor.getMovementCost());
+				return Event.worldMoveEvent(actorIndex, x2, y2, actor.getMovementCost());
 			}
 		}
 
-		return event;
+		Zone curZone = getCurrentZone();
+
+		if (!curZone.containsPoint(new Point(x2, y2)))
+			return null;
+		
+		Tile destinationTile = curZone.getTile(x2, y2);
+		Actor targetActor = destinationTile.getActorHere();
+		
+		if (targetActor != null)
+		{
+			if (targetActor == actor)
+				return Event.waitEvent(actorIndex, actor.getMovementCost());
+			
+			return Event.attackEvent(actorIndex, gameData.getActorIndex(targetActor), -1, actor.getMovementCost());
+		}
+		
+		if (destinationTile.obstructsMotion())
+		{
+			// we never care if an AI actor runs into an obstruction (well, unless it's confused?)
+			MessageBuffer.addMessageIfHuman(destinationTile.getBlockedMessage(), actor.getAI());
+			return null;
+		}
+		
+		int actionCost = (int)(actor.getMovementCost() * destinationTile.getMoveCostModifier());
+		
+		//we know that the move is successful at this point, so if there's an item in the destination tile, alert the player
+		addItemMessage(destinationTile, actor);
+		
+		return Event.localMoveEvent(actorIndex, x2, y2, actionCost);
+	}
+	
+	private void addItemMessage(Tile destinationTile, Actor actor)
+	{
+		if (!AiType.HUMAN_CONTROLLED.equals(actor.getAI()))
+			return;
+		
+		Item itemHere = destinationTile.getItemHere();
+		
+		if (itemHere == null)
+			return;
+		
+		MessageBuffer.addMessage("There is a " + itemHere.getNameOnGround() + " here.");
+	}
+
+	private void resolveAttackEvent(Event attackEvent)
+	{
+		Actor attacker = gameData.getActor(attackEvent.getFlag(0));
+		Actor defender = gameData.getActor(attackEvent.getFlag(1));
+		
+		Zone curZone = getCurrentZone();
+		
+		Point attackerCoords = curZone.getCoordsOfActor(attacker);
+		Point defenderCoords = curZone.getCoordsOfActor(defender);
+		
+		int damage = calculateAttackDamage(attacker, defender);
+		
+		boolean canSeeSource = SightRadiusUtil.losExists(curZone, curZone.getCoordsOfActor(gameData.getPlayer()), attackerCoords, PLAYER_SIGHT_RADIUS);
+		boolean canSeeTarget = SightRadiusUtil.losExists(curZone, curZone.getCoordsOfActor(gameData.getPlayer()), defenderCoords, PLAYER_SIGHT_RADIUS);
+		
+		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the hit%1s @2the.").setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+		
+		gameData.receiveEvent(Event.attackEvent(gameData.getActorIndex(attacker), gameData.getActorIndex(defender), damage, attacker.getMovementCost()));
+		
+		if (defender.getCurHp() <= 0)	//valid check because the data layer has already received and applied the damage
+		{
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the dies!").setSource(defender).setSourceVisibility(canSeeSource).format());
+			gameData.receiveEvent(Event.deathEvent(gameData.getActorIndex(defender)));
+		}
+	}
+
+	private int calculateAttackDamage(Actor attacker, Actor defender)
+	{
+		return 1;	//TODO: check for weapons on attacker, armor on defender, etc.
 	}
 }

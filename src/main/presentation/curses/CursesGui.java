@@ -35,7 +35,7 @@ public class CursesGui extends AbstractGui implements KeyListener
 	@Override
 	public void refreshInterface()
 	{
-		displayUtil.printBorders();
+//		displayUtil.printBorders();
 
 		// game display
 		displayUtil.updateMap();
@@ -43,11 +43,13 @@ public class CursesGui extends AbstractGui implements KeyListener
 		//messages
 		messageUtil.clearMessageArea();
 		getAndShowNewMessages();
+		
+		//character info
+		displayUtil.showPlayerInfo();
 	}
 	
 	private void getAndShowNewMessages()
 	{
-		messageUtil.parseMessageBuffer(engine.getBufferedMessages());
 		messageUtil.displayNextMessages();
 	}
 

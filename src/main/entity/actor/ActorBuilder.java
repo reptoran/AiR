@@ -40,6 +40,18 @@ public class ActorBuilder
 		return this;
 	}
 	
+	public ActorBuilder setGender(GenderType gender)
+	{
+		actor.setGender(gender);
+		return this;
+	}
+	
+	public ActorBuilder setUnique(boolean unique)
+	{
+		actor.setUnique(unique);
+		return this;
+	}
+	
 	public ActorBuilder setIcon(char icon)
 	{
 		actor.setIcon(icon);
@@ -55,6 +67,13 @@ public class ActorBuilder
 	public ActorBuilder setAI(AiType AI)
 	{
 		actor.setAI(AI);
+		return this;
+	}
+	
+	public ActorBuilder setHP(int hp)
+	{
+		actor.setMaxHp(hp);
+		actor.setCurHp(hp);
 		return this;
 	}
 	

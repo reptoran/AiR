@@ -118,7 +118,7 @@ public class CaveGenerator extends RandomGenerator
 
 		int count = 0;
 
-		while (!(temp[x1][y1] == main && RPGlib.dist(x0, y0, x1, y1) > openness))
+		while (!(temp[x1][y1] == main && RPGlib.distance(x0, y0, x1, y1) > openness))
 		{
 			x1 = RPGlib.Randint(xMin, xMax);
 			y1 = RPGlib.Randint(yMin, yMax);
