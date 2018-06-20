@@ -3,6 +3,7 @@ package main.entity.tile;
 import java.text.ParseException;
 
 import main.entity.save.EntityMap;
+import main.presentation.Logger;
 
 public class TileFactory
 {
@@ -47,7 +48,7 @@ public class TileFactory
 			EntityMap.put(key, tile);
 		} catch (ParseException e)
 		{
-			System.out.println("TileFactory - " + e.getMessage());
+			Logger.warn("TileFactory - " + e.getMessage());
 		}
 		
 		return tile;

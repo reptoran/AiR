@@ -12,6 +12,7 @@ import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.world.WorldTile;
 import main.entity.zone.Zone;
+import main.presentation.Logger;
 
 public class EntityMap
 {
@@ -32,7 +33,7 @@ public class EntityMap
 
 		if (value == null)
 		{
-			System.out.println("EntityMap - Warning! Object is null!");
+			Logger.warn("EntityMap - Warning! Object is null!");
 		}
 		
 		String entityType = key.toUpperCase().substring(0, 1);

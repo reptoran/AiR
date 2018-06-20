@@ -19,6 +19,14 @@ public class Tile extends FieldCoord
 	private Feature featureHere;
 	private Item itemHere;
 	
+	//may move these up to fieldcoord
+	private char rememberedIcon = ' ';
+	private int rememberedColor = 0;
+	private char fogIcon = ' ';
+	
+	private static final int FOG_COLOR = 7;
+	private static final boolean SHOW_FOG = false;
+	
 	public Tile()
 	{
 		this(TileType.NO_TYPE, "empty tile", 'T', 15, false, false, 1, "");
@@ -43,6 +51,10 @@ public class Tile extends FieldCoord
 		toRet.actorHere = actorHere;
 		toRet.featureHere = (featureHere == null) ? null : featureHere.clone();
 		toRet.itemHere = itemHere;
+		
+		toRet.rememberedIcon = rememberedIcon;
+		toRet.rememberedColor = rememberedColor;
+		toRet.fogIcon = fogIcon;
 		
 		return toRet;
 	}
@@ -111,10 +123,45 @@ public class Tile extends FieldCoord
 	}
 	
 	@Override
+	public void setVisible(boolean visible)
+	{
+		super.setVisible(visible);
+		
+		if (visible)
+		{
+			setRememberedIcon();
+			setFogIcon();
+		}
+	}
+	
+	private void setFogIcon()
+	{
+		fogIcon = getIcon();
+	}
+
+	private void setRememberedIcon()
+	{
+		Actor tempActor = null;
+		
+		if (actorHere != null)	//suspend the actor so icon/color logic doesn't need to be rewritten
+		{
+			tempActor = actorHere;
+			actorHere = null;
+		}
+			
+		rememberedIcon = getIcon();
+		rememberedColor = getColor();
+		actorHere = tempActor;	//this is fine because tempActor will only stay null if actorHere is null
+	}
+
+	@Override
 	public char getIcon()
 	{
 		if (!seen)
 			return ' ';
+		
+		if (seen && !visible)
+			return rememberedIcon();
 		
 		if (actorHere != null && visible)
 			return actorHere.getIcon();
@@ -128,11 +175,22 @@ public class Tile extends FieldCoord
 		return icon;
 	}
 	
+	private char rememberedIcon()
+	{
+		if (SHOW_FOG)
+			return fogIcon;
+		
+		return rememberedIcon;
+	}
+
 	@Override
 	public int getColor()
 	{
 		if (!seen)
 			return 0;
+		
+		if (seen && !visible)
+			return rememberedColor();
 		
 		if (actorHere != null && visible)
 			return actorHere.getColor();
@@ -146,6 +204,14 @@ public class Tile extends FieldCoord
 		return color;
 	}
 	
+	private int rememberedColor()
+	{
+		if (SHOW_FOG)
+			return FOG_COLOR;
+		
+		return rememberedColor;
+	}
+
 	@Override
 	public boolean obstructsMotion()
 	{
@@ -171,6 +237,11 @@ public class Tile extends FieldCoord
 			return featureHere.getBlockedMessage();
 		
 		return blockedMessage;
+	}
+	
+	public boolean obstructsItem()
+	{
+		return (obstructsMotion() || itemHere != null);
 	}
 
 	@Override
@@ -200,6 +271,9 @@ public class Tile extends FieldCoord
 		if (obstructsMotion != baseTile.obstructsMotion) ssb.addToken(new SaveToken(SaveTokenTag.C_OMV, String.valueOf(obstructsMotion)));
 		if (visible != baseTile.visible) ssb.addToken(new SaveToken(SaveTokenTag.C_VIS, String.valueOf(visible)));
 		if (seen != baseTile.seen) ssb.addToken(new SaveToken(SaveTokenTag.C_SEN, String.valueOf(seen)));
+		if (rememberedIcon != baseTile.rememberedIcon) ssb.addToken(new SaveToken(SaveTokenTag.T_RIC, String.valueOf(rememberedIcon)));
+		if (rememberedColor != baseTile.rememberedColor) ssb.addToken(new SaveToken(SaveTokenTag.T_RCL, String.valueOf(rememberedColor)));
+		if (fogIcon != baseTile.fogIcon) ssb.addToken(new SaveToken(SaveTokenTag.T_FIC, String.valueOf(fogIcon)));
 		
 		if (actorHere != baseTile.actorHere)
 		{
@@ -222,12 +296,6 @@ public class Tile extends FieldCoord
 				featureUid = EntityMap.getSimpleKey(featureUid);
 			
 			ssb.addToken(new SaveToken(SaveTokenTag.T_FHR, featureUid.substring(1)));
-		}
-		
-		//TODO: this is only for debugging
-		if (itemHere != null)
-		{
-			System.out.println(itemHere.getName());
 		}
 		
 		if (itemHere != baseTile.itemHere)
@@ -262,6 +330,9 @@ public class Tile extends FieldCoord
 		setMember(ssb, SaveTokenTag.C_BLK);
 		setMember(ssb, SaveTokenTag.C_VIS);
 		setMember(ssb, SaveTokenTag.C_SEN);
+		setMember(ssb, SaveTokenTag.T_RIC);
+		setMember(ssb, SaveTokenTag.T_RCL);
+		setMember(ssb, SaveTokenTag.T_FIC);
 		setMember(ssb, SaveTokenTag.T_AHR);
 		setMember(ssb, SaveTokenTag.T_FHR);
 		setMember(ssb, SaveTokenTag.T_IHR);
@@ -300,6 +371,21 @@ public class Tile extends FieldCoord
 			case C_CLR:
 				saveToken = ssb.getToken(saveTokenTag);
 				this.color = Integer.parseInt(saveToken.getContents());
+				break;
+				
+			case T_RIC:
+				saveToken = ssb.getToken(saveTokenTag);
+				this.rememberedIcon = saveToken.getContents().charAt(0);
+				break;
+			
+			case T_RCL:
+				saveToken = ssb.getToken(saveTokenTag);
+				this.rememberedColor = Integer.parseInt(saveToken.getContents());
+				break;
+				
+			case T_FIC:
+				saveToken = ssb.getToken(saveTokenTag);
+				this.fogIcon = saveToken.getContents().charAt(0);
 				break;
 			
 			case T_AHR:
@@ -374,6 +460,9 @@ public class Tile extends FieldCoord
 		if (!type.equals(tile.type))
 			return false;
 		
+		if (rememberedIcon != tile.rememberedIcon || rememberedColor != tile.rememberedColor || fogIcon != tile.fogIcon)
+			return false;
+		
 		if (actorHere != null && !actorHere.equals(tile.actorHere))
 			return false;
 		else if (actorHere == null && tile.actorHere != null)
@@ -398,8 +487,12 @@ public class Tile extends FieldCoord
 		int hash = super.hashCode();
 				
 		hash = 31 * hash + type.toString().hashCode();
+		hash = 31 * hash + rememberedIcon;
+		hash = 31 * hash + rememberedColor;
+		hash = 31 * hash + fogIcon;
 		hash = 31 * hash + (actorHere == null ? 0 : actorHere.hashCode());
 		hash = 31 * hash + (featureHere == null ? 0 : featureHere.hashCode());
+		hash = 31 * hash + (itemHere == null ? 0 : itemHere.hashCode());
 		
 		return hash;
 	}

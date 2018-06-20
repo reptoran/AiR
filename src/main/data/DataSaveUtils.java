@@ -25,7 +25,7 @@ import main.presentation.Logger;
 
 public class DataSaveUtils
 {
-	private static final String VERSION = "0.0.1";
+	public static final String VERSION = "0.5.4";
 	
 	private SaveHandler saveHandler;
 

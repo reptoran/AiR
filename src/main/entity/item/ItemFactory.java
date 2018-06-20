@@ -2,6 +2,7 @@ package main.entity.item;
 
 import java.text.ParseException;
 
+import main.entity.item.equipment.EquipmentSlotType;
 import main.entity.save.EntityMap;
 
 public class ItemFactory
@@ -13,7 +14,9 @@ public class ItemFactory
 		switch (itemType)
 		{
 			case THICK_SHIRT:
-				return ItemBuilder.generateItem(itemType).setName("thick shirt").setPlural("thick shirts").setIcon('[').setColor(13).setCR(100).setAR(1).setDR(0).build();
+				return ItemBuilder.generateItem(itemType).setName("thick shirt").setSlot(EquipmentSlotType.ARMOR).setPlural("thick shirts").setIcon('[').setColor(13).setCR(100).setAR(1).setDR(0).build();
+			case DAGGER:
+				return ItemBuilder.generateItem(itemType).setName("dagger").setSlot(EquipmentSlotType.WEAPON).setPlural("daggers").setIcon('/').setColor(8).setDamage("1D4").build();
 			case NO_TYPE:	//falls through
 			default:
 				throw new IllegalArgumentException("No item definition for item type: " + itemType);

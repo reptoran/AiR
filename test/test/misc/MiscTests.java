@@ -1,8 +1,11 @@
 package test.misc;
 
+import java.awt.Point;
 import java.util.Scanner;
 
 import org.junit.Test;
+
+import main.data.Data;
 
 public class MiscTests
 {
@@ -17,5 +20,21 @@ public class MiscTests
 			String next = s.next();
 			System.out.println(next);
 		}
+	}
+	
+	@Test
+	public void replace_experimentation()
+	{
+		String text = "a@bcdef";
+		text = text.replace("@bc", "Z");
+		System.out.println(text);
+	}
+	
+	@Test
+	public void spiral_logic_test()
+	{
+		Data data = new Data();
+		
+//		data.getClosestOpenTileCoords(new Point(0, 0));
 	}
 }

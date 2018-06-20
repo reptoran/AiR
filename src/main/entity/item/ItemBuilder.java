@@ -1,5 +1,7 @@
 package main.entity.item;
 
+import main.entity.item.equipment.EquipmentSlotType;
+
 public class ItemBuilder
 {
 	private static Item item;
@@ -55,7 +57,7 @@ public class ItemBuilder
 		return this;
 	}
 	
-	public ItemBuilder setSlot(EquipmentType slot)
+	public ItemBuilder setSlot(EquipmentSlotType slot)
 	{
 		item.setInventorySlot(slot);
 		return this;

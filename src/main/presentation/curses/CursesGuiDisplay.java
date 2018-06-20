@@ -13,8 +13,8 @@ import main.presentation.curses.terminal.CursesTerminal;
 
 public class CursesGuiDisplay extends CursesGuiUtil
 {
-	private static final Color BORDER_COLOR = Color.LIGHT_GRAY;
-	private static final Color PLAYER_INFO_COLOR = Color.LIGHT_GRAY;
+	private static final int BORDER_COLOR = COLOR_LIGHT_GREY;
+	private static final int PLAYER_INFO_COLOR = COLOR_LIGHT_GREY;
 
 	private int displayStartRow = 2;
 	private int displayStartCol = 0;
@@ -28,6 +28,15 @@ public class CursesGuiDisplay extends CursesGuiUtil
 		super(terminal);
 		
 		this.engine = engine;
+	}
+	
+	@Override
+	public void refresh()
+	{
+//		printBorders();
+		updateMap();
+		showPlayerInfo();
+		terminal.refresh();
 	}
 	
 	protected void printBorders()
@@ -72,8 +81,6 @@ public class CursesGuiDisplay extends CursesGuiUtil
 					updateLocalTile(new Point(i, j), new Point(i + mapStartRow - displayStartRow, j + mapStartCol - displayStartCol));
 			}
 		}
-		
-		terminal.refresh();
 	}
 
 	private void updateLocalTile(Point windowCoords, Point zoneCoords)
@@ -143,8 +150,6 @@ public class CursesGuiDisplay extends CursesGuiUtil
 		terminal.print(0, 23, player.getName(), PLAYER_INFO_COLOR);
 		terminal.print(10, 23, "HP: " + player.getCurHp() + "/" + player.getMaxHp(), PLAYER_INFO_COLOR);
 		terminal.print(0, 24, "Depth: " + localMap.getDepth(), PLAYER_INFO_COLOR);
-		
-		terminal.refresh();
 	}
 	
 	private void clearPlayerInfoArea()
@@ -156,7 +161,5 @@ public class CursesGuiDisplay extends CursesGuiUtil
 				terminal.print(j, i, " ", Color.BLACK);
 			}
 		}
-		
-		terminal.refresh();
 	}
 }

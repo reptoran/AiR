@@ -6,6 +6,12 @@ import java.util.List;
 
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
+import main.entity.item.Inventory;
+import main.entity.item.Item;
+import main.entity.item.equipment.Equipment;
+import main.entity.item.equipment.EquipmentFactory;
+import main.entity.item.equipment.EquipmentSlot;
+import main.entity.item.equipment.EquipmentType;
 import main.entity.save.EntityMap;
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
@@ -38,6 +44,10 @@ public class Actor extends SaveableEntity
 	private AiType AI;
 
 	private int attributes[] = new int[TOTAL_ATTRIBUTES];
+	
+	private Inventory inventory = new Inventory();
+	private EquipmentType equipmentType = EquipmentType.BASIC;
+	private Equipment equipment;
 
 	private static int currentHash = 0;
 	private int hashModifier;
@@ -60,17 +70,19 @@ public class Actor extends SaveableEntity
 		maxHp = attributes[ATT_TOG];
 		curHp = maxHp;
 
-		AI = AiType.RAND_MOVE;
+		AI = AiType.MELEE;
 
 		ticksLeftBeforeActing = 0;
 
 		hashModifier = currentHash;
 		currentHash++;
+		
+		setEquipment(equipmentType);		//sets type and generates equipment from factory; likely called from clone, convertToType, and the save methods
 	}
 
 	public Actor(ActorType actorType, String name, char icon, int color, int[] attributes)
 	{
-		this(actorType, name, icon, color, attributes, AiType.RAND_MOVE);
+		this(actorType, name, icon, color, attributes, AiType.MELEE);
 	}
 
 	public Actor(ActorType actorType, String name, char icon, int color, int[] attributes, AiType AI)
@@ -103,6 +115,8 @@ public class Actor extends SaveableEntity
 		toRet.curHp = curHp;
 		toRet.ticksLeftBeforeActing = ticksLeftBeforeActing;
 		toRet.hashModifier = hashModifier; // if we're truly cloning this, then they need the same unique identifier as well.
+		toRet.equipmentType = equipmentType;
+		toRet.equipment = equipment.clone();
 
 		return toRet;
 	}
@@ -129,6 +143,9 @@ public class Actor extends SaveableEntity
 		{
 			this.attributes[i] = baseActor.attributes[i];
 		}
+		
+		this.inventory = new Inventory();
+		this.setEquipment(baseActor.equipmentType);
 	}
 
 	public void damage(int damageAmount)
@@ -203,6 +220,21 @@ public class Actor extends SaveableEntity
 	{
 		return AI;
 	}
+	
+	public Inventory getInventory()
+	{
+		return inventory;
+	}
+	
+	public void receiveItem(Item i)
+	{
+		inventory.add(i);
+	}
+	
+	public Item removeItem(int itemIndex)
+	{
+		return inventory.remove(itemIndex);
+	}
 
 	public void setAttribute(int index, int value)
 	{
@@ -253,6 +285,23 @@ public class Actor extends SaveableEntity
 	{
 		this.curHp = curHp;
 	}
+	
+	//private because the equipment type of an actor should never change (unless they polymorph, but that's a problem for the very, very distant future)
+	private void setEquipment(EquipmentType equipmentType)
+	{
+		this.equipmentType = equipmentType;
+		this.equipment = EquipmentFactory.generateEquipment(equipmentType);
+	}
+	
+	public EquipmentType getEquipmentType()
+	{
+		return equipmentType;
+	}
+	
+	public Equipment getEquipment()
+	{
+		return equipment;
+	}
 
 	@Override
 	public String saveAsText()
@@ -291,6 +340,19 @@ public class Actor extends SaveableEntity
 		if (AI != baseActor.AI)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_AI_, String.valueOf(AI)));
 
+		saveAttributes(baseActor, ssb);
+		
+		if (inventory != null && !inventory.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.A_INV, convertInventoryToList()));
+		
+		if (!equipment.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.A_EQP, convertEquipmentToList()));
+
+		return ssb.getSaveString();
+	}
+
+	private void saveAttributes(Actor baseActor, SaveStringBuilder ssb)
+	{
 		boolean changedAttributes = false;
 
 		for (int i = 0; i < TOTAL_ATTRIBUTES; i++)
@@ -301,8 +363,6 @@ public class Actor extends SaveableEntity
 
 		if (changedAttributes)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_ATT, convertAttributesToList()));
-
-		return ssb.getSaveString();
 	}
 
 	@Override
@@ -323,6 +383,8 @@ public class Actor extends SaveableEntity
 		setMember(ssb, SaveTokenTag.A_SPD);
 		setMember(ssb, SaveTokenTag.A_AI_);
 		setMember(ssb, SaveTokenTag.A_ATT);
+		setMember(ssb, SaveTokenTag.A_INV);
+		setMember(ssb, SaveTokenTag.A_EQP);
 
 		return toRet;
 	}
@@ -338,6 +400,50 @@ public class Actor extends SaveableEntity
 
 		return toRet;
 	}
+	
+	private List<String> convertInventoryToList()
+	{
+		List<String> toReturn = new ArrayList<String>();
+
+		for (Item item : inventory)
+			toReturn.add(getItemUid(item));
+
+		return toReturn;
+	}
+
+	private List<String> convertEquipmentToList()
+	{
+		//because an actor's equipment type can never change (for now), we don't need to take it into account when saving equipped items
+		List<String> toReturn = new ArrayList<String>();
+		List<EquipmentSlot> slots = equipment.getEquipmentSlots();
+		
+		for (EquipmentSlot slot : slots)
+		{
+			Item item = slot.getItem();
+			if (item == null)
+			{
+				toReturn.add("");
+				continue;
+			}
+			
+			toReturn.add(getItemUid(item));
+		}
+		
+		return toReturn;
+	}
+	
+	private String getItemUid(Item item)
+	{
+		String itemUid = item.getUniqueId();
+		
+		if (EntityMap.getItem(itemUid) == null)
+			itemUid = EntityMap.put(itemUid, item);
+		else
+			itemUid = EntityMap.getSimpleKey(itemUid);
+			
+		return itemUid.substring(1);
+	}
+	
 
 	@Override
 	protected void setMember(SaveStringBuilder ssb, SaveTokenTag saveTokenTag)
@@ -345,6 +451,7 @@ public class Actor extends SaveableEntity
 		String contents = getContentsForTag(ssb, saveTokenTag);
 		SaveToken saveToken = null;
 		List<String> strVals = null;
+		String referenceKey = "";
 
 		if (contents.equals(""))
 			return;
@@ -412,6 +519,38 @@ public class Actor extends SaveableEntity
 			}
 			break;
 
+		case A_INV:
+			saveToken = ssb.getToken(saveTokenTag);
+			strVals = saveToken.getContentSet();
+			
+			inventory = new Inventory();
+			
+			for (String value : strVals)
+			{
+				referenceKey = "I" + value;
+				inventory.add(EntityMap.getItem(referenceKey).clone());
+			}
+			break;
+
+		case A_EQP:
+			saveToken = ssb.getToken(saveTokenTag);
+			strVals = saveToken.getContentSet();
+			
+			//an empty equipment object is set when the actor is created, so we don't need to instantiate one here
+			
+			for (int i = 0; i < strVals.size(); i++)
+			{
+				String value = strVals.get(i);
+				
+				if (value.isEmpty())
+					continue;
+				
+				referenceKey = "I" + value;
+				
+				equipment.equipItem(EntityMap.getItem(referenceKey).clone(), i);
+			}
+			break;
+
 		default:
 			throw new IllegalArgumentException("Actor - Unhandled token: " + saveTokenTag.toString());
 		}
@@ -439,6 +578,13 @@ public class Actor extends SaveableEntity
 			if (attributes[i] != actor.attributes[i])
 				return false;
 		}
+		
+		if (!inventory.equals(actor.inventory))
+			return false;
+		
+		//TODO: for now, if either actor is wielding items, they can't be equal, since the items would be different
+		if (!equipment.isEmpty() || !actor.equipment.isEmpty())
+			return false;
 
 		return true;
 	}
@@ -462,7 +608,10 @@ public class Actor extends SaveableEntity
 		{
 			hash = 31 * hash + attributes[i];
 		}
-
+		
+		hash = 31 * hash + inventory.hashCode();
+		hash = 31 * hash + equipment.hashCode();
+		
 		hash = 31 * hash + hashModifier;
 
 		return hash;

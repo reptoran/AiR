@@ -47,7 +47,7 @@ public class ZoneFactoryTest
 			System.out.println();
 			for (int j = 0; j < cave.getWidth(); j++)
 			{
-				System.out.print(cave.getTile(i, j).getDisplayIcon());
+				System.out.print(cave.getTile(i, j).getIcon());
 			}
 		}
 	}

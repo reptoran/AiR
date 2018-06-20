@@ -14,6 +14,8 @@ public enum SaveTokenTag
 	A_SPD,	//actor speed counter
 	A_AI_,	//actor ai
 	A_ATT,	//actor attributes
+	A_INV,	//actor inventory
+	A_EQP,	//actor equipment
 	
 	C_NAM,	//fieldcoord name
 	C_ICO,	//fieldcoord icon
@@ -35,6 +37,9 @@ public enum SaveTokenTag
 	T_AHR,	//tile actor here 
 	T_FHR,	//tile feature here
 	T_IHR,	//tile item here
+	T_RIC,	//tile remembered icon
+	T_RCL,	//tile remembered color
+	T_FIC,	//tile fog icon
 	
 	I_UID,	//item unique identifier
 	I_NAM,	//item name

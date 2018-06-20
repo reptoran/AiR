@@ -4,12 +4,14 @@ import java.text.ParseException;
 
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
+import main.entity.item.equipment.EquipmentSlotType;
 import main.entity.save.EntityMap;
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
 import main.entity.save.SaveTokenTag;
+import main.presentation.Logger;
 
-public class Item extends SaveableEntity
+public class Item extends SaveableEntity implements Comparable<Item>
 {
 	private ItemType type;
 	
@@ -21,7 +23,7 @@ public class Item extends SaveableEntity
 	private String damage = "1D1";
 	private int size = 0;
 	private int amount = 1;
-	private EquipmentType inventorySlot = EquipmentType.NONE;
+	private EquipmentSlotType inventorySlot = EquipmentSlotType.ANY;
 	
 	private int maxHp = 1;
 	private int curHp = 1;
@@ -48,6 +50,21 @@ public class Item extends SaveableEntity
 		toRet.AR = AR;
 		toRet.CR = CR;
 		toRet.DR = DR;
+		
+		return toRet;
+	}
+	
+	public Item split(int amountToRemove)
+	{
+		if (amountToRemove >= amount)
+		{
+			Logger.warn("Cannot split a greater amount than the item contains.");
+			return null;
+		}
+		
+		Item toRet = clone();
+		toRet.setAmount(amountToRemove);
+		amount = amount - amountToRemove;
 		
 		return toRet;
 	}
@@ -82,14 +99,22 @@ public class Item extends SaveableEntity
 	public String getNameOnGround()
 	{
 		if (amount == 1)
-			return name;
+			return "a " + getName();
 		
-		return "pile of " + amount + " " + plural;
+		return "a pile of " + amount + " " + getPlural();
 	}
 	
-	public String getName()
+	public String getNameInPack()
 	{
-		return name;
+		if (amount == 1)
+			return "a " + getName();
+		
+		return amount + " " + getPlural();
+	}
+	
+	private String getName()
+	{
+		return name + getNameSuffix();
 	}
 	
 	public void setName(String name)
@@ -97,14 +122,25 @@ public class Item extends SaveableEntity
 		this.name = name;
 	}
 	
-	public String getPlural()
+	private String getPlural()
 	{
-		return plural;
+		return plural + getNameSuffix();
 	}
 	
 	public void setPlural(String plural)
 	{
 		this.plural = plural;
+	}
+	
+	private String getNameSuffix()
+	{
+		if (EquipmentSlotType.WEAPON.equals(inventorySlot))
+			return " (" + damage + ")";
+		
+		if (EquipmentSlotType.ARMOR.equals(inventorySlot))
+			return " [" + AR + "]";
+		
+		return "";
 	}
 	
 	public char getIcon()
@@ -157,12 +193,25 @@ public class Item extends SaveableEntity
 		this.amount = amount;
 	}
 	
-	public EquipmentType getInventorySlot()
+	public void add(Item item)
+	{
+		if (!item.equalsIgnoreAmount(this))
+			return;
+		
+		add(item.amount);
+	}
+	
+	public void add(int amountToAdd)
+	{
+		amount += amountToAdd;
+	}
+	
+	public EquipmentSlotType getInventorySlot()
 	{
 		return inventorySlot;
 	}
 	
-	public void setInventorySlot(EquipmentType inventorySlot)
+	public void setInventorySlot(EquipmentSlotType inventorySlot)
 	{
 		this.inventorySlot = inventorySlot;
 	}
@@ -235,7 +284,7 @@ public class Item extends SaveableEntity
 		else
 			itemUid = EntityMap.getSimpleKey(itemUid);
 		
-		//will be saved with every tile
+		//will be saved with every item
 		ssb.addToken(new SaveToken(SaveTokenTag.I_UID, itemUid));
 		ssb.addToken(new SaveToken(SaveTokenTag.I_TYP, type.toString()));
 		
@@ -260,9 +309,9 @@ public class Item extends SaveableEntity
 	@Override
 	public String loadFromText(String text) throws ParseException
 	{
-		SaveStringBuilder ssb = new SaveStringBuilder(EntityType.TILE, text);
+		SaveStringBuilder ssb = new SaveStringBuilder(EntityType.ITEM, text);
 		
-		String toRet = getContentsForTag(ssb, SaveTokenTag.T_UID);	//assumed to be defined
+		String toRet = getContentsForTag(ssb, SaveTokenTag.I_UID);	//assumed to be defined
 		
 		setMember(ssb, SaveTokenTag.I_TYP);
 		setMember(ssb, SaveTokenTag.I_NAM);
@@ -340,7 +389,7 @@ public class Item extends SaveableEntity
 				break;
 				
 			case I_INV:
-				EquipmentType eqType = EquipmentType.valueOf(contents); 
+				EquipmentSlotType eqType = EquipmentSlotType.valueOf(contents); 
 				this.inventorySlot = eqType;
 				break;
 				
@@ -437,5 +486,38 @@ public class Item extends SaveableEntity
 		if (type != other.type)
 			return false;
 		return true;
+	}
+	
+	public boolean equalsIgnoreAmount(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Item other = (Item) obj;
+		
+		int originalAmount = amount;
+		amount = other.amount;
+		
+		boolean doesEqual = false;
+		
+		if (this.equals(other))
+			doesEqual = true;
+		
+		amount = originalAmount;
+		return doesEqual;
+	}
+
+	@Override
+	public int compareTo(Item other)
+	{
+		if (inventorySlot != other.inventorySlot)
+		{
+			return inventorySlot.compareTo(other.inventorySlot);	//compares based on the order the enumeration elements are declared
+		}
+		
+		return name.compareTo(other.name);
 	}
 }

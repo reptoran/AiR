@@ -19,4 +19,11 @@ public class LineTest
 		Line line = new Line(-12, 0, 5, -3);
 		System.out.println(line.getPoints());
 	}
+	
+	@Test
+	public void generateHorizontalLine()
+	{
+		Line line = new Line(-12, 3, 5, 3);
+		System.out.println(line.getPoints());
+	}
 }

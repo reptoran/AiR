@@ -18,9 +18,9 @@ public class ActorFactory
 		switch (actorType)
 		{
 			case PLAYER:
-				return ActorBuilder.generateActor(ActorType.NO_TYPE).setHP(10).setIcon('@').setColor(15).setAI(AiType.HUMAN_CONTROLLED).setGender(GenderType.PLAYER).setUnique(true).build();
+				return ActorBuilder.generateActor(ActorType.NO_TYPE).setHP(1000).setIcon('@').setColor(15).setAI(AiType.HUMAN_CONTROLLED).setGender(GenderType.PLAYER).setUnique(true).build();
 			case HUMAN:
-				return ActorBuilder.generateActor(ActorType.HUMAN).setName("human").setHP(8).setIcon('H').setColor(12).build();
+				return ActorBuilder.generateActor(ActorType.HUMAN).setName("human").setHP(8).setIcon('H').setColor(12).setAI(AiType.RAND_MOVE).build();
 			case RAT:
 				return ActorBuilder.generateActor(ActorType.RAT).setName("rat").setHP(5).setIcon('r').setColor(6).build();
 			case RATTLESNAKE:

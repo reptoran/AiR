@@ -1,13 +1,21 @@
 package main.logic.AI;
 
+import java.util.List;
+
 import main.entity.actor.Actor;
-import main.logic.RPGlib;
+import main.entity.zone.Zone;
 
 public class MoveRandomAI extends ActorAI
 {
-	public String getNextCommand(Actor theActor)
+	@Override
+	public String getNextCommand(Zone zone, Actor actor)
 	{
-		String moveTo[] = {"DIRNW", "DIRN", "DIRNE", "DIRW", "DIRE", "DIRSW", "DIRS", "DIRSE"};
-	    return moveTo[RPGlib.Randint(0, 7)];
+		return getRandomLegalMove(zone, actor);
+	}
+
+	@Override
+	protected List<AiType> getEnemyAiTypes()
+	{
+		return generateAiList();
 	}
 }

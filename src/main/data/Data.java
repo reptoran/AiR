@@ -12,6 +12,8 @@ import main.entity.actor.ActorType;
 import main.entity.feature.Feature;
 import main.entity.feature.FeatureFactory;
 import main.entity.feature.FeatureType;
+import main.entity.item.Item;
+import main.entity.item.equipment.EquipmentSlot;
 import main.entity.tile.Tile;
 import main.entity.tile.TileFactory;
 import main.entity.tile.TileType;
@@ -225,6 +227,14 @@ public class Data
 			damageActor(getActor(event.getFlag(1)), event.getFlag(2));
 			break;
 			
+		case PICKUP:
+			pickupItem(actor);
+			break;
+			
+		case DROP:
+			dropItem(actor, event.getFlag(1));
+			break;
+			
 		case ZONE_TRANSITION:
 			Point playerLocation = currentZone.getCoordsOfActor(actor);
 			ZoneKey zoneKey = currentZone.getZoneKey(playerLocation);
@@ -253,6 +263,27 @@ public class Data
 		}
 	}
 
+	private void dropItem(Actor actor, int itemIndex)
+	{
+		Point coordsToDropItem = getClosestOpenTileCoords(currentZone.getCoordsOfActor(actor));
+		Item itemToDrop = actor.removeItem(itemIndex);
+		currentZone.getTile(coordsToDropItem).setItemHere(itemToDrop);
+	}
+
+	private void dropItem(Point coords, Item item)
+	{
+		Point coordsToDropItem = getClosestOpenTileCoords(coords);
+		currentZone.getTile(coordsToDropItem).setItemHere(item);
+	}
+
+	private void pickupItem(Actor actor)
+	{
+		Tile tile = currentZone.getTile(actor);
+		Item item = tile.getItemHere();
+		tile.setItemHere(null);
+		actor.receiveItem(item);
+	}
+
 	private void killActor(Actor actor)
 	{
 		if (actor == player)
@@ -262,15 +293,37 @@ public class Data
 			receiveEvent(Event.exitEvent());
 		}
 		
+		dropAllItems(actor);
 		currentZone.removeActor(actor);
-		//TODO: disperse all items the actor is carrying
+	}
+
+	private void dropAllItems(Actor actor)
+	{
+		Point coords = currentZone.getCoordsOfActor(actor);
+		
+		List<EquipmentSlot> equipment = actor.getEquipment().getEquipmentSlots();
+		
+		for (EquipmentSlot slot : equipment)
+		{
+			Item item = slot.getItem();
+			
+			if (item != null)
+				dropItem(coords, item);
+			
+			slot.setItem(null);	//probably unncessary, but it can't hurt
+		}
+		
+		for (Item item : actor.getInventory())
+			dropItem(coords, item);
+		
+		actor.getInventory().clear();
 	}
 
 	private void enterLocalZoneFromWorldTravel()
 	{
 		Actor actor = player;
 		currentZone = getZoneAtLocation(overworld.getPlayerCoords());
-		currentZone.addActor(actor, new Point(2, 2));
+		currentZone.addActor(actor, new Point(12, 35));
 		worldTravel = false;
 	}
 
@@ -290,5 +343,29 @@ public class Data
 	private void damageActor(Actor actor, int damage)
 	{
 		actor.setCurHp(actor.getCurHp() - damage);
+	}
+	
+	private Point getClosestOpenTileCoords(Point coords)
+	{
+		int maxDropRange = 10;
+		
+		for (int radiusFromPoint = 0; radiusFromPoint <= maxDropRange; radiusFromPoint++)
+		{
+			for (int row = -1 * radiusFromPoint; row <= radiusFromPoint; row++)
+			{
+				for (int column = -1 * radiusFromPoint; column <= radiusFromPoint; column++)
+				{
+					if (Math.abs(row) != radiusFromPoint && Math.abs(column) != radiusFromPoint)
+						continue;	//only go around the border, since everything else has been checked
+					
+					Point coordsToCheck = new Point(coords.x + row, coords.y + column);
+					
+					if (!currentZone.getTile(coordsToCheck).obstructsItem())
+						return coordsToCheck;
+				}
+			}
+		}
+		
+		throw new IllegalStateException("No empty tile found to place item");
 	}
 }

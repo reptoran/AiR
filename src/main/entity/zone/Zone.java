@@ -135,6 +135,12 @@ public class Zone extends SaveableEntity
 		return getTile(coords.x, coords.y);
 	}
 
+	public Tile getTile(Actor actor)
+	{
+		Point point = getCoordsOfActor(actor);
+		return getTile(point);
+	}
+
 	public void setTile(int row, int column, Tile tile)
 	{
 		tiles[row][column] = tile.clone();

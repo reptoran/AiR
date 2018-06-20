@@ -1,6 +1,7 @@
 package test.entity.zone;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.awt.Point;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
+import main.data.SpecialLevelManager;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorType;
 import main.entity.zone.Zone;
@@ -15,6 +17,7 @@ import main.entity.zone.ZoneKey;
 import main.entity.zone.ZoneType;
 import main.entity.zone.predefined.PredefinedZone;
 import main.entity.zone.predefined.PredefinedZoneLoader;
+import main.logic.pathfinding.Pathfinder;
 
 public class ZoneLoaderTest
 {
@@ -42,5 +45,27 @@ public class ZoneLoaderTest
 		assertEquals(ActorType.BANDIT, actor.getType());
 		assertEquals(new Point(3, 21), zone.getCoordsOfActor(actor));
 		assertEquals(ZoneType.UNMAPPED_UP, zoneKey.getType());
+	}
+	
+	@Test
+	public void generateSpecialLevel_validDataFiles_specialLevelGenerated()
+	{
+		SpecialLevelManager.populateSpecialZonesForLevels(predefinedZoneLoader.loadAllPredefinedZones());
+		
+		assertNotNull(SpecialLevelManager.generateSpecialLevel(0));
+		assertNotNull(SpecialLevelManager.generateSpecialLevel(15));
+		assertNotNull(SpecialLevelManager.generateSpecialLevel(1));
+	}
+	
+	@Test
+	public void limitedPathfindingInTown_runAloneWithoutRunningOtherTests()
+	{
+		SpecialLevelManager.populateSpecialZonesForLevels(predefinedZoneLoader.loadAllPredefinedZones());
+		Zone town = SpecialLevelManager.generateSpecialLevel(0);
+		
+		List<Point> path = Pathfinder.findPath(town, new Point(17, 25), new Point(7, 34));
+		
+		System.out.println("");
+		System.out.println(path);
 	}
 }

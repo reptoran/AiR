@@ -3,6 +3,7 @@ package main.presentation.curses;
 import java.awt.Color;
 import java.util.List;
 
+import main.presentation.GuiState;
 import main.presentation.curses.terminal.CursesTerminal;
 import main.presentation.message.MessageBuffer;
 
@@ -24,6 +25,13 @@ public class CursesGuiMessages extends CursesGuiUtil
 		this.parentGui = parentGui;
 	}
 
+	@Override
+	public void refresh()
+	{
+		clearMessageArea();
+		displayNextMessages();
+		terminal.refresh();
+	}
 	
 	protected void clearMessageArea()
 	{
@@ -38,8 +46,6 @@ public class CursesGuiMessages extends CursesGuiUtil
 				terminal.print(j, i, " ", Color.BLACK);
 			}
 		}
-		
-		terminal.refresh();
 	}
 	
 	protected void displayNextMessages()
@@ -56,8 +62,8 @@ public class CursesGuiMessages extends CursesGuiUtil
 		}
 		
 		if (!messageLines.isEmpty())
-			parentGui.setCurrentState(CursesGuiState.STATE_MESSAGE);
+			parentGui.setCurrentState(GuiState.MESSAGE);
 		else
-			parentGui.setCurrentState(CursesGuiState.STATE_NONE);
+			parentGui.setCurrentState(GuiState.NONE);
 	}
 }

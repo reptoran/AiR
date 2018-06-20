@@ -21,4 +21,22 @@ public class RPGlib
 	{
 		random.setSeed(seed);
 	}
+	
+	public static String convertCoordChangeToDirection(int rowChange, int colChange)
+	{
+		String command = "DIR";
+		if (rowChange < 0)
+			command = command + "N";
+		if (rowChange > 0)
+			command = command + "S";
+		if (colChange < 0)
+			command = command + "W";
+		if (colChange > 0)
+			command = command + "E";
+		
+		if (command.equals("DIR"))
+			return "DIRNONE";
+
+		return command;
+	}
 }

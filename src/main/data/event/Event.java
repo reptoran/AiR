@@ -48,6 +48,18 @@ public class Event
 		event.actionCost = movementCost;
 		return event;
 	}
+	
+	public static Event pickupEvent(int actorIndex)
+	{
+		return actorOnlyEvent(EventType.PICKUP, actorIndex);
+	}
+	
+	public static Event dropEvent(int actorIndex, int itemIndex)
+	{
+		Event event = actorOnlyEvent(EventType.DROP, actorIndex);
+		event.flags[1] = itemIndex;
+		return event;
+	}
 
 	public static Event localMoveEvent(int actorIndex, int targetRow, int targetCol, int actionCost)
 	{

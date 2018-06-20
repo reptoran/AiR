@@ -15,7 +15,9 @@ import main.entity.world.Overworld;
 import main.entity.zone.Zone;
 import main.logic.AI.ActorAI;
 import main.logic.AI.AiType;
+import main.logic.AI.MeleeAI;
 import main.logic.AI.MoveRandomAI;
+import main.logic.AI.ZombieAI;
 import main.presentation.Logger;
 import main.presentation.UiManager;
 import main.presentation.message.FormattedMessageBuilder;
@@ -23,7 +25,7 @@ import main.presentation.message.MessageBuffer;
 
 public class Engine
 {
-	private static final int PLAYER_SIGHT_RADIUS = 8;
+	public static final int ACTOR_SIGHT_RADIUS = 12;
 	
 	private Data gameData; // remember that the presentation layer can't see this; it can only see what the logic layer provides
 
@@ -34,11 +36,18 @@ public class Engine
 
 	public Engine(Data theData)
 	{
-		gameAIs = new HashMap<AiType, ActorAI>();
-		gameAIs.put(AiType.RAND_MOVE, new MoveRandomAI());
+		loadAIs();
 		
 		turnIndex = 0;
 		gameData = theData;
+	}
+
+	private void loadAIs()
+	{
+		gameAIs = new HashMap<AiType, ActorAI>();
+		gameAIs.put(AiType.RAND_MOVE, new MoveRandomAI());
+		gameAIs.put(AiType.ZOMBIE, new ZombieAI());
+		gameAIs.put(AiType.MELEE, new MeleeAI());
 	}
 
 	public void beginGame()
@@ -108,8 +117,18 @@ public class Engine
 	{
 		Zone currentZone = gameData.getCurrentZone();
 		currentZone.resetVisible();
-		SightRadiusUtil.updateFieldOfView(currentZone, currentZone.getCoordsOfActor(playerActor), PLAYER_SIGHT_RADIUS);	//TODO: base this on perception, and update that as it changes
+		ActorSightUtil.updateFieldOfView(currentZone, currentZone.getCoordsOfActor(playerActor), ACTOR_SIGHT_RADIUS);	//TODO: base this on perception, and update that as it changes
 		UiManager.getInstance().refreshInterface();
+	}
+	
+	private boolean canPlayerSeeActor(Actor actor)
+	{
+		if (actor == gameData.getPlayer())
+			return true;
+		
+		Zone currentZone = gameData.getCurrentZone();
+		Point actorCoords = currentZone.getCoordsOfActor(actor);
+		return ActorSightUtil.losExists(currentZone, currentZone.getCoordsOfActor(gameData.getPlayer()), actorCoords, ACTOR_SIGHT_RADIUS);
 	}
 
 	private void runAiTurns()
@@ -128,7 +147,7 @@ public class Engine
 			
 			AiType aiType = curActor.getAI();
 			ActorAI curAI = gameAIs.get(aiType);
-			String command = curAI.getNextCommand(curActor);
+			String command = curAI.getNextCommand(gameData.getCurrentZone(), curActor);
 			executeActorCommand(actorIndex, command);
 			localActors.add(curActor);
 		}
@@ -146,6 +165,12 @@ public class Engine
 		} else if (theCommand.equals("EXIT"))
 		{
 			gameData.receiveEvent(Event.exitEvent());
+		} else if (theCommand.equals("PICKUP"))
+		{
+			pickupItem(actorIndex);
+		} else if (theCommand.startsWith("DROP"))
+		{
+			dropItem(actorIndex, Integer.parseInt(theCommand.substring(4)));
 		} else if ((theCommand.equals("CHANGE_ZONE_UP") || theCommand.equals("CHANGE_ZONE_DOWN")) && canTransitionToNewZone(actorIndex))
 		{
 			gameData.receiveEvent(Event.transitionZoneEvent(actorIndex));
@@ -157,20 +182,51 @@ public class Engine
 			gameData.receiveEvent(Event.enterLocalEvent(actorIndex));
 		} else if (theCommand.substring(0, 3).equals("DIR"))
 		{
-			Event event = handleMove(actorIndex, theCommand);
+			handleDirection(actorIndex, theCommand);
+		}
+	}
 
-			if (event == null)
-				return;
-			
-			if (event.getEventType() == EventType.ATTACK)
-			{
-				resolveAttackEvent(event);
-				return;
-			}
-			
-			gameData.receiveEvent(event);
+	private void pickupItem(int actorIndex)
+	{
+		Actor actor = gameData.getActor(actorIndex);
+		Tile tile = getCurrentZone().getTile(actor);
+		Item item = tile.getItemHere();
+		
+		if (item == null)
+		{
+			MessageBuffer.addMessageIfHuman("There is nothing to pick up.", actor.getAI());
 			return;
 		}
+		
+		//TODO: check for item size, etc.
+		
+		gameData.receiveEvent(Event.pickupEvent(actorIndex));
+		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the pick%1s up " + item.getNameOnGround() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+	}
+	
+	private void dropItem(int actorIndex, int itemIndex)
+	{
+		Actor actor = gameData.getActor(actorIndex);
+		Item item = actor.getInventory().get(itemIndex);
+		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the drop%1s " + item.getNameInPack() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		
+		gameData.receiveEvent(Event.dropEvent(actorIndex, itemIndex));
+	}
+
+	private void handleDirection(int actorIndex, String theCommand)
+	{
+		Event event = handleMove(actorIndex, theCommand);
+
+		if (event == null)
+			return;
+		
+		if (event.getEventType() == EventType.ATTACK)
+		{
+			resolveAttackEvent(event);
+			return;
+		}
+		
+		gameData.receiveEvent(event);
 	}
 	
 	private boolean canTransitionToNewZone(int actorIndex)
@@ -191,7 +247,6 @@ public class Engine
 	{
 		Actor actor = gameData.getActor(actorIndex);
 		Point origin;
-		Event event = null;
 
 		if (isWorldTravel())
 			origin = gameData.getOverworld().getPlayerCoords();
@@ -269,23 +324,18 @@ public class Engine
 		if (itemHere == null)
 			return;
 		
-		MessageBuffer.addMessage("There is a " + itemHere.getNameOnGround() + " here.");
+		MessageBuffer.addMessage("There is " + itemHere.getNameOnGround() + " here.");
 	}
-
+	
 	private void resolveAttackEvent(Event attackEvent)
 	{
 		Actor attacker = gameData.getActor(attackEvent.getFlag(0));
 		Actor defender = gameData.getActor(attackEvent.getFlag(1));
 		
-		Zone curZone = getCurrentZone();
-		
-		Point attackerCoords = curZone.getCoordsOfActor(attacker);
-		Point defenderCoords = curZone.getCoordsOfActor(defender);
-		
 		int damage = calculateAttackDamage(attacker, defender);
 		
-		boolean canSeeSource = SightRadiusUtil.losExists(curZone, curZone.getCoordsOfActor(gameData.getPlayer()), attackerCoords, PLAYER_SIGHT_RADIUS);
-		boolean canSeeTarget = SightRadiusUtil.losExists(curZone, curZone.getCoordsOfActor(gameData.getPlayer()), defenderCoords, PLAYER_SIGHT_RADIUS);
+		boolean canSeeSource = canPlayerSeeActor(attacker);
+		boolean canSeeTarget = canPlayerSeeActor(defender);
 		
 		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the hit%1s @2the.").setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
 		
@@ -293,7 +343,7 @@ public class Engine
 		
 		if (defender.getCurHp() <= 0)	//valid check because the data layer has already received and applied the damage
 		{
-			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the dies!").setSource(defender).setSourceVisibility(canSeeSource).format());
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the is killed!").setSource(defender).setSourceVisibility(canSeeSource).format());
 			gameData.receiveEvent(Event.deathEvent(gameData.getActorIndex(defender)));
 		}
 	}

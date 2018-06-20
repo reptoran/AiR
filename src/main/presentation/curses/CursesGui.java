@@ -3,31 +3,40 @@ package main.presentation.curses;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
+import main.data.DataSaveUtils;
+import main.entity.actor.Actor;
 import main.logic.Engine;
+import main.logic.RPGlib;
 import main.presentation.AbstractGui;
+import main.presentation.GuiState;
 import main.presentation.Logger;
+import main.presentation.curses.inventory.CursesGuiInventory;
+import main.presentation.curses.inventory.InventoryState;
 import main.presentation.curses.terminal.CursesTerminal;
 import main.presentation.curses.terminal.CursesTerminalAsciiPanelImpl;
+import main.presentation.message.MessageBuffer;
 
 public class CursesGui extends AbstractGui implements KeyListener
 {
 	private CursesTerminal terminal;
 
-	private CursesGuiState currentState = CursesGuiState.STATE_NONE;
+	private GuiState currentState = GuiState.NONE;
 	
 	private CursesGuiMessages messageUtil;
 	private CursesGuiDisplay displayUtil;
+	private CursesGuiInventory inventoryUtil;
 
 	public CursesGui(Engine engine)
 	{
 		super(engine);
 		
 //		terminal = new CursesTerminalLibjcsiImpl("Adventures in Reptoran");
-		terminal = new CursesTerminalAsciiPanelImpl("Adventures in Reptoran");
+		terminal = new CursesTerminalAsciiPanelImpl("Adventures in Reptoran v" + DataSaveUtils.VERSION);
 		terminal.addKeyListener(this);
 		
 		messageUtil = new CursesGuiMessages(this, terminal);
 		displayUtil = new CursesGuiDisplay(engine, terminal);
+		inventoryUtil = new CursesGuiInventory(this, engine, terminal);
 		
 		refreshInterface();
 	}
@@ -35,46 +44,54 @@ public class CursesGui extends AbstractGui implements KeyListener
 	@Override
 	public void refreshInterface()
 	{
-//		displayUtil.printBorders();
-
-		// game display
-		displayUtil.updateMap();
-		
-		//messages
-		messageUtil.clearMessageArea();
-		getAndShowNewMessages();
-		
-		//character info
-		displayUtil.showPlayerInfo();
+		switch (currentState)
+		{
+		case INVENTORY:
+			displayPackContents();
+			break;
+		case MESSAGE:		//fall through
+		case NONE:		//fall through
+		default:
+			displayMainGameScreen();
+			break;
+		}
 	}
 	
-	private void getAndShowNewMessages()
+	private void displayPackContents()
 	{
-		messageUtil.displayNextMessages();
+		inventoryUtil.refresh();
 	}
 
-	public CursesGuiState getCurrentState()
+	private void displayMainGameScreen()
+	{
+		displayUtil.refresh();
+		messageUtil.refresh();
+	}
+
+	public GuiState getCurrentState()
 	{
 		return currentState;
 	}
 
-	public void setCurrentState(CursesGuiState currentState)
+	public void setCurrentState(GuiState currentState)
 	{
 		this.currentState = currentState;
-	}
-	
-	public String getFullKeyEventValue(KeyEvent ke)
-	{
-		return "";
 	}
 
 	@Override
 	public void keyPressed(KeyEvent ke)
 	{
-		if (currentState == CursesGuiState.STATE_MESSAGE)
+		if (currentState == GuiState.MESSAGE)
 		{
 			messageUtil.clearMessageArea();
 			messageUtil.displayNextMessages();
+			return;
+		}
+		
+		if (currentState == GuiState.INVENTORY)
+		{
+			inventoryUtil.handleKeyEvent(ke);
+			refreshInterface();
 			return;
 		}
 		
@@ -117,6 +134,16 @@ public class CursesGui extends AbstractGui implements KeyListener
 		} else if (keyChar == '<')
 		{
 			engine.receiveCommand("CHANGE_ZONE_UP");
+		} else if (keyChar == 'i')
+		{
+			currentState = GuiState.INVENTORY;
+			refreshInterface();
+		} else if (keyChar == 'd')
+		{
+			handleDrop();
+		} else if (keyChar == 'g')
+		{
+			engine.receiveCommand("PICKUP");
 		} else if (keyChar == 'S')
 		{
 			engine.receiveCommand("SAVE");
@@ -129,24 +156,29 @@ public class CursesGui extends AbstractGui implements KeyListener
 		}
 	}
 
+	private void handleDrop()
+	{
+		Actor player = engine.getData().getPlayer();
+		
+		if (player.getInventory().isEmpty())
+		{
+			MessageBuffer.addMessage("You aren't carrying anything!");
+			currentState = GuiState.MESSAGE;
+			refreshInterface();
+			return;
+		}
+		
+		inventoryUtil.setState(InventoryState.DROP);
+		currentState = GuiState.INVENTORY;
+		refreshInterface();
+	}
+
 	private void handleDirection(int rowChange, int colChange)
 	{
-		String command = "";
-
-		// direction with no state just means to move
-		if (currentState == CursesGuiState.STATE_NONE)
-		{
-			command = "DIR";
-			if (rowChange < 0)
-				command = command + "N";
-			if (rowChange > 0)
-				command = command + "S";
-			if (colChange < 0)
-				command = command + "W";
-			if (colChange > 0)
-				command = command + "E";
-		}
-
+		if (currentState != GuiState.NONE)
+			return;
+		
+		String command = RPGlib.convertCoordChangeToDirection(rowChange, colChange);		
 		engine.receiveCommand(command);
 	}
 

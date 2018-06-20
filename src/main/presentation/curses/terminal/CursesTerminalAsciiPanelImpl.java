@@ -65,6 +65,14 @@ public class CursesTerminalAsciiPanelImpl implements CursesTerminal
 	{
 		panel.write(text, row, column, asciiColor(foreground), asciiColor(background));
 	}
+	
+	@Override
+	public void clear()
+	{
+		for (int i = 0; i < 25; i++)
+			panel.write("                                                                                ", 0, i);
+		refresh();
+	}
 
 	@Override
 	public void refresh()

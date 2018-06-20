@@ -11,6 +11,7 @@ public interface CursesTerminal
 	public void print(int row, int column, String text, int color);
 	public void print(int row, int column, String text, Color foreground, Color background);
 	public void print(int row, int column, String text, int foreground, int background);
+	public void clear();
 	public void refresh();
 	public void close();
 }

@@ -9,14 +9,22 @@ public class Line	//TODO: legacy code; needs refactoring
 	private List<Point> linePoints = new ArrayList<Point>();
 	int lineDist = 0;
 
+	/**
+	 * Generates a line of connected Points.  The first element is always the origin, while the last element is always the destination.
+	 * 
+	 * @param startX
+	 * @param startY
+	 * @param endX
+	 * @param endY
+	 */
 	public Line(int startX, int startY, int endX, int endY)
 	{
 		double xDist = endX - startX;
 		double yDist = endY - startY;
 		double xAbs = Math.abs(xDist);
 		double yAbs = Math.abs(yDist);
-		double lineX = xDist / xAbs;
-		double lineY = yDist / yAbs;
+		double lineX = (xAbs != 0) ? (xDist / xAbs) : 0;
+		double lineY = (yAbs != 0) ? (yDist / yAbs) : 0;
 		double xStart = startX;
 		double yStart = startY;
 		double[][] XY;
@@ -72,11 +80,17 @@ public class Line	//TODO: legacy code; needs refactoring
 
 	public int getLength()
 	{
-		return lineDist;
+		return lineDist + 1;	//lineDist is the distance from the origin (so a spot right next to it would be a distance of 1, even though the line has a length of 2)
 	}
 
 	public List<Point> getPoints()
 	{
 		return linePoints;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return linePoints.toString();
 	}
 }

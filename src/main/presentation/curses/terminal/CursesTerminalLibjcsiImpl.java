@@ -80,6 +80,13 @@ public class CursesTerminalLibjcsiImpl implements CursesTerminal
 	}
 
 	@Override
+	public void clear()
+	{
+		csi.cls();
+		csi.refresh();
+	}
+
+	@Override
 	public void refresh()
 	{
 		csi.refresh();
