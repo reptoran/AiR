@@ -60,6 +60,21 @@ public class Event
 		event.flags[1] = itemIndex;
 		return event;
 	}
+	
+	public static Event equipEvent(int actorIndex, int slotIndex, int itemIndex)
+	{
+		Event event = actorOnlyEvent(EventType.EQUIP, actorIndex);
+		event.flags[1] = slotIndex;
+		event.flags[2] = itemIndex;
+		return event;
+	}
+	
+	public static Event unequipEvent(int actorIndex, int slotIndex)
+	{
+		Event event = actorOnlyEvent(EventType.UNEQUIP, actorIndex);
+		event.flags[1] = slotIndex;
+		return event;
+	}
 
 	public static Event localMoveEvent(int actorIndex, int targetRow, int targetCol, int actionCost)
 	{

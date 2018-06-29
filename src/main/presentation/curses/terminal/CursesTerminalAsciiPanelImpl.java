@@ -43,27 +43,27 @@ public class CursesTerminalAsciiPanelImpl implements CursesTerminal
 	}
 
 	@Override
-	public void print(int row, int column, String text, Color color)
+	public void print(int x, int y, String text, Color color)
 	{
-		panel.write(text, row, column, color);
+		panel.write(text, x, y, color);
 	}
 
 	@Override
-	public void print(int row, int column, String text, int color)
+	public void print(int x, int y, String text, int color)
 	{
-		panel.write(text, row, column, asciiColor(color));
+		panel.write(text, x, y, asciiColor(color));
 	}
 
 	@Override
-	public void print(int row, int column, String text, Color foreground, Color background)
+	public void print(int x, int y, String text, Color foreground, Color background)
 	{
-		panel.write(text, row, column, foreground, background);
+		panel.write(text, x, y, foreground, background);
 	}
 
 	@Override
-	public void print(int row, int column, String text, int foreground, int background)
+	public void print(int x, int y, String text, int foreground, int background)
 	{
-		panel.write(text, row, column, asciiColor(foreground), asciiColor(background));
+		panel.write(text, x, y, asciiColor(foreground), asciiColor(background));
 	}
 	
 	@Override

@@ -4,7 +4,9 @@ import java.awt.Point;
 import java.text.ParseException;
 
 import main.entity.actor.Actor;
+import main.entity.item.Item;
 import main.entity.save.EntityMap;
+import main.entity.tile.Tile;
 import main.entity.world.WorldTile;
 import main.entity.zone.generator.AbstractGenerator;
 import main.entity.zone.generator.DesertGenerator;
@@ -13,6 +15,7 @@ import main.entity.zone.generator.LabyrinthGenerator;
 import main.entity.zone.generator.OceanGenerator;
 import main.entity.zone.generator.PersistentCaveGenerator;
 import main.entity.zone.generator.PlainsGenerator;
+import main.entity.zone.generator.ZoneItemGenerator;
 import main.entity.zone.generator.ZonePopulationGenerator;
 import main.logic.RPGlib;
 
@@ -22,6 +25,7 @@ public class ZoneFactory
 	
 	private static final int MINIMUM_ACTORS_PER_ZONE = 8;
 	private static final int MAXIMUM_ACTORS_PER_ZONE = 15;
+	private static final int ITEMS_PER_ZONE = 5;
 	
 	private AbstractGenerator zoneGenerator;
 	private int generatedMaps = 0;
@@ -81,7 +85,7 @@ public class ZoneFactory
 		
 		for (int i = 0; i < totalActors; i++)
 		{
-			Point actorLocation = findOpenTile(zone);
+			Point actorLocation = findOpenTile(zone, true, false);
 			Actor actor = ZonePopulationGenerator.generateMonster(zone.getDepth());
 			
 			if (actor == null)
@@ -89,9 +93,20 @@ public class ZoneFactory
 			
 			zone.addActor(actor, actorLocation);
 		}
+		
+		for (int i = 0; i < ITEMS_PER_ZONE; i++)
+		{
+			Point itemLocation = findOpenTile(zone, false, true);
+			Item item = ZoneItemGenerator.generateItem(zone.getDepth());
+			
+			if (item == null)
+				return;
+			
+			zone.getTile(itemLocation).setItemHere(item);
+		}
 	}
 	
-	private Point findOpenTile(Zone zone)
+	private Point findOpenTile(Zone zone, boolean noActorAllowed, boolean noItemAllowed)
 	{
 		Point openTile = null;
 		
@@ -100,7 +115,19 @@ public class ZoneFactory
 			int x = RPGlib.Randint(0, zone.getHeight() - 1);
 			int y = RPGlib.Randint(0, zone.getWidth() - 1);
 			
-			if (!zone.getTile(x, y).obstructsMotion())
+			Tile tile = zone.getTile(x, y);
+			boolean valid = true;
+			
+			if (tile.obstructsMotion())
+				valid = false;
+			
+			if (noActorAllowed && tile.getActorHere() != null)
+				valid = false;
+			
+			if (noItemAllowed && tile.getItemHere() != null)
+				valid = false;
+			
+			if (valid)
 				openTile = new Point(x, y);
 		}
 		

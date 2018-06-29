@@ -15,13 +15,13 @@ public class GameRunner
 
 	public static void main(String[] args)
 	{
-		Logger.setLogLevel(Logger.WARN);
+		Logger.setLogLevel(Logger.DEBUG);
 		String playerName = "";
 
 		while (playerName.length() == 0)
 		{
 			playerName = JOptionPane.showInputDialog("What is your name?");
-			if (playerName == null)
+			if (playerName == null)		//TODO: check for whitespace
 				return;
 		}
 

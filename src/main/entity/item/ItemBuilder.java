@@ -27,6 +27,13 @@ public class ItemBuilder
 		return this;
 	}
 	
+	public ItemBuilder setNames(String name)
+	{
+		item.setName(name);
+		item.setPlural(name + "s");
+		return this;
+	}
+	
 	public ItemBuilder setPlural(String plural)
 	{
 		item.setPlural(plural);

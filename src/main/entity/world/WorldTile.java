@@ -64,7 +64,7 @@ public class WorldTile extends FieldCoord
 		ssb.addToken(new SaveToken(SaveTokenTag.W_TYP, zoneType.toString()));
 
 		// will be saved only if they differ from the default world tile of this type
-		if (name != baseTile.name)
+		if (!name.equals(baseTile.name))
 			ssb.addToken(new SaveToken(SaveTokenTag.C_NAM, name));
 		if (icon != baseTile.icon)
 			ssb.addToken(new SaveToken(SaveTokenTag.C_ICO, String.valueOf(icon)));
@@ -72,7 +72,7 @@ public class WorldTile extends FieldCoord
 			ssb.addToken(new SaveToken(SaveTokenTag.C_CLR, String.valueOf(color)));
 		if (moveCostModifier != baseTile.moveCostModifier)
 			ssb.addToken(new SaveToken(SaveTokenTag.C_MOV, String.valueOf(moveCostModifier)));
-		if (blockedMessage != baseTile.blockedMessage)
+		if (!blockedMessage.equals(baseTile.blockedMessage))
 			ssb.addToken(new SaveToken(SaveTokenTag.C_BLK, blockedMessage));
 		if (obstructsSight != baseTile.obstructsSight)
 			ssb.addToken(new SaveToken(SaveTokenTag.C_OST, String.valueOf(obstructsSight)));

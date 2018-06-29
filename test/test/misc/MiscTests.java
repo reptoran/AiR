@@ -6,6 +6,7 @@ import java.util.Scanner;
 import org.junit.Test;
 
 import main.data.Data;
+import main.logic.RPGlib;
 
 public class MiscTests
 {
@@ -36,5 +37,13 @@ public class MiscTests
 		Data data = new Data();
 		
 //		data.getClosestOpenTileCoords(new Point(0, 0));
+	}
+	
+	@Test
+	public void truncate_experimentation()
+	{
+		System.out.println(RPGlib.truncateDouble(123.45678, 2));
+		System.out.println(RPGlib.truncateDouble(123.45678, 5));
+		System.out.println(RPGlib.truncateDouble(123.45678, 7));
 	}
 }

@@ -12,6 +12,7 @@ import main.entity.actor.ActorType;
 import main.entity.feature.Feature;
 import main.entity.feature.FeatureFactory;
 import main.entity.feature.FeatureType;
+import main.entity.item.Inventory;
 import main.entity.item.Item;
 import main.entity.item.equipment.EquipmentSlot;
 import main.entity.tile.Tile;
@@ -235,6 +236,14 @@ public class Data
 			dropItem(actor, event.getFlag(1));
 			break;
 			
+		case EQUIP:
+			equipItem(actor, event.getFlag(1), event.getFlag(2));
+			break;
+			
+		case UNEQUIP:
+			unequipItem(actor, event.getFlag(1));
+			break;
+			
 		case ZONE_TRANSITION:
 			Point playerLocation = currentZone.getCoordsOfActor(actor);
 			ZoneKey zoneKey = currentZone.getZoneKey(playerLocation);
@@ -261,6 +270,28 @@ public class Data
 			System.exit(0);
 			break;
 		}
+	}
+
+	private void unequipItem(Actor actor, int slotIndex)
+	{
+		EquipmentSlot slot = actor.getEquipment().getEquipmentSlots().get(slotIndex);
+		Inventory inventory = actor.getInventory();
+		
+		inventory.add(slot.removeItem());
+	}
+
+	private void equipItem(Actor actor, int slotIndex, int itemIndex)
+	{
+		EquipmentSlot slot = actor.getEquipment().getEquipmentSlots().get(slotIndex);
+		Inventory inventory = actor.getInventory();
+		
+		Item item = inventory.remove(itemIndex);	//at this point, any filtering should still be active on the inventory, since it's the act of getting or removing the item that resets it
+		Item itemToEquip = item.split(1);
+		
+		slot.setItem(itemToEquip);
+		
+		if (item.getAmount() > 0)
+			inventory.add(item);
 	}
 
 	private void dropItem(Actor actor, int itemIndex)
@@ -345,6 +376,7 @@ public class Data
 		actor.setCurHp(actor.getCurHp() - damage);
 	}
 	
+	//TODO: since this doesn't check for LOS, it's possible for items to get dropped behind solid wall.  generate a sight map and treat all blocked tiles as obstructions
 	private Point getClosestOpenTileCoords(Point coords)
 	{
 		int maxDropRange = 10;

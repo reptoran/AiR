@@ -1,24 +1,25 @@
 package main.entity.item.equipment;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import main.entity.item.Item;
 
 public class BasicEquipmentImpl implements Equipment
 {
-	private EquipmentSlot[] equipmentSlots = new EquipmentSlot[3];
-	
 	private static final int TOTAL_SLOTS = 3;	
 	private static final int ARMOR_INDEX = 0;
 	private static final int RHAND_INDEX = 1;
 	private static final int LHAND_INDEX = 2;
+	
+	private EquipmentSlot[] equipmentSlots = new EquipmentSlot[TOTAL_SLOTS];
 
 	public BasicEquipmentImpl()
 	{
 		equipmentSlots[0] = new EquipmentSlot("Armor", EquipmentSlotType.ARMOR);
-		equipmentSlots[1] = new EquipmentSlot("Right Hand", EquipmentSlotType.ANY);
-		equipmentSlots[2] = new EquipmentSlot("Left Hand", EquipmentSlotType.ANY);
+		equipmentSlots[1] = new EquipmentSlot("Right Hand", "RHand", EquipmentSlotType.ANY);
+		equipmentSlots[2] = new EquipmentSlot("Left Hand", "LHand", EquipmentSlotType.ANY);
 	}
 
 	@Override
@@ -129,11 +130,24 @@ public class BasicEquipmentImpl implements Equipment
 	@Override
 	public int hashCode()
 	{
-		int hash = 71;
-		
-		for (int i = 0; i < TOTAL_SLOTS; i++)
-			hash = 71 * hash + (equipmentSlots[i].getItem() == null ? 0 : equipmentSlots[i].getItem().hashCode());
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(equipmentSlots);
+		return result;
+	}
 
-		return hash;
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		BasicEquipmentImpl other = (BasicEquipmentImpl) obj;
+		if (!Arrays.equals(equipmentSlots, other.equipmentSlots))
+			return false;
+		return true;
 	}
 }

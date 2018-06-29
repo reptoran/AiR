@@ -2,8 +2,12 @@ package main.presentation.curses;
 
 import java.awt.Color;
 import java.awt.Point;
+import java.awt.event.KeyEvent;
+import java.util.List;
 
 import main.entity.actor.Actor;
+import main.entity.item.Item;
+import main.entity.item.equipment.EquipmentSlot;
 import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.world.WorldTile;
@@ -34,6 +38,7 @@ public class CursesGuiDisplay extends CursesGuiUtil
 	public void refresh()
 	{
 //		printBorders();
+		terminal.clear();
 		updateMap();
 		showPlayerInfo();
 		terminal.refresh();
@@ -140,18 +145,6 @@ public class CursesGuiDisplay extends CursesGuiUtil
 		terminal.print(col, row, icon, fg, bg);
 	}
 
-	protected void showPlayerInfo()
-	{
-		clearPlayerInfoArea();
-		
-		Actor player = engine.getData().getPlayer();
-		Zone localMap = engine.getCurrentZone();
-		
-		terminal.print(0, 23, player.getName(), PLAYER_INFO_COLOR);
-		terminal.print(10, 23, "HP: " + player.getCurHp() + "/" + player.getMaxHp(), PLAYER_INFO_COLOR);
-		terminal.print(0, 24, "Depth: " + localMap.getDepth(), PLAYER_INFO_COLOR);
-	}
-	
 	private void clearPlayerInfoArea()
 	{
 		for (int i = 23; i < 24; i++)
@@ -161,5 +154,76 @@ public class CursesGuiDisplay extends CursesGuiUtil
 				terminal.print(j, i, " ", Color.BLACK);
 			}
 		}
+	}
+
+	protected void showPlayerInfo()
+	{
+		clearPlayerInfoArea();
+		
+		Actor player = engine.getData().getPlayer();
+		Zone localMap = engine.getCurrentZone();
+		
+		terminal.print(0, 23, player.getName(), PLAYER_INFO_COLOR);
+		terminal.print(12, 23, "HP: " + player.getCurHp() + "/" + player.getMaxHp(), PLAYER_INFO_COLOR);
+		terminal.print(0, 24, "Depth: " + localMap.getDepth(), PLAYER_INFO_COLOR);
+		
+		displayEquipmentCondition(player);
+	}
+	
+	private void displayEquipmentCondition(Actor player)
+	{
+		List<EquipmentSlot> slots = player.getEquipment().getEquipmentSlots();
+		
+		for (int i = 0; i < slots.size(); i++)
+		{
+			EquipmentSlot slot = slots.get(i);
+			String slotName = slot.getShortName();
+			
+			int nameColumn = (14 * (i + 1)) - 2;
+			int conditionColumn = nameColumn + slotName.length() + 2;
+			
+			terminal.print(nameColumn, 24, slotName + ":", PLAYER_INFO_COLOR);
+			terminal.print(conditionColumn, 24, getItemConditionString(slot.getItem()), getItemConditionColor(slot.getItem()));
+		}
+	}
+
+	private String getItemConditionString(Item item)
+	{
+		if (item == null)
+			return "N/A";
+		
+		if (item.getConditionModifer() > .75)
+			return "Great";
+		
+		if (item.getConditionModifer() > .5)
+			return "Good";
+		
+		if (item.getConditionModifer() > .25)
+			return "Fair";
+		
+		return "Poor";
+	}
+
+	private int getItemConditionColor(Item item)
+	{
+		if (item == null)
+			return PLAYER_INFO_COLOR;
+		
+		if (item.getConditionModifer() > .75)
+			return COLOR_LIGHT_GREEN;
+		
+		if (item.getConditionModifer() > .5)
+			return COLOR_DARK_GREEN;
+		
+		if (item.getConditionModifer() > .25)
+			return COLOR_YELLOW;
+		
+		return COLOR_LIGHT_RED;
+	}
+
+	@Override
+	public void handleKeyEvent(KeyEvent ke)
+	{
+		return;	//nothing to do here
 	}
 }

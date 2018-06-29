@@ -39,4 +39,14 @@ public class RPGlib
 
 		return command;
 	}
+	
+	public static double truncateDouble(double value, int decimalPlaces)
+	{
+		if (decimalPlaces < 1 || decimalPlaces > 7)
+			throw new IllegalArgumentException("Argument [decimalPlaces] must be greater than zero and less than 8.");
+		
+		double multiplier = Math.pow(10, decimalPlaces);
+		int multipliedValue = (int)(value * multiplier);
+		return multipliedValue / multiplier;
+	}
 }

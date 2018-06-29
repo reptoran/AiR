@@ -1,6 +1,7 @@
 package main.presentation.curses;
 
 import java.awt.Color;
+import java.awt.event.KeyEvent;
 import java.util.List;
 
 import main.presentation.GuiState;
@@ -65,5 +66,11 @@ public class CursesGuiMessages extends CursesGuiUtil
 			parentGui.setCurrentState(GuiState.MESSAGE);
 		else
 			parentGui.setCurrentState(GuiState.NONE);
+	}
+
+	@Override
+	public void handleKeyEvent(KeyEvent ke)
+	{
+		return;	//TODO: handle "(more)" here
 	}
 }

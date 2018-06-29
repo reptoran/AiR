@@ -10,6 +10,7 @@ import main.logic.RPGlib;
 import main.presentation.AbstractGui;
 import main.presentation.GuiState;
 import main.presentation.Logger;
+import main.presentation.curses.inventory.CursesGuiEquipment;
 import main.presentation.curses.inventory.CursesGuiInventory;
 import main.presentation.curses.inventory.InventoryState;
 import main.presentation.curses.terminal.CursesTerminal;
@@ -23,8 +24,9 @@ public class CursesGui extends AbstractGui implements KeyListener
 	private GuiState currentState = GuiState.NONE;
 	
 	private CursesGuiMessages messageUtil;
-	private CursesGuiDisplay displayUtil;
+	private CursesGuiUtil displayUtil;
 	private CursesGuiInventory inventoryUtil;
+	private CursesGuiUtil equipmentUtil;
 
 	public CursesGui(Engine engine)
 	{
@@ -37,6 +39,7 @@ public class CursesGui extends AbstractGui implements KeyListener
 		messageUtil = new CursesGuiMessages(this, terminal);
 		displayUtil = new CursesGuiDisplay(engine, terminal);
 		inventoryUtil = new CursesGuiInventory(this, engine, terminal);
+		equipmentUtil = new CursesGuiEquipment(this, inventoryUtil, engine, terminal);
 		
 		refreshInterface();
 	}
@@ -49,6 +52,9 @@ public class CursesGui extends AbstractGui implements KeyListener
 		case INVENTORY:
 			displayPackContents();
 			break;
+		case EQUIPMENT:
+			displayEquipment();
+			break;
 		case MESSAGE:		//fall through
 		case NONE:		//fall through
 		default:
@@ -60,6 +66,11 @@ public class CursesGui extends AbstractGui implements KeyListener
 	private void displayPackContents()
 	{
 		inventoryUtil.refresh();
+	}
+	
+	private void displayEquipment()
+	{
+		equipmentUtil.refresh();
 	}
 
 	private void displayMainGameScreen()
@@ -91,6 +102,13 @@ public class CursesGui extends AbstractGui implements KeyListener
 		if (currentState == GuiState.INVENTORY)
 		{
 			inventoryUtil.handleKeyEvent(ke);
+			refreshInterface();
+			return;
+		}
+		
+		if (currentState == GuiState.EQUIPMENT)
+		{
+			equipmentUtil.handleKeyEvent(ke);
 			refreshInterface();
 			return;
 		}
@@ -136,7 +154,7 @@ public class CursesGui extends AbstractGui implements KeyListener
 			engine.receiveCommand("CHANGE_ZONE_UP");
 		} else if (keyChar == 'i')
 		{
-			currentState = GuiState.INVENTORY;
+			currentState = GuiState.EQUIPMENT;
 			refreshInterface();
 		} else if (keyChar == 'd')
 		{

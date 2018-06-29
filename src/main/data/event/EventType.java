@@ -10,6 +10,8 @@ public enum EventType
 	ZONE_TRANSITION,
 	PICKUP,
 	DROP,
+	EQUIP,
+	UNEQUIP,
 	ATTACK,
 	DEATH,
 	SAVE_GAME,

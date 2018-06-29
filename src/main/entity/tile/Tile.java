@@ -262,11 +262,11 @@ public class Tile extends FieldCoord
 		ssb.addToken(new SaveToken(SaveTokenTag.T_TYP, type.toString()));
 		
 		//will be saved only if they differ from the default tile of this type
-		if (name != baseTile.name) ssb.addToken(new SaveToken(SaveTokenTag.C_NAM, name));
+		if (!name.equals(baseTile.name)) ssb.addToken(new SaveToken(SaveTokenTag.C_NAM, name));
 		if (icon != baseTile.icon) ssb.addToken(new SaveToken(SaveTokenTag.C_ICO, String.valueOf(icon)));
 		if (color != baseTile.color) ssb.addToken(new SaveToken(SaveTokenTag.C_CLR, String.valueOf(color)));
 		if (moveCostModifier != baseTile.moveCostModifier) ssb.addToken(new SaveToken(SaveTokenTag.C_MOV, String.valueOf(moveCostModifier)));
-		if (blockedMessage != baseTile.blockedMessage) ssb.addToken(new SaveToken(SaveTokenTag.C_BLK, blockedMessage));
+		if (!blockedMessage.equals(baseTile.blockedMessage)) ssb.addToken(new SaveToken(SaveTokenTag.C_BLK, blockedMessage));
 		if (obstructsSight != baseTile.obstructsSight) ssb.addToken(new SaveToken(SaveTokenTag.C_OST, String.valueOf(obstructsSight)));
 		if (obstructsMotion != baseTile.obstructsMotion) ssb.addToken(new SaveToken(SaveTokenTag.C_OMV, String.valueOf(obstructsMotion)));
 		if (visible != baseTile.visible) ssb.addToken(new SaveToken(SaveTokenTag.C_VIS, String.valueOf(visible)));

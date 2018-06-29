@@ -9,6 +9,7 @@ import main.entity.save.EntityMap;
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
 import main.entity.save.SaveTokenTag;
+import main.logic.RPGlib;
 import main.presentation.Logger;
 
 public class Item extends SaveableEntity implements Comparable<Item>
@@ -20,7 +21,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	private char icon = '%';
 	private int color = 15;
 	
-	private String damage = "1D1";
+	private String damage = "1d1";
 	private int size = 0;
 	private int amount = 1;
 	private EquipmentSlotType inventorySlot = EquipmentSlotType.ANY;
@@ -28,7 +29,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	private int maxHp = 1;
 	private int curHp = 1;
 	
-	private int CR = 0;
+	private int CR = 100;
 	private int AR = 0;
 	private int DR = 0;
 	
@@ -56,7 +57,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	
 	public Item split(int amountToRemove)
 	{
-		if (amountToRemove >= amount)
+		if (amountToRemove > amount)
 		{
 			Logger.warn("Cannot split a greater amount than the item contains.");
 			return null;
@@ -76,6 +77,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		
 		Item baseItem = ItemFactory.generateNewItem(itemType);
 		
+		this.type = baseItem.type;
 		this.name = baseItem.name;
 		this.plural = baseItem.plural;
 		this.icon = baseItem.icon;
@@ -231,6 +233,11 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		return curHp;
 	}
 	
+	public double getConditionModifer()
+	{
+		return RPGlib.truncateDouble(((double)curHp) / maxHp, 2);
+	}
+	
 	public void setCurHp(int curHp)
 	{
 		this.curHp = curHp;
@@ -289,11 +296,11 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		ssb.addToken(new SaveToken(SaveTokenTag.I_TYP, type.toString()));
 		
 		//will be saved only if they differ from the default item of this type
-		if (name != baseItem.name) ssb.addToken(new SaveToken(SaveTokenTag.I_NAM, name));
-		if (plural != baseItem.plural) ssb.addToken(new SaveToken(SaveTokenTag.I_PLR, plural));
+		if (!name.equals(baseItem.name)) ssb.addToken(new SaveToken(SaveTokenTag.I_NAM, name));
+		if (!plural.equals(baseItem.plural)) ssb.addToken(new SaveToken(SaveTokenTag.I_PLR, plural));
 		if (icon != baseItem.icon) ssb.addToken(new SaveToken(SaveTokenTag.I_ICO, String.valueOf(icon)));
 		if (color != baseItem.color) ssb.addToken(new SaveToken(SaveTokenTag.I_CLR, String.valueOf(color)));
-		if (damage != baseItem.damage) ssb.addToken(new SaveToken(SaveTokenTag.I_DAM, damage));
+		if (!damage.equals(baseItem.damage)) ssb.addToken(new SaveToken(SaveTokenTag.I_DAM, damage));
 		if (size != baseItem.size) ssb.addToken(new SaveToken(SaveTokenTag.I_SIZ, String.valueOf(size)));
 		if (amount != baseItem.amount) ssb.addToken(new SaveToken(SaveTokenTag.I_AMT, String.valueOf(amount)));
 		if (inventorySlot != baseItem.inventorySlot) ssb.addToken(new SaveToken(SaveTokenTag.I_INV, type.toString()));

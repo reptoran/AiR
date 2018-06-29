@@ -321,7 +321,7 @@ public class Actor extends SaveableEntity
 		ssb.addToken(new SaveToken(SaveTokenTag.A_TYP, type.toString()));
 
 		// will be saved only if they differ from the default actor of this type
-		if (name != baseActor.name)
+		if (!name.equals(baseActor.name))
 			ssb.addToken(new SaveToken(SaveTokenTag.A_NAM, name));
 		if (gender != baseActor.gender)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_GEN, gender.toString()));
@@ -582,8 +582,7 @@ public class Actor extends SaveableEntity
 		if (!inventory.equals(actor.inventory))
 			return false;
 		
-		//TODO: for now, if either actor is wielding items, they can't be equal, since the items would be different
-		if (!equipment.isEmpty() || !actor.equipment.isEmpty())
+		if (!equipment.equals(actor.equipment))
 			return false;
 
 		return true;

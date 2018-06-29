@@ -171,6 +171,12 @@ public class Engine
 		} else if (theCommand.startsWith("DROP"))
 		{
 			dropItem(actorIndex, Integer.parseInt(theCommand.substring(4)));
+		} else if (theCommand.startsWith("EQUIP"))
+		{
+			equipItem(actorIndex, Integer.parseInt(theCommand.substring(5, 6)), Integer.parseInt(theCommand.substring(6)));
+		} else if (theCommand.startsWith("UNEQUIP"))
+		{
+			unequipItem(actorIndex, Integer.parseInt(theCommand.substring(7)));
 		} else if ((theCommand.equals("CHANGE_ZONE_UP") || theCommand.equals("CHANGE_ZONE_DOWN")) && canTransitionToNewZone(actorIndex))
 		{
 			gameData.receiveEvent(Event.transitionZoneEvent(actorIndex));
@@ -211,6 +217,16 @@ public class Engine
 		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the drop%1s " + item.getNameInPack() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
 		
 		gameData.receiveEvent(Event.dropEvent(actorIndex, itemIndex));
+	}
+	
+	private void equipItem(int actorIndex, int slotIndex, int itemIndex)
+	{
+		gameData.receiveEvent(Event.equipEvent(actorIndex, slotIndex, itemIndex));
+	}
+	
+	private void unequipItem(int actorIndex, int slotIndex)
+	{
+		gameData.receiveEvent(Event.unequipEvent(actorIndex, slotIndex));
 	}
 
 	private void handleDirection(int actorIndex, String theCommand)

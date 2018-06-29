@@ -3,13 +3,19 @@ package main.entity.item;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+
+import main.entity.item.equipment.EquipmentSlotType;
+import main.presentation.Logger;
 
 public class Inventory implements Collection<Item>
 {
 	private List<Item> items = new ArrayList<Item>();
 	private ItemComparator comparator = new ItemComparator();
+	private Map<Integer, Integer> filteredIndexes = null;
 	
 	//TODO: sort items as they're added (make Item implement comparable), so we can guarantee items will always be returned in the same order
 	@Override
@@ -115,12 +121,50 @@ public class Inventory implements Collection<Item>
 	
 	public Item get(int index)
 	{
-		return items.get(index);
+		if (filteredIndexes == null)
+			return items.get(index);
+		
+		Item item = items.get(filteredIndexes.get(index));
+		filteredIndexes = null;
+		return item;
 	}
 	
 	public Item remove(int index)
 	{
-		return items.remove(index);
+		if (filteredIndexes == null)
+			return items.remove(index);
+		
+		Logger.debug("Inventory.remove(): " + filteredIndexes);
+		
+		Item item = items.remove(filteredIndexes.get(index).intValue());
+		filteredIndexes = null;
+		return item;
+	}
+	
+	public List<Item> getItemsOfType(EquipmentSlotType equipType)
+	{
+		if (equipType == null)
+			return items;
+		
+		List<Item> filteredItems = new ArrayList<Item>();
+		filteredIndexes = new HashMap<Integer, Integer>();
+		
+		int originalIndex = 0;
+		int filteredIndex = 0;
+		
+		for (Item item : items)
+		{
+			if (item.getInventorySlot() == equipType)
+			{
+				filteredItems.add(item);
+				filteredIndexes.put(filteredIndex, originalIndex);
+				filteredIndex++;
+			}
+			
+			originalIndex++;
+		}
+		
+		return filteredItems;
 	}
 	
 	//Right now, both inventories must be IDENTICAL - same order, same amounts.  Once I implement sorting, this will really need to be the case.  
