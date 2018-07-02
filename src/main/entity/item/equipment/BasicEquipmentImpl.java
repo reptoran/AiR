@@ -9,9 +9,9 @@ import main.entity.item.Item;
 public class BasicEquipmentImpl implements Equipment
 {
 	private static final int TOTAL_SLOTS = 3;	
-	private static final int ARMOR_INDEX = 0;
-	private static final int RHAND_INDEX = 1;
-	private static final int LHAND_INDEX = 2;
+	public static final int ARMOR_INDEX = 0;
+	public static final int RHAND_INDEX = 1;
+	public static final int LHAND_INDEX = 2;
 	
 	private EquipmentSlot[] equipmentSlots = new EquipmentSlot[TOTAL_SLOTS];
 
@@ -40,6 +40,18 @@ public class BasicEquipmentImpl implements Equipment
 	public void equipItem(Item item, int slotIndex)
 	{
 		equipmentSlots[slotIndex].setItem(item);
+	}
+
+	@Override
+	public int getIndexOfItem(Item item)
+	{
+		for (int i = 0; i < TOTAL_SLOTS; i++)
+		{
+			if (equipmentSlots[i].getItem().equals(item))
+				return i;
+		}
+		
+		return -1;
 	}
 	
 	private boolean isEquipmentSlotType(Item item, EquipmentSlotType type)

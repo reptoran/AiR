@@ -27,7 +27,7 @@ public class PlainsGenerator extends WorldZoneGenerator
 			{
 				Tile newTile = TileFactory.generateNewTile(TileType.GRASS);
 				
-				if (RPGlib.Randint(1, 12) == 1)
+				if (RPGlib.randInt(1, 12) == 1)
 					newTile.setFeatureHere(FeatureFactory.generateNewFeature(FeatureType.TREE));
 				
 				zone.setTile(i, j, newTile);

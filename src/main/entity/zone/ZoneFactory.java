@@ -81,7 +81,7 @@ public class ZoneFactory
 	
 	private void populateZone(Zone zone)
 	{
-		int totalActors = RPGlib.Randint(MINIMUM_ACTORS_PER_ZONE, MAXIMUM_ACTORS_PER_ZONE);
+		int totalActors = RPGlib.randInt(MINIMUM_ACTORS_PER_ZONE, MAXIMUM_ACTORS_PER_ZONE);
 		
 		for (int i = 0; i < totalActors; i++)
 		{
@@ -112,8 +112,8 @@ public class ZoneFactory
 		
 		while (openTile == null)
 		{
-			int x = RPGlib.Randint(0, zone.getHeight() - 1);
-			int y = RPGlib.Randint(0, zone.getWidth() - 1);
+			int x = RPGlib.randInt(0, zone.getHeight() - 1);
+			int y = RPGlib.randInt(0, zone.getWidth() - 1);
 			
 			Tile tile = zone.getTile(x, y);
 			boolean valid = true;

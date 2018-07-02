@@ -8,6 +8,8 @@ import main.logic.AI.AiType;
 
 public class MessageBuffer
 {
+	private static final String MORE_PROMPT = "(more)";
+	
 	private static StringBuffer messageBuffer = new StringBuffer();
 	
 	public static void addMessage(String message)
@@ -24,7 +26,7 @@ public class MessageBuffer
 		addMessage(message);
 	}
 	
-	public static List<String> parseMessageBuffer(int messageWidth)
+	public static List<String> parseMessageBuffer(int messageWidth, int messageHeight)
 	{
 		String bufferedMessages = messageBuffer.toString();
 		List<String> messageLines = new ArrayList<String>();
@@ -33,13 +35,30 @@ public class MessageBuffer
 		String currentLine = "";	//TODO: StringBuffer?
 		String toAdd = "";
 		
+		int rowOnScreen = 1;
+		
 		while (splitter.hasNext())
 		{
 			toAdd = splitter.next();
 			int newLength = toAdd.length() + currentLine.length();
 			
-			if (newLength > messageWidth - 2)
+			int maxLineLength = messageWidth - 2;
+			
+			if (rowOnScreen == messageHeight && splitter.hasNext())
+				maxLineLength = maxLineLength - MORE_PROMPT.length();
+			
+			if (newLength > maxLineLength)
 			{
+				if (rowOnScreen == messageHeight && splitter.hasNext())
+				{
+					currentLine = currentLine + MORE_PROMPT;
+					rowOnScreen = 1;
+				}
+				else
+				{
+					rowOnScreen++;
+				}
+				
 				messageLines.add(currentLine);
 				currentLine = toAdd + " ";
 			}

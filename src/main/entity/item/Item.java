@@ -101,22 +101,22 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	public String getNameOnGround()
 	{
 		if (amount == 1)
-			return "a " + getName();
+			return "a " + getName() + getNameSuffix();
 		
-		return "a pile of " + amount + " " + getPlural();
+		return "a pile of " + amount + " " + getPlural() + getNameSuffix();
 	}
 	
 	public String getNameInPack()
 	{
 		if (amount == 1)
-			return "a " + getName();
+			return "a " + getName() + getNameSuffix();
 		
-		return amount + " " + getPlural();
+		return amount + " " + getPlural() + getNameSuffix();
 	}
 	
-	private String getName()
+	public String getName()
 	{
-		return name + getNameSuffix();
+		return name;
 	}
 	
 	public void setName(String name)
@@ -126,7 +126,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	
 	private String getPlural()
 	{
-		return plural + getNameSuffix();
+		return plural;
 	}
 	
 	public void setPlural(String plural)
@@ -136,13 +136,15 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	
 	private String getNameSuffix()
 	{
+		String suffix = "";
+		
 		if (EquipmentSlotType.WEAPON.equals(inventorySlot))
-			return " (" + damage + ")";
+			suffix = " (" + damage + ")";
 		
 		if (EquipmentSlotType.ARMOR.equals(inventorySlot))
-			return " [" + AR + "]";
+			suffix = " [" + AR + "]";
 		
-		return "";
+		return suffix + " {" + getConditionString().toUpperCase() + "}";
 	}
 	
 	public char getIcon()
@@ -238,9 +240,30 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		return RPGlib.truncateDouble(((double)curHp) / maxHp, 2);
 	}
 	
+	public String getConditionString()
+	{
+		double conditionModifier = getConditionModifer();
+		
+		if (conditionModifier > .75)
+			return "Great";
+		
+		if (conditionModifier > .5)
+			return "Good";
+		
+		if (conditionModifier > .25)
+			return "Fair";
+		
+		return "Poor";
+	}
+	
 	public void setCurHp(int curHp)
 	{
 		this.curHp = curHp;
+	}
+	
+	public void changeCurHp(int changeAmount)
+	{
+		this.curHp += changeAmount;
 	}
 
 	public int getCR()
@@ -344,6 +367,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		return EntityType.ITEM.toString() + String.valueOf(Math.abs(hashCode()));
 	}
 
+	@SuppressWarnings("incomplete-switch")
 	@Override
 	protected void setMember(SaveStringBuilder ssb, SaveTokenTag saveTokenTag)
 	{

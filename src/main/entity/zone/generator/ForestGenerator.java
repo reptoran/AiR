@@ -27,7 +27,7 @@ public class ForestGenerator extends WorldZoneGenerator
 			{
 				Tile newTile = TileFactory.generateNewTile(TileType.GRASS);
 				
-				if (RPGlib.Randint(1, 5) == 1)
+				if (RPGlib.randInt(1, 5) == 1)
 					newTile.setFeatureHere(FeatureFactory.generateNewFeature(FeatureType.TREE));
 				
 				zone.setTile(i, j, newTile);

@@ -82,7 +82,7 @@ public class CursesGuiInventory extends CursesGuiUtil
 		if (itemIndex < 0 || itemIndex > (itemsInPack - 1))
 			return;
 		
-		Logger.debug("Key " + keyChar + " pressed; this translates to an item index of " + itemIndex + ".");
+		Logger.info("Key " + keyChar + " pressed; this translates to an item index of " + itemIndex + ".");
 		
 		filter = null;	//any valid selection should always clear the filter, since even if you're doing an "inspect" or some such command, you won't be returned to the inventory
 		

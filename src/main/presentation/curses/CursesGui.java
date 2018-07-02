@@ -94,8 +94,7 @@ public class CursesGui extends AbstractGui implements KeyListener
 	{
 		if (currentState == GuiState.MESSAGE)
 		{
-			messageUtil.clearMessageArea();
-			messageUtil.displayNextMessages();
+			messageUtil.handleKeyEvent(ke);
 			return;
 		}
 		
@@ -116,8 +115,8 @@ public class CursesGui extends AbstractGui implements KeyListener
 		int code = ke.getKeyCode();
 		char keyChar = ke.getKeyChar();
 		
-		Logger.debug("GUI - Key press detected, code is: " + code);
-		Logger.debug("GUI - Key press detected, char is: " + keyChar);
+		Logger.info("GUI - Key press detected, code is: " + code);
+		Logger.info("GUI - Key press detected, char is: " + keyChar);
 
 		if (code == KeyEvent.VK_NUMPAD1)
 		{

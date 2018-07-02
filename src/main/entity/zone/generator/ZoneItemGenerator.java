@@ -25,7 +25,7 @@ public class ZoneItemGenerator
 		if (totalPossibleItemsToGenerate == 0)
 			return null;
 		
-		int indexOfItemToGenerate = RPGlib.Randint(0, totalPossibleItemsToGenerate - 1);
+		int indexOfItemToGenerate = RPGlib.randInt(0, totalPossibleItemsToGenerate - 1);
 		
 		return ItemFactory.generateNewItem(itemsForCurrentLevel.get(indexOfItemToGenerate));
 	}

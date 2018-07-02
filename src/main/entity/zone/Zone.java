@@ -222,6 +222,9 @@ public class Zone extends SaveableEntity
 
 	public Actor getActor(int index)
 	{
+		if (index < 0)
+			return null;
+		
 		return actors.get(index);
 	}
 

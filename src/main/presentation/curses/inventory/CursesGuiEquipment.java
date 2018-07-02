@@ -82,7 +82,7 @@ public class CursesGuiEquipment extends CursesGuiUtil
 		if (slotIndex < 0 || slotIndex > (equipmentSlots - 1))
 			return;
 		
-		Logger.debug("Key " + keyChar + " pressed; this translates to a slot index of " + slotIndex + ".");
+		Logger.info("Key " + keyChar + " pressed; this translates to a slot index of " + slotIndex + ".");
 		
 		Equipment equipment = engine.getData().getPlayer().getEquipment();
 		EquipmentSlot slot = equipment.getEquipmentSlots().get(slotIndex);

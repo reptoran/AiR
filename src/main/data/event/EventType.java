@@ -12,6 +12,7 @@ public enum EventType
 	DROP,
 	EQUIP,
 	UNEQUIP,
+	CHANGE_ITEM_HP,
 	ATTACK,
 	DEATH,
 	SAVE_GAME,

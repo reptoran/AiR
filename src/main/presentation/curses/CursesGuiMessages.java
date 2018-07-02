@@ -2,9 +2,11 @@ package main.presentation.curses;
 
 import java.awt.Color;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.List;
 
 import main.presentation.GuiState;
+import main.presentation.Logger;
 import main.presentation.curses.terminal.CursesTerminal;
 import main.presentation.message.MessageBuffer;
 
@@ -18,6 +20,7 @@ public class CursesGuiMessages extends CursesGuiUtil
 	private int messageWidth = 80;
 	
 	private CursesGui parentGui;
+	private List<String> messageLines = new ArrayList<String>();
 	
 	public CursesGuiMessages(CursesGui parentGui, CursesTerminal terminal)
 	{
@@ -29,8 +32,14 @@ public class CursesGuiMessages extends CursesGuiUtil
 	@Override
 	public void refresh()
 	{
-		clearMessageArea();
-		displayNextMessages();
+		messageLines.addAll(MessageBuffer.parseMessageBuffer(messageWidth, messageHeight));
+		
+		if (!messageLines.isEmpty())
+		{
+			clearMessageArea();
+			displayNextMessages();
+		}
+		
 		terminal.refresh();
 	}
 	
@@ -51,8 +60,6 @@ public class CursesGuiMessages extends CursesGuiUtil
 	
 	protected void displayNextMessages()
 	{
-		List<String> messageLines = MessageBuffer.parseMessageBuffer(messageWidth);
-		
 		for (int i = messageStartRow; i < messageStartRow + messageHeight; i++)
 		{
 			if (!messageLines.isEmpty())
@@ -71,6 +78,6 @@ public class CursesGuiMessages extends CursesGuiUtil
 	@Override
 	public void handleKeyEvent(KeyEvent ke)
 	{
-		return;	//TODO: handle "(more)" here
+		refresh();
 	}
 }

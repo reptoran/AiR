@@ -25,7 +25,7 @@ public class ZonePopulationGenerator
 		if (totalPossibleActorsToGenerate == 0)
 			return null;
 		
-		int indexOfActorToGenerate = RPGlib.Randint(0, totalPossibleActorsToGenerate - 1);
+		int indexOfActorToGenerate = RPGlib.randInt(0, totalPossibleActorsToGenerate - 1);
 		
 		return ActorFactory.generateNewActor(actorsForCurrentLevel.get(indexOfActorToGenerate));
 	}

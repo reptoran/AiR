@@ -1,5 +1,9 @@
 package main.entity.actor;
 
+import main.entity.item.Item;
+import main.entity.item.ItemFactory;
+import main.entity.item.ItemType;
+import main.entity.item.equipment.EquipmentType;
 import main.logic.AI.AiType;
 
 public class ActorBuilder
@@ -10,17 +14,13 @@ public class ActorBuilder
 	
 	private Actor actor = null;
 	
-	private ActorBuilder()
+	public ActorBuilder(ActorType actorType)
 	{
 		for (int i = 0; i < TOTAL_ATTRIBUTES; i++)
 		{
 			this.attributes[i] = 0;
 		}
-	}
-	
-	public ActorBuilder(ActorType actorType)
-	{
-		this();
+		
 		actor = new Actor(actorType, "unbuilt actor", '%', 8, attributes);
 	}
 	
@@ -43,6 +43,38 @@ public class ActorBuilder
 	public ActorBuilder setGender(GenderType gender)
 	{
 		actor.setGender(gender);
+		return this;
+	}
+	
+	public ActorBuilder setDamage(String damage)
+	{
+		actor.setDefaultDamage(damage);
+		return this;
+	}
+	
+	public ActorBuilder setArmor(int armor)
+	{
+		actor.setDefaultArmor(armor);
+		return this;
+	}
+	
+	public ActorBuilder setEquipmentType(EquipmentType equipment)
+	{
+		actor.setEquipment(equipment);
+		return this;
+	}
+	
+	public ActorBuilder equip(ItemType itemType, int slotIndex)
+	{
+		Item item = ItemFactory.generateNewItem(itemType);
+		actor.equipItem(item, slotIndex);
+		return this;
+	}
+	
+	public ActorBuilder carry(ItemType itemType)
+	{
+		Item item = ItemFactory.generateNewItem(itemType);
+		actor.receiveItem(item);
 		return this;
 	}
 	

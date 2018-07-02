@@ -2,6 +2,7 @@ package main.logic;
 
 import java.awt.Point;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import main.data.ActorTurnQueue;
@@ -348,14 +349,25 @@ public class Engine
 		Actor attacker = gameData.getActor(attackEvent.getFlag(0));
 		Actor defender = gameData.getActor(attackEvent.getFlag(1));
 		
-		int damage = calculateAttackDamage(attacker, defender);
+		List<Item> attackerWeapons = attacker.getWeapons();
 		
+		if (attacker != gameData.getPlayer() && attackerWeapons.size() > 1)
+			Logger.debug("Enemy is attacking with multiple attacks: " + attackerWeapons);
+		
+		while (!attackerWeapons.isEmpty() && defender.getCurHp() > 0)
+			handleAttack(attacker, attackerWeapons.remove(0), defender);
+	}
+
+	private void handleAttack(Actor attacker, Item attackingWeapon, Actor defender)
+	{
 		boolean canSeeSource = canPlayerSeeActor(attacker);
 		boolean canSeeTarget = canPlayerSeeActor(defender);
 		
 		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the hit%1s @2the.").setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
 		
-		gameData.receiveEvent(Event.attackEvent(gameData.getActorIndex(attacker), gameData.getActorIndex(defender), damage, attacker.getMovementCost()));
+		int damageToDefender = damageArmorAndReturnRemainder(defender, attackingWeapon.getDamage(), canSeeSource, canSeeTarget);	
+		
+		gameData.receiveEvent(Event.attackEvent(gameData.getActorIndex(attacker), gameData.getActorIndex(defender), damageToDefender, attacker.getMovementCost()));
 		
 		if (defender.getCurHp() <= 0)	//valid check because the data layer has already received and applied the damage
 		{
@@ -364,8 +376,72 @@ public class Engine
 		}
 	}
 
-	private int calculateAttackDamage(Actor attacker, Actor defender)
+	//TODO: right now, there's only one armor piece (maximum), but later, with multiple pieces of armor, something might determine which piece gets hit
+	// 		this is because armor takes damage from attacks, and it seems foolish to damage all pieces of armor with each attack
+	private Item getArmorForAttackedLocation(Actor defender)
 	{
-		return 1;	//TODO: check for weapons on attacker, armor on defender, etc.
+		List<Item> defenderArmor = defender.getArmor();
+		return defenderArmor.get(RPGlib.randInt(0, defenderArmor.size() - 1));
+	}
+
+	//TODO: remember to adjust effective AR based on condition
+	//	note that the armor still takes damage as though it had full AR, provided there's enough damage for it
+	//		attack of 1 against armor with 2/4 AR deals 1 to armor and 0 to defender
+	//		attack of 2 against armor with 2/4 AR deals 2 to armor and 0 to defender
+	//		attack of 3 against armor with 2/4 AR deals 3 to armor and 1 to defender
+	//		attack of 4 against armor with 2/4 AR deals 4 to armor and 2 to defender
+	//		attack of 5 against armor with 2/4 AR deals 4 to armor and 3 to defender
+	private int damageArmorAndReturnRemainder(Actor defender, String damageString, boolean canSeeSource, boolean canSeeTarget)
+	{
+		Item armor = getArmorForAttackedLocation(defender);
+		String armorName = armor.getName();
+		
+		int rawDamage = RPGlib.roll(damageString);
+		int damageToArmor = 0;
+		int damageToDefender = 0;
+		
+		//TODO: maybe this is considered a critical hit?
+		if (RPGlib.randInt(1, 100) > armor.getCR())
+			return rawDamage;
+		
+		double armorConditionBeforeAttack = armor.getConditionModifer();
+		
+		damageToArmor = rawDamage > armor.getAR() ? armor.getAR() : rawDamage;
+		damageToDefender = rawDamage - damageToArmor;
+		damageToArmor -= armor.getDR();
+		
+		if (damageToArmor < 0)
+			damageToArmor = 0;
+		
+		if (damageToArmor > armor.getCurHp())
+		{
+			damageToDefender += (damageToArmor - armor.getCurHp());
+			damageToArmor = armor.getCurHp();
+		}
+		
+		boolean destroyed = (damageToArmor == armor.getCurHp() ? true : false);
+		
+		if (damageToArmor == 0)
+			return damageToDefender;
+		
+		//TODO: the attacking weapon should take damage equal to damageToDefender, along with all the destroyed/cracked/etc. effects
+		
+		gameData.receiveEvent(Event.changeHeldItemHpEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), damageToArmor * -1));
+				
+		String effect = null;
+		
+		if (destroyed)
+			effect = "destroyed!";
+		else if (armor.getConditionModifer() <= .25 && armorConditionBeforeAttack > .25)
+			effect = "heavily damaged.";		//"cracked.";
+		else if (armor.getConditionModifer() <= .5 && armorConditionBeforeAttack > .5)
+			effect = "moderately damaged.";	//"warped.";
+		else if (armor.getConditionModifer() <= .75 && armorConditionBeforeAttack > .75)
+			effect = "slightly damaged.";	//"dented.";
+		
+		if (effect != null)
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@2his " + armorName + " is " + effect).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+			
+		return damageToDefender;
 	}
 }

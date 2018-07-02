@@ -72,7 +72,7 @@ public class LabyrinthGenerator extends AbstractLinearZoneSystemGenerator
 		if (specialLevelChance <= 0)
 			return false;
 		
-		return (RPGlib.Randint(1, 100) <= specialLevelChance);
+		return (RPGlib.randInt(1, 100) <= specialLevelChance);
 	}
 
 	@Override

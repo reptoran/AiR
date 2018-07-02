@@ -68,7 +68,7 @@ public class SpecialLevelManager
 			return null;
 		}
 		
-		int indexOfZoneToGenerate = RPGlib.Randint(0, totalPossibleZonesToGenerate - 1);
+		int indexOfZoneToGenerate = RPGlib.randInt(0, totalPossibleZonesToGenerate - 1);
 		PredefinedZone zoneToGenerate = zonesForCurrentLevel.get(indexOfZoneToGenerate);
 		
 		specialZones.remove(zoneToGenerate);	//this zone can never be generated again

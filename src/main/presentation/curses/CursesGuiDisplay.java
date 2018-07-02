@@ -192,16 +192,7 @@ public class CursesGuiDisplay extends CursesGuiUtil
 		if (item == null)
 			return "N/A";
 		
-		if (item.getConditionModifer() > .75)
-			return "Great";
-		
-		if (item.getConditionModifer() > .5)
-			return "Good";
-		
-		if (item.getConditionModifer() > .25)
-			return "Fair";
-		
-		return "Poor";
+		return item.getConditionString();
 	}
 
 	private int getItemConditionColor(Item item)

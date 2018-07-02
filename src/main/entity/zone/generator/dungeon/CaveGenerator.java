@@ -28,16 +28,16 @@ public class CaveGenerator extends RandomGenerator
 
 		for (int i = 0; i < size; i++)
 		{
-			int x = RPGlib.Randint(xMin, xMax);
-			int y = RPGlib.Randint(yMin, yMax);
+			int x = RPGlib.randInt(xMin, xMax);
+			int y = RPGlib.randInt(yMin, yMax);
 
 			coords[i][0] = x;
 			coords[i][1] = y;
 
-			for (int j = 0; j < RPGlib.Randint((int) (density * .6), (int) (density * 1.3)); j++)
+			for (int j = 0; j < RPGlib.randInt((int) (density * .6), (int) (density * 1.3)); j++)
 			{
-				Line line = new Line(x, y, RPGlib.Randint((int) (x - (openness * (5.0 / 8))), (int) (x + (openness * (5.0 / 8)))),
-						RPGlib.Randint(y - openness, y + openness));
+				Line line = new Line(x, y, RPGlib.randInt((int) (x - (openness * (5.0 / 8))), (int) (x + (openness * (5.0 / 8)))),
+						RPGlib.randInt(y - openness, y + openness));
 				for (int l = 0; l < line.getLength(); l++)
 				{
 					if (line.getX(l) > xMin && line.getX(l) < xMax && line.getY(l) > yMin && line.getY(l) < yMax)
@@ -104,7 +104,7 @@ public class CaveGenerator extends RandomGenerator
 		}
 
 		// place the stairs
-		int x0 = 0, y0 = 0, x1 = RPGlib.Randint(xMin, xMax), y1 = RPGlib.Randint(yMin, yMax);
+		int x0 = 0, y0 = 0, x1 = RPGlib.randInt(xMin, xMax), y1 = RPGlib.randInt(yMin, yMax);
 
 		for (int i = 0; i < size; i++)
 		{
@@ -120,8 +120,8 @@ public class CaveGenerator extends RandomGenerator
 
 		while (!(temp[x1][y1] == main && RPGlib.distance(x0, y0, x1, y1) > openness))
 		{
-			x1 = RPGlib.Randint(xMin, xMax);
-			y1 = RPGlib.Randint(yMin, yMax);
+			x1 = RPGlib.randInt(xMin, xMax);
+			y1 = RPGlib.randInt(yMin, yMax);
 
 			count++;
 

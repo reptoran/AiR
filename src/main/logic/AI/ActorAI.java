@@ -72,7 +72,7 @@ public abstract class ActorAI
 	{
 		//TODO: check for walls
 		String moveTo[] = {"DIRNW", "DIRN", "DIRNE", "DIRW", "DIRE", "DIRSW", "DIRS", "DIRSE"};
-	    return moveTo[RPGlib.Randint(0, 7)];
+	    return moveTo[RPGlib.randInt(0, 7)];
 	}
 	
 	protected List<AiType> generateAiList(AiType... types)

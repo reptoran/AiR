@@ -244,6 +244,10 @@ public class Data
 			unequipItem(actor, event.getFlag(1));
 			break;
 			
+		case CHANGE_ITEM_HP:
+			changeItemHp(actor, event);
+		break;
+			
 		case ZONE_TRANSITION:
 			Point playerLocation = currentZone.getCoordsOfActor(actor);
 			ZoneKey zoneKey = currentZone.getZoneKey(playerLocation);
@@ -270,6 +274,40 @@ public class Data
 			System.exit(0);
 			break;
 		}
+	}
+
+	private void changeItemHp(Actor actor, Event event)
+	{
+		//if flag 0 (actor index) is -1, then flags 1 and 2 are the coordinates of the item
+		//otherwise, the item is held by an actor, either worn or in the pack
+		// flag 1 is the equipment slot index (negative means it's in pack)
+		// flag 2 is the inventory slot index (negative means it's equipped)
+		// flag 3 is the amount to change the item's hp
+		
+		Item item;
+		int flag1 = event.getFlag(1);
+		int flag2 = event.getFlag(2);
+		int flag3 = event.getFlag(3);
+		
+		if (actor == null)
+			item = currentZone.getTile(flag1, flag2).getItemHere();
+		else if (flag1 != -1)
+			item = actor.getEquipment().getItem(flag1);
+		else
+			item = actor.getInventory().get(flag1);
+		
+		item.changeCurHp(flag3);
+		
+		if (item.getCurHp() > 0)
+			return;
+		
+		//else item is destroyed
+		if (actor == null)
+			currentZone.getTile(flag1, flag2).setItemHere(null);
+		else if (flag1 != -1)
+			actor.getEquipment().removeItem(flag1);
+		else
+			actor.getInventory().remove(flag1);
 	}
 
 	private void unequipItem(Actor actor, int slotIndex)

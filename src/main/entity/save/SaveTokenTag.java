@@ -16,6 +16,8 @@ public enum SaveTokenTag
 	A_ATT,	//actor attributes
 	A_INV,	//actor inventory
 	A_EQP,	//actor equipment
+	A_DAM,	//actor default damage
+	A_DAR,	//actor default armor
 	
 	C_NAM,	//fieldcoord name
 	C_ICO,	//fieldcoord icon

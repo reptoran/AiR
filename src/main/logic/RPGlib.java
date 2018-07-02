@@ -7,9 +7,46 @@ public class RPGlib
 {
 	private static Random random = new Random(System.currentTimeMillis());
 	
-	public static int Randint(int lower, int upper)
+	public static int randInt(int lower, int upper)
 	{
 		return random.nextInt(upper + 1 - lower) + lower;
+	}
+	
+	public static int roll(String diceString)
+	{
+		int dice = 0;
+		int sides = 0;
+		int modifier = 0;
+		int total = 0;
+		
+		int dIndex = diceString.toUpperCase().indexOf("D");
+		int plusIndex = diceString.indexOf("+");
+		int minusIndex = diceString.indexOf("-");
+		
+		if (dIndex == -1)
+			throw new IllegalArgumentException("Invalid dice string: " + diceString);
+
+		if (plusIndex != -1)
+		{
+			modifier = Integer.parseInt(diceString.substring(plusIndex));
+		}
+		else if (minusIndex != -1)
+		{
+			modifier = Integer.parseInt(diceString.substring(minusIndex));
+			plusIndex = minusIndex;
+		}
+		else
+		{
+			plusIndex = diceString.length();
+		}
+		
+		dice = Integer.parseInt(diceString.substring(0, dIndex));
+		sides = Integer.parseInt(diceString.substring(dIndex + 1, plusIndex));
+		
+		for (int i = 1; i <= dice; i++)
+			total += randInt(1, sides);
+		
+		return total + modifier;
 	}
 	
 	public static int distance(int x1, int y1, int x2, int y2)

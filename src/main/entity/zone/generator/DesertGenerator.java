@@ -34,8 +34,8 @@ public class DesertGenerator extends WorldZoneGenerator
 		
 		zoneKey.updateToTransient(name);
 		
-		int caveEntryX = RPGlib.Randint(15, 25);
-		int caveEntryY = RPGlib.Randint(75, 85);
+		int caveEntryX = RPGlib.randInt(15, 25);
+		int caveEntryY = RPGlib.randInt(75, 85);
 		Point stairsLocation = new Point(caveEntryX, caveEntryY);
 		
 		zone.setTile(stairsLocation, TileFactory.generateNewTile(TileType.STAIRS_DOWN));

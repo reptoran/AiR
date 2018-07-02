@@ -44,7 +44,7 @@ public class Overworld extends SaveableEntity
 				{
 					ZoneType tileType = ZoneType.PLAINS;
 					
-					int type = RPGlib.Randint(1, 3);
+					int type = RPGlib.randInt(1, 3);
 					
 					if (type == 2)
 						tileType = ZoneType.DESERT;

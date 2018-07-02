@@ -3,6 +3,7 @@ package main.entity.item;
 public enum ItemType
 {
 	NO_TYPE(-1, -1),
+	VIRTUAL_ITEM(-1, -1),
 	THICK_SHIRT(0, 5),
 	QUILTED_SHIRT(1, 5, ItemRarity.UNCOMMON),
 	SOFT_LEATHER_VEST(2, 6),
@@ -15,7 +16,8 @@ public enum ItemType
 	CLUB(0, 5),
 	MACE(4, 12, ItemRarity.UNCOMMON),
 	SHORT_SWORD(3, 15, ItemRarity.UNCOMMON),
-	HAMMER(2, 8);
+	HAMMER(2, 8),
+	HEAVY_CLUB(5, 12, ItemRarity.UNCOMMON);
 	
 	private int minDepth;
 	private int maxDepth;

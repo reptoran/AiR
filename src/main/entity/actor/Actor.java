@@ -8,6 +8,8 @@ import main.entity.EntityType;
 import main.entity.SaveableEntity;
 import main.entity.item.Inventory;
 import main.entity.item.Item;
+import main.entity.item.ItemFactory;
+import main.entity.item.ItemType;
 import main.entity.item.equipment.Equipment;
 import main.entity.item.equipment.EquipmentFactory;
 import main.entity.item.equipment.EquipmentSlot;
@@ -17,8 +19,6 @@ import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
 import main.entity.save.SaveTokenTag;
 import main.logic.AI.AiType;
-
-//This is either a player or an NPC.
 
 public class Actor extends SaveableEntity
 {
@@ -46,11 +46,14 @@ public class Actor extends SaveableEntity
 	private int attributes[] = new int[TOTAL_ATTRIBUTES];
 	
 	private Inventory inventory = new Inventory();
-	private EquipmentType equipmentType = EquipmentType.BASIC;
+	private EquipmentType equipmentType = EquipmentType.NONE;
 	private Equipment equipment;
 
 	private static int currentHash = 0;
 	private int hashModifier;
+	
+	private String defaultDamage = "1D1";
+	private int defaultArmor = 0;
 
 	public Actor()
 	{
@@ -117,6 +120,8 @@ public class Actor extends SaveableEntity
 		toRet.hashModifier = hashModifier; // if we're truly cloning this, then they need the same unique identifier as well.
 		toRet.equipmentType = equipmentType;
 		toRet.equipment = equipment.clone();
+		toRet.defaultDamage = defaultDamage;
+		toRet.defaultArmor = defaultArmor;
 
 		return toRet;
 	}
@@ -146,6 +151,9 @@ public class Actor extends SaveableEntity
 		
 		this.inventory = new Inventory();
 		this.setEquipment(baseActor.equipmentType);
+		
+		this.defaultDamage = baseActor.defaultDamage;
+		this.defaultArmor = baseActor.defaultArmor;
 	}
 
 	public void damage(int damageAmount)
@@ -286,8 +294,8 @@ public class Actor extends SaveableEntity
 		this.curHp = curHp;
 	}
 	
-	//private because the equipment type of an actor should never change (unless they polymorph, but that's a problem for the very, very distant future)
-	private void setEquipment(EquipmentType equipmentType)
+	//protected because the equipment type of an actor should never change (unless they polymorph, but that's a problem for the very, very distant future)
+	protected void setEquipment(EquipmentType equipmentType)
 	{
 		this.equipmentType = equipmentType;
 		this.equipment = EquipmentFactory.generateEquipment(equipmentType);
@@ -301,6 +309,60 @@ public class Actor extends SaveableEntity
 	public Equipment getEquipment()
 	{
 		return equipment;
+	}
+	
+	public void equipItem(Item item, int equipmentSlotIndex)
+	{
+		equipment.equipItem(item, equipmentSlotIndex);
+	}
+	
+	public Item unequipItem(int equipmentSlotIndex)
+	{
+		return equipment.removeItem(equipmentSlotIndex);
+	}
+
+	public void setDefaultDamage(String damage)
+	{
+		this.defaultDamage = damage;
+	}
+
+	public void setDefaultArmor(int armor)
+	{
+		this.defaultArmor = armor;
+	}
+	
+	public List<Item> getWeapons()
+	{
+		List<Item> weapons = equipment.getWeapons();
+		
+		if (weapons.isEmpty())
+		{
+			Item virtualWeapon = ItemFactory.generateNewItem(ItemType.VIRTUAL_ITEM);
+			virtualWeapon.setDamage(defaultDamage);
+			weapons.add(virtualWeapon);
+		}
+		
+		return weapons;
+	}
+	
+	public List<Item> getArmor()
+	{
+		List<Item> armor = equipment.getArmor();
+		
+		if (armor.isEmpty())
+		{
+			Item virtualArmor = ItemFactory.generateNewItem(ItemType.VIRTUAL_ITEM);
+			virtualArmor.setAR(defaultArmor);
+			armor.add(virtualArmor);
+		}
+		
+		return armor;
+	}
+
+	public int getIndexOfEquippedItem(Item armor)
+	{
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 	@Override
@@ -339,6 +401,10 @@ public class Actor extends SaveableEntity
 			ssb.addToken(new SaveToken(SaveTokenTag.A_SPD, String.valueOf(ticksLeftBeforeActing)));
 		if (AI != baseActor.AI)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_AI_, String.valueOf(AI)));
+		if (!defaultDamage.equals(baseActor.defaultDamage))
+			ssb.addToken(new SaveToken(SaveTokenTag.A_DAM, defaultDamage));
+		if (defaultArmor != baseActor.defaultArmor)
+			ssb.addToken(new SaveToken(SaveTokenTag.A_DAR, String.valueOf(defaultArmor)));
 
 		saveAttributes(baseActor, ssb);
 		
@@ -385,6 +451,8 @@ public class Actor extends SaveableEntity
 		setMember(ssb, SaveTokenTag.A_ATT);
 		setMember(ssb, SaveTokenTag.A_INV);
 		setMember(ssb, SaveTokenTag.A_EQP);
+		setMember(ssb, SaveTokenTag.A_DAM);
+		setMember(ssb, SaveTokenTag.A_DAR);
 
 		return toRet;
 	}
@@ -445,6 +513,7 @@ public class Actor extends SaveableEntity
 	}
 	
 
+	@SuppressWarnings("incomplete-switch")
 	@Override
 	protected void setMember(SaveStringBuilder ssb, SaveTokenTag saveTokenTag)
 	{
@@ -551,6 +620,16 @@ public class Actor extends SaveableEntity
 			}
 			break;
 
+		case A_DAM:
+			saveToken = ssb.getToken(saveTokenTag);
+			this.defaultDamage = saveToken.getContents();
+			break;
+
+		case A_DAR:
+			saveToken = ssb.getToken(saveTokenTag);
+			this.defaultArmor = Integer.parseInt(saveToken.getContents());
+			break;
+
 		default:
 			throw new IllegalArgumentException("Actor - Unhandled token: " + saveTokenTag.toString());
 		}
@@ -570,7 +649,8 @@ public class Actor extends SaveableEntity
 
 		if (!type.equals(actor.type) || icon != actor.icon || color != actor.color || !name.equals(actor.name)
 				|| !gender.equals(actor.gender) || unique != actor.unique || maxHp != actor.maxHp || curHp != actor.curHp
-				|| ticksLeftBeforeActing != actor.ticksLeftBeforeActing || AI != actor.AI || hashModifier != actor.hashModifier)
+				|| ticksLeftBeforeActing != actor.ticksLeftBeforeActing || AI != actor.AI || hashModifier != actor.hashModifier
+				|| defaultDamage != actor.defaultDamage || defaultArmor != actor.defaultArmor)
 			return false;
 
 		for (int i = 0; i < TOTAL_ATTRIBUTES; i++)
@@ -610,6 +690,8 @@ public class Actor extends SaveableEntity
 		
 		hash = 31 * hash + inventory.hashCode();
 		hash = 31 * hash + equipment.hashCode();
+		hash = 31 * hash + defaultDamage.hashCode();
+		hash = 31 * hash + defaultArmor;
 		
 		hash = 31 * hash + hashModifier;
 

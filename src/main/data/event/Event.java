@@ -1,8 +1,10 @@
 package main.data.event;
 
+import java.awt.Point;
+
 public class Event
 {
-	private static final int TOTAL_FLAGS = 3;
+	private static final int TOTAL_FLAGS = 4;
 	
 	private EventType eventType;
 	private int[] flags = new int[TOTAL_FLAGS];
@@ -42,6 +44,19 @@ public class Event
 		return toRet;
 	}
 
+	//if flag 0 (actor index) is -1, then flags 1 and 2 are the coordinates of the item
+	//otherwise, the item is held by an actor, either worn or in the pack
+	// flag 1 is the equipment slot index (negative means it's in pack)
+	// flag 2 is the inventory slot index (negative means it's equipped)
+	private static Event changeItemHpEvent(int actorIndex, int flag1, int flag2, int changeAmount)
+	{
+		Event event = actorOnlyEvent(EventType.CHANGE_ITEM_HP, actorIndex);
+		event.flags[1] = flag1;
+		event.flags[2] = flag2;
+		event.flags[3] = changeAmount;
+		return event;
+	}
+
 	public static Event waitEvent(int actorIndex, int movementCost)
 	{
 		Event event = actorOnlyEvent(EventType.WAIT, actorIndex);
@@ -74,6 +89,21 @@ public class Event
 		Event event = actorOnlyEvent(EventType.UNEQUIP, actorIndex);
 		event.flags[1] = slotIndex;
 		return event;
+	}
+	
+	public static Event changeHeldItemHpEvent(int actorIndex, int slotIndex, int changeAmount)
+	{
+		return changeItemHpEvent(actorIndex, slotIndex, -1, changeAmount);
+	}
+	
+	public static Event changeInventoryItemHpEvent(int actorIndex, int itemIndex, int changeAmount)
+	{
+		return changeItemHpEvent(actorIndex, 1, itemIndex, changeAmount);
+	}
+	
+	public static Event changeGroundItemHpEvent(Point coords, int changeAmount)
+	{
+		return changeItemHpEvent(-1, coords.x, coords.y, changeAmount);
 	}
 
 	public static Event localMoveEvent(int actorIndex, int targetRow, int targetCol, int actionCost)

@@ -8,6 +8,8 @@ public class EquipmentFactory
 	{
 		switch (equipmentType)
 		{
+		case NONE:
+			return new EmptyEquipmentImpl();
 		case BASIC:
 			return new BasicEquipmentImpl();
 		default:
