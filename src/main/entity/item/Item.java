@@ -14,6 +14,8 @@ import main.presentation.Logger;
 
 public class Item extends SaveableEntity implements Comparable<Item>
 {
+	public static final String ZERO_DAMAGE = "1d1-1";
+	
 	private ItemType type;
 	
 	private String name = "";
@@ -21,7 +23,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	private char icon = '%';
 	private int color = 15;
 	
-	private String damage = "1d1";
+	private String damage = ZERO_DAMAGE;
 	private int size = 0;
 	private int amount = 1;
 	private EquipmentSlotType inventorySlot = EquipmentSlotType.ANY;
@@ -29,7 +31,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	private int maxHp = 1;
 	private int curHp = 1;
 	
-	private int CR = 100;
+	private int CR = 0;
 	private int AR = 0;
 	private int DR = 0;
 	
@@ -138,13 +140,29 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	{
 		String suffix = "";
 		
-		if (EquipmentSlotType.WEAPON.equals(inventorySlot))
+		if (!damage.equals(ZERO_DAMAGE))
 			suffix = " (" + damage + ")";
-		
-		if (EquipmentSlotType.ARMOR.equals(inventorySlot))
+		else if (isShield())
+			suffix = " (" + CR + ")";
+		else if (isArmor())
 			suffix = " [" + AR + "]";
 		
-		return suffix + " {" + getConditionString().toUpperCase() + "}";
+		return suffix + " {" + (int)(getConditionModifer() * 100) + "%}";
+	}
+	
+	public boolean isWeapon()
+	{
+		return !damage.equals(ZERO_DAMAGE);
+	}
+	
+	public boolean isArmor()
+	{
+		return AR != 0;
+	}
+	
+	public boolean isShield()
+	{
+		return (inventorySlot == EquipmentSlotType.ARMAMENT && CR > 0);
 	}
 	
 	public char getIcon()

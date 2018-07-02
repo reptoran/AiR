@@ -57,6 +57,7 @@ public class FormattedMessageBuilder
 		
 		if (source != null)
 		{
+			formattedMessage = formattedMessage.replace("@1thes", formatPossessive(source));
 			formattedMessage = formattedMessage.replace("@1the", formatThe(source));
 			formattedMessage = formattedMessage.replace("@1he", formatHe(source));
 			formattedMessage = formattedMessage.replace("@1him", formatHim(source));
@@ -67,6 +68,7 @@ public class FormattedMessageBuilder
 		
 		if (target != null)
 		{
+			formattedMessage = formattedMessage.replace("@2thes", formatPossessive(target));
 			formattedMessage = formattedMessage.replace("@2the", formatThe(target));
 			formattedMessage = formattedMessage.replace("@2he", formatHe(target));
 			formattedMessage = formattedMessage.replace("@2him", formatHim(target));
@@ -96,8 +98,10 @@ public class FormattedMessageBuilder
 			
 			if (actor == '1')
 				formattedLetter = formatLetter(letter, source);
-			if (actor == '2')
+			else if (actor == '2')
 				formattedLetter = formatLetter(letter, target);
+			else
+				break;
 			
 			text = text.replace(textToReplace, formattedLetter);
 		}
@@ -111,6 +115,17 @@ public class FormattedMessageBuilder
 			return "";
 		
 		return "" + letter;
+	}
+
+	private String formatPossessive(Actor actor)
+	{
+		if (actor.getGender() == GenderType.PLAYER)
+			return "your";
+		
+		if (actor.isUnique())
+			return actor.getName() + "'s";
+		
+		return "the " + actor.getName() + "'s";
 	}
 
 	private String formatThe(Actor actor)

@@ -358,6 +358,11 @@ public class Actor extends SaveableEntity
 		
 		return armor;
 	}
+	
+	public List<Item> getShields()
+	{
+		return equipment.getShields();
+	}
 
 	public int getIndexOfEquippedItem(Item armor)
 	{

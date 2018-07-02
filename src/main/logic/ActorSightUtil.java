@@ -13,7 +13,7 @@ public class ActorSightUtil
 		Line visionRay = new Line(origin.x, origin.y, target.x, target.y);
 		List<Point> rayPoints = visionRay.getPoints();
 		boolean previousPointObstructed = false;
-		int pointsVisited = 0;
+		int pointsVisited = -1;
 		
 		for (Point point : rayPoints)
 		{

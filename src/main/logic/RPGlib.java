@@ -12,6 +12,11 @@ public class RPGlib
 		return random.nextInt(upper + 1 - lower) + lower;
 	}
 	
+	public static boolean percentage(int percentage)
+	{
+		return randInt(1, 100) > percentage;
+	}
+	
 	public static int roll(String diceString)
 	{
 		int dice = 0;

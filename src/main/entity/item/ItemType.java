@@ -17,7 +17,12 @@ public enum ItemType
 	MACE(4, 12, ItemRarity.UNCOMMON),
 	SHORT_SWORD(3, 15, ItemRarity.UNCOMMON),
 	HAMMER(2, 8),
-	HEAVY_CLUB(5, 12, ItemRarity.UNCOMMON);
+	HEAVY_CLUB(5, 12, ItemRarity.UNCOMMON),
+	BUCKLER(2, 6),
+	SMALL_SHIELD(3, 8),
+	MEDIUM_SHIELD(3, 10, ItemRarity.UNCOMMON),
+	LARGE_SHIELD(6, 13, ItemRarity.UNCOMMON),
+	TOWER_SHIELD(8, 15, ItemRarity.RARE);
 	
 	private int minDepth;
 	private int maxDepth;

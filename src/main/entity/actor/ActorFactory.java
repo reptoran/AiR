@@ -22,13 +22,13 @@ public class ActorFactory
 		switch (actorType)
 		{
 		case PLAYER:
-			return ActorBuilder.generateActor(ActorType.PLAYER).setHP(20).setIcon('@').setColor(15).setEquipmentType(EquipmentType.BASIC)
+			return ActorBuilder.generateActor(ActorType.PLAYER).setHP(25).setIcon('@').setColor(15).setEquipmentType(EquipmentType.BASIC)
 					.setAI(AiType.HUMAN_CONTROLLED).setGender(GenderType.PLAYER).setUnique(true).build();
 		case HUMAN:
-			return ActorBuilder.generateActor(actorType).setName("human").setHP(8).setIcon('H').setColor(12).setAI(AiType.RAND_MOVE)
-					.build();
+			return ActorBuilder.generateActor(actorType).setName("human").setGender(GenderType.MALE).setHP(8).setIcon('H').setColor(12)
+					.setAI(AiType.RAND_MOVE).build();
 		case ROGUE:
-			return ActorBuilder.generateActor(actorType).setName("rogue").setHP(8).setIcon('H').setColor(4)
+			return ActorBuilder.generateActor(actorType).setName("rogue").setGender(GenderType.MALE).setHP(8).setIcon('H').setColor(4)
 					.setEquipmentType(EquipmentType.BASIC).equip(ItemType.DAGGER, BasicEquipmentImpl.RHAND_INDEX)
 					.equip(ItemType.QUILTED_SHIRT, BasicEquipmentImpl.ARMOR_INDEX).build();
 		case RAT:
@@ -44,7 +44,7 @@ public class ActorFactory
 		case FOX:
 			return ActorBuilder.generateActor(actorType).setName("fox").setHP(10).setIcon('f').setColor(12).setDamage("1D4").build();
 		case BANDIT:
-			return ActorBuilder.generateActor(actorType).setName("bandit").setHP(12).setIcon('H').setColor(3)
+			return ActorBuilder.generateActor(actorType).setName("bandit").setGender(GenderType.MALE).setHP(12).setIcon('H').setColor(3)
 					.setEquipmentType(EquipmentType.BASIC).equip(ItemType.SHORT_SWORD, BasicEquipmentImpl.RHAND_INDEX)
 					.equip(ItemType.SOFT_LEATHER_VEST, BasicEquipmentImpl.ARMOR_INDEX).build();
 		case OGRE:

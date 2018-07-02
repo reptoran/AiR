@@ -363,11 +363,36 @@ public class Engine
 		boolean canSeeSource = canPlayerSeeActor(attacker);
 		boolean canSeeTarget = canPlayerSeeActor(defender);
 		
-		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the hit%1s @2the.").setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+		ItemDestructionMessageStorer messageStorer = new ItemDestructionMessageStorer();
 		
-		int damageToDefender = damageArmorAndReturnRemainder(defender, attackingWeapon.getDamage(), canSeeSource, canSeeTarget);	
+		int damageToDefender = calculateAttackAndReturnDamageToDefender(attacker, defender, attackingWeapon, canSeeSource, canSeeTarget, messageStorer);
+		String attackMessage = "";
+		String armorDestroyedMessage = messageStorer.getArmorDestroyedMessage();
+		String weaponDestroyedMessage = messageStorer.getWeaponDestroyedMessage();
 		
-		gameData.receiveEvent(Event.attackEvent(gameData.getActorIndex(attacker), gameData.getActorIndex(defender), damageToDefender, attacker.getMovementCost()));
+		if (damageToDefender < 0)
+		{
+			attackMessage = "@2the deflect%2s @1thes attack.";
+			gameData.receiveEvent(Event.waitEvent(gameData.getActorIndex(attacker), attacker.getMovementCost()));
+		}
+		else if (damageToDefender == 0)
+		{
+			attackMessage = "@1the miss%1e%1s @2the.";
+			gameData.receiveEvent(Event.waitEvent(gameData.getActorIndex(attacker), attacker.getMovementCost()));
+		}
+		else
+		{
+			attackMessage = "@1the hit%1s @2the.";
+			gameData.receiveEvent(Event.attackEvent(gameData.getActorIndex(attacker), gameData.getActorIndex(defender), damageToDefender, attacker.getMovementCost()));
+		}
+		
+		MessageBuffer.addMessage(new FormattedMessageBuilder(attackMessage).setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+		
+		if (armorDestroyedMessage != null)
+			MessageBuffer.addMessage(armorDestroyedMessage);
+		
+		if (weaponDestroyedMessage != null)
+			MessageBuffer.addMessage(weaponDestroyedMessage);
 		
 		if (defender.getCurHp() <= 0)	//valid check because the data layer has already received and applied the damage
 		{
@@ -378,10 +403,25 @@ public class Engine
 
 	//TODO: right now, there's only one armor piece (maximum), but later, with multiple pieces of armor, something might determine which piece gets hit
 	// 		this is because armor takes damage from attacks, and it seems foolish to damage all pieces of armor with each attack
-	private Item getArmorForAttackedLocation(Actor defender)
+	private Item getArmorForAttackedBodyPart(Actor defender)
 	{
 		List<Item> defenderArmor = defender.getArmor();
 		return defenderArmor.get(RPGlib.randInt(0, defenderArmor.size() - 1));
+	}
+	
+	private Item getShield(Actor defender)
+	{
+		List<Item> defenderShields = defender.getShields();
+		
+		if (defenderShields.isEmpty())
+			return null;
+		
+		Item shield = defenderShields.get(RPGlib.randInt(0, defenderShields.size() - 1));
+		
+		if (RPGlib.percentage(shield.getCR()))
+			return null;
+		
+		return shield;
 	}
 
 	//TODO: remember to adjust effective AR based on condition
@@ -391,27 +431,45 @@ public class Engine
 	//		attack of 3 against armor with 2/4 AR deals 3 to armor and 1 to defender
 	//		attack of 4 against armor with 2/4 AR deals 4 to armor and 2 to defender
 	//		attack of 5 against armor with 2/4 AR deals 4 to armor and 3 to defender
-	private int damageArmorAndReturnRemainder(Actor defender, String damageString, boolean canSeeSource, boolean canSeeTarget)
+	private int calculateAttackAndReturnDamageToDefender(Actor attacker, Actor defender, Item weapon, boolean canSeeSource, boolean canSeeTarget, ItemDestructionMessageStorer messageStorer)
 	{
-		Item armor = getArmorForAttackedLocation(defender);
-		String armorName = armor.getName();
+		boolean attackDeflected = false;
+		String damageString = weapon.getDamage();
+		Item shield = getShield(defender);
+		Item armor;
 		
+		if (shield != null)
+		{
+			attackDeflected = true;
+			armor = shield;
+		}
+		else
+		{
+			armor = getArmorForAttackedBodyPart(defender);
+		}
+				
 		int rawDamage = RPGlib.roll(damageString);
 		int damageToArmor = 0;
+		int damageToWeapon = 0;
 		int damageToDefender = 0;
 		
 		//TODO: maybe this is considered a critical hit?
-		if (RPGlib.randInt(1, 100) > armor.getCR())
+		if (RPGlib.percentage(armor.getCR()))
 			return rawDamage;
 		
 		double armorConditionBeforeAttack = armor.getConditionModifer();
+		double weaponConditionBeforeAttack = weapon.getConditionModifer();
 		
 		damageToArmor = rawDamage > armor.getAR() ? armor.getAR() : rawDamage;
+		damageToWeapon = damageToArmor - weapon.getDR();
 		damageToDefender = rawDamage - damageToArmor;
 		damageToArmor -= armor.getDR();
 		
 		if (damageToArmor < 0)
 			damageToArmor = 0;
+		
+		if (damageToWeapon < 0)
+			damageToWeapon = 0;
 		
 		if (damageToArmor > armor.getCurHp())
 		{
@@ -419,29 +477,73 @@ public class Engine
 			damageToArmor = armor.getCurHp();
 		}
 		
-		boolean destroyed = (damageToArmor == armor.getCurHp() ? true : false);
+		if (damageToArmor > 0)
+		{
+			gameData.receiveEvent(Event.changeHeldItemHpEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), damageToArmor * -1));
+			
+			boolean armorDestroyed = (damageToArmor == armor.getCurHp() ? true : false);
+			String effect = getDescriptionOfCondition(armorDestroyed, armor.getConditionModifer(), armorConditionBeforeAttack);
+			
+			if (effect != null)
+				messageStorer.setArmorDestroyedMessage(new FormattedMessageBuilder("@2his " + armor.getName() + " is " + effect).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+		}
 		
-		if (damageToArmor == 0)
-			return damageToDefender;
+		if (damageToWeapon > 0)
+		{
+			gameData.receiveEvent(Event.changeHeldItemHpEvent(gameData.getActorIndex(attacker), attacker.getIndexOfEquippedItem(weapon), damageToWeapon * -1));
+			
+			boolean weaponDestroyed = (damageToWeapon == weapon.getCurHp() ? true : false);
+			String effect = getDescriptionOfCondition(weaponDestroyed, weapon.getConditionModifer(), weaponConditionBeforeAttack);
+			
+			if (effect != null)
+				messageStorer.setWeaponDestroyedMessage(new FormattedMessageBuilder("@1his " + weapon.getName() + " is " + effect).setSource(attacker).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+		}
 		
-		//TODO: the attacking weapon should take damage equal to damageToDefender, along with all the destroyed/cracked/etc. effects
-		
-		gameData.receiveEvent(Event.changeHeldItemHpEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), damageToArmor * -1));
-				
-		String effect = null;
-		
-		if (destroyed)
-			effect = "destroyed!";
-		else if (armor.getConditionModifer() <= .25 && armorConditionBeforeAttack > .25)
-			effect = "heavily damaged.";		//"cracked.";
-		else if (armor.getConditionModifer() <= .5 && armorConditionBeforeAttack > .5)
-			effect = "moderately damaged.";	//"warped.";
-		else if (armor.getConditionModifer() <= .75 && armorConditionBeforeAttack > .75)
-			effect = "slightly damaged.";	//"dented.";
-		
-		if (effect != null)
-			MessageBuffer.addMessage(new FormattedMessageBuilder("@2his " + armorName + " is " + effect).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+		if (attackDeflected)
+			return -1;
 			
 		return damageToDefender;
+	}
+	
+	private String getDescriptionOfCondition(boolean destroyed, double currentCondition, double conditionBeforeAttack)
+	{
+		if (destroyed)
+			return "destroyed!";
+		else if (currentCondition <= .25 && conditionBeforeAttack > .25)
+			return "heavily damaged.";	//"cracked.";
+		else if (currentCondition <= .5 && conditionBeforeAttack > .5)
+			return "moderately damaged.";	//"warped.";
+		else if (currentCondition <= .75 && conditionBeforeAttack > .75)
+			return "slightly damaged.";	//"dented.";
+		
+		return null;
+	}
+	
+	private class ItemDestructionMessageStorer
+	{
+		private String armorDestroyedMessage = null;
+		private String weaponDestroyedMessage = null;
+		
+		public ItemDestructionMessageStorer() {}
+
+		public String getArmorDestroyedMessage()
+		{
+			return armorDestroyedMessage;
+		}
+
+		public void setArmorDestroyedMessage(String armorDestroyedMessage)
+		{
+			this.armorDestroyedMessage = armorDestroyedMessage;
+		}
+
+		public String getWeaponDestroyedMessage()
+		{
+			return weaponDestroyedMessage;
+		}
+
+		public void setWeaponDestroyedMessage(String weaponDestroyedMessage)
+		{
+			this.weaponDestroyedMessage = weaponDestroyedMessage;
+		}
 	}
 }

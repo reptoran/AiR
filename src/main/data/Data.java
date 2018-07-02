@@ -296,7 +296,13 @@ public class Data
 		else
 			item = actor.getInventory().get(flag1);
 		
-		item.changeCurHp(flag3);
+		try {
+			item.changeCurHp(flag3);
+		} catch (NullPointerException npe)
+		{
+			Logger.error("Null pointer exception caught when changing item HP! Actor: " + actor + ", Flag 1: " + flag1 + ", Flag 2: " + flag2 + ", Flag 3: " + flag3);
+			return;
+		}
 		
 		if (item.getCurHp() > 0)
 			return;

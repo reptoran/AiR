@@ -59,12 +59,15 @@ public class CursesGuiInventory extends CursesGuiUtil
 	@Override
 	public void handleKeyEvent(KeyEvent ke)
 	{
+		Actor player = engine.getData().getPlayer();
+		
 		int code = ke.getKeyCode();
 		char keyChar = Character.toLowerCase(ke.getKeyChar());
 		
 		if (code == KeyEvent.VK_ESCAPE)
 		{
 			filter = null;
+			player.getInventory().resetFilters();
 			
 			if (state == InventoryState.EQUIP || state == InventoryState.VIEW)	//viewing also comes from the equipment screen, so return there
 				parentGui.setCurrentState(GuiState.EQUIPMENT);

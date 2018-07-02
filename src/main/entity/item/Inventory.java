@@ -125,7 +125,7 @@ public class Inventory implements Collection<Item>
 			return items.get(index);
 		
 		Item item = items.get(filteredIndexes.get(index));
-		filteredIndexes = null;
+		resetFilters();
 		return item;
 	}
 	
@@ -134,11 +134,14 @@ public class Inventory implements Collection<Item>
 		if (filteredIndexes == null)
 			return items.remove(index);
 		
-		Logger.debug("Inventory.remove(): " + filteredIndexes);
-		
 		Item item = items.remove(filteredIndexes.get(index).intValue());
-		filteredIndexes = null;
+		resetFilters();
 		return item;
+	}
+	
+	public void resetFilters()
+	{
+		filteredIndexes = null;
 	}
 	
 	public List<Item> getItemsOfType(EquipmentSlotType equipType)

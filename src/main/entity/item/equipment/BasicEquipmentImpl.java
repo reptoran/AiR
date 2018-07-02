@@ -18,8 +18,8 @@ public class BasicEquipmentImpl implements Equipment
 	public BasicEquipmentImpl()
 	{
 		equipmentSlots[0] = new EquipmentSlot("Armor", EquipmentSlotType.ARMOR);
-		equipmentSlots[1] = new EquipmentSlot("Right Hand", "RHand", EquipmentSlotType.ANY);
-		equipmentSlots[2] = new EquipmentSlot("Left Hand", "LHand", EquipmentSlotType.ANY);
+		equipmentSlots[1] = new EquipmentSlot("Right Hand", "RHand", EquipmentSlotType.ARMAMENT);
+		equipmentSlots[2] = new EquipmentSlot("Left Hand", "LHand", EquipmentSlotType.ARMAMENT);
 	}
 
 	@Override
@@ -54,22 +54,17 @@ public class BasicEquipmentImpl implements Equipment
 		return -1;
 	}
 	
-	private boolean isEquipmentSlotType(Item item, EquipmentSlotType type)
-	{
-		return item != null && item.getInventorySlot() == type;
-	}
-	
 	@Override
 	public List<Item> getWeapons()
 	{
 		List<Item> weapons = new ArrayList<Item>();
 		
 		Item item = equipmentSlots[RHAND_INDEX].getItem();
-		if (isEquipmentSlotType(item, EquipmentSlotType.WEAPON))
+		if (item != null && item.isWeapon())
 			weapons.add(item);
 		
 		item = equipmentSlots[LHAND_INDEX].getItem();
-		if (isEquipmentSlotType(item, EquipmentSlotType.WEAPON))
+		if (item != null && item.isWeapon())
 			weapons.add(item);
 		
 		return weapons;
@@ -81,11 +76,11 @@ public class BasicEquipmentImpl implements Equipment
 		List<Item> shields = new ArrayList<Item>();
 		
 		Item item = equipmentSlots[RHAND_INDEX].getItem();
-		if (isEquipmentSlotType(item, EquipmentSlotType.SHIELD))
+		if (item != null && item.isShield())
 			shields.add(item);
 		
 		item = equipmentSlots[LHAND_INDEX].getItem();
-		if (isEquipmentSlotType(item, EquipmentSlotType.SHIELD))
+		if (item != null && item.isShield())
 			shields.add(item);
 		
 		return shields;
@@ -97,7 +92,7 @@ public class BasicEquipmentImpl implements Equipment
 		List<Item> armor = new ArrayList<Item>();
 		
 		Item item = equipmentSlots[ARMOR_INDEX].getItem();
-		if (isEquipmentSlotType(item, EquipmentSlotType.ARMOR))
+		if (item != null && item.isArmor())
 			armor.add(item);
 		
 		return armor;
