@@ -1,6 +1,7 @@
 package main.presentation.curses.inventory;
 
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.List;
 
 import main.entity.actor.Actor;
@@ -8,12 +9,11 @@ import main.entity.item.Item;
 import main.entity.item.equipment.EquipmentSlotType;
 import main.logic.Engine;
 import main.presentation.GuiState;
-import main.presentation.Logger;
+import main.presentation.curses.AbtractCursesGuiListInput;
 import main.presentation.curses.CursesGui;
-import main.presentation.curses.CursesGuiUtil;
 import main.presentation.curses.terminal.CursesTerminal;
 
-public class CursesGuiInventory extends CursesGuiUtil
+public class CursesGuiInventory extends AbtractCursesGuiListInput
 {
 	private CursesGui parentGui;
 	private Engine engine;
@@ -21,7 +21,6 @@ public class CursesGuiInventory extends CursesGuiUtil
 	private InventoryState state = InventoryState.VIEW;
 	private EquipmentSlotType filter = null;
 	
-	private int itemsInPack = 0;
 	private int equipSlotIndex = -1;
 	
 	public CursesGuiInventory(CursesGui parentGui, Engine engine, CursesTerminal terminal)
@@ -40,20 +39,20 @@ public class CursesGuiInventory extends CursesGuiUtil
 		
 		Actor player = engine.getData().getPlayer();
 		
-		itemsInPack = 0;
-		
 		List<Item> itemsInInventory = player.getInventory().getItemsOfType(filter);
+		List<String> itemStrings = new ArrayList<String>();
 		
-		for (Item item : itemsInInventory)
+		if (itemsInInventory.isEmpty())
 		{
-			itemsInPack++;
-			terminal.print(1, itemsInPack, (char)(96 + itemsInPack) + ") " + item.getNameInPack(), COLOR_LIGHT_GREY);
+			terminal.print(1, 1, "(empty)", COLOR_LIGHT_GREY);
+			terminal.refresh();
+			return;
 		}
 		
-		if (itemsInPack == 0)
-			terminal.print(1, 1, "(empty)", COLOR_LIGHT_GREY);
+		for (Item item : itemsInInventory)
+			itemStrings.add(") " + item.getNameInPack());
 		
-		terminal.refresh();
+		printList(itemStrings);
 	}
 
 	@Override
@@ -62,7 +61,6 @@ public class CursesGuiInventory extends CursesGuiUtil
 		Actor player = engine.getData().getPlayer();
 		
 		int code = ke.getKeyCode();
-		char keyChar = Character.toLowerCase(ke.getKeyChar());
 		
 		if (code == KeyEvent.VK_ESCAPE)
 		{
@@ -80,12 +78,10 @@ public class CursesGuiInventory extends CursesGuiUtil
 		if (state == InventoryState.VIEW)
 			return;		//no commands other than exiting if we're just viewing the pack contents
 		
-		int itemIndex = (int)(keyChar) - 97;
+		int itemIndex = getSelectedIndex(ke.getKeyChar());
 		
-		if (itemIndex < 0 || itemIndex > (itemsInPack - 1))
+		if (itemIndex < 0 || itemIndex > (getElementCount() - 1))
 			return;
-		
-		Logger.info("Key " + keyChar + " pressed; this translates to an item index of " + itemIndex + ".");
 		
 		filter = null;	//any valid selection should always clear the filter, since even if you're doing an "inspect" or some such command, you won't be returned to the inventory
 		

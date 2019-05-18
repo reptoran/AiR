@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
 
+import main.data.event.environment.EnvironmentEvent;
+import main.data.event.environment.EnvironmentEventFactory;
+import main.data.event.environment.SaveableEnvironmentEvent;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorFactory;
 import main.entity.feature.Feature;
@@ -25,7 +28,8 @@ import main.presentation.Logger;
 
 public class DataSaveUtils
 {
-	public static final String VERSION = "0.6.0";
+	public static final String VERSION = "0.6.2";
+	private static final String NULL_STRING = "null";
 	
 	private SaveHandler saveHandler;
 
@@ -80,8 +84,17 @@ public class DataSaveUtils
 		String zoneId = zone.getUniqueId();
 		saveHandler.createZoneCacheDir(zoneId);
 
-		saveHandler.cacheZone(zone, zoneId); // this also adds keys to the save the actors and tiles on the zones, so if we save those in order next, they
-												// should all be there.
+		saveHandler.cacheZone(zone, zoneId); // this also adds keys to the save the actors, tiles, and events in the zones, so if we save those in order next, they
+											 // should all be there.
+
+		// save events
+		keys = EntityMap.getEventKeys();
+
+		for (String key : keys)
+		{
+			EnvironmentEvent event = EntityMap.getEvent(key);
+			saveHandler.cacheZoneEvent((SaveableEnvironmentEvent)event, zoneId);
+		}
 
 		// save actors
 		keys = EntityMap.getActorKeys();
@@ -188,6 +201,14 @@ public class DataSaveUtils
 			TileFactory.loadAndMapTileFromSaveString(saveString); // the factory sticks it in EntityMap
 		}
 
+		// uncache events
+		entityLines = saveHandler.uncacheZoneEvents(zoneId);
+
+		for (String saveString : entityLines)
+		{
+			EnvironmentEventFactory.loadAndMapEventFromSaveString(saveString); // the factory sticks it in EntityMap
+		}
+
 		// uncache zone
 		entityLines = saveHandler.uncacheZones(zoneId);
 
@@ -199,11 +220,13 @@ public class DataSaveUtils
 		if (clearMappings)
 			EntityMap.clearMappings();	//all the mappings have been used and recorded, so we can clear them
 
+		Logger.debug("DataSaveUtils - Zone loaded.");
+		
 		saveHandler.deleteZoneCacheDir(zoneId);
 		return uncachedZone;
 	}
 
-	public void saveGameData(Overworld overworld, Zone currentZone, Actor player, boolean worldTravel)
+	public void saveGameData(Overworld overworld, Zone currentZone, Actor player, Actor target, boolean worldTravel)
 	{
 		saveHandler.createSaveDir();
 
@@ -239,6 +262,7 @@ public class DataSaveUtils
 		// save game information
 		saveHandler.saveGameDataElement(VERSION);
 		saveHandler.saveGameDataElement(EntityMap.getSimpleKey(player.getUniqueId())); // player
+		saveHandler.saveGameDataElement(getTargetUniqueId(target)); // target
 		saveHandler.saveGameDataElement(Boolean.toString(worldTravel)); // whether or not the player is using world travel
 		saveHandler.saveGameDataElement(currentZoneName); // current zone name
 		saveHandler.saveGameDataElement(currentZoneId); // current zone ID
@@ -250,6 +274,14 @@ public class DataSaveUtils
 		saveHandler.zipSaveDir();	// zip the individual files into a single save file
 		saveHandler.deleteSaveDir();
 		EntityMap.clearMappings();
+	}
+	
+	private String getTargetUniqueId(Actor target)
+	{
+		if (target == null)
+			return NULL_STRING;
+		
+		return EntityMap.getSimpleKey(target.getUniqueId());
 	}
 
 	public void loadGameData(Data data) throws ParseException
@@ -277,12 +309,13 @@ public class DataSaveUtils
 		}
 		
 		String currentPlayerId = entityLines.get(1);
-		String worldTravel = entityLines.get(2);
-		String currentZoneName = entityLines.get(3);
-		String currentZoneId = entityLines.get(4);
-		ZoneFactory.setGeneratedMapCount(Integer.parseInt(entityLines.get(5)));
-		LabyrinthGenerator.loadState(entityLines.get(6));
-		SpecialLevelManager.loadState(entityLines.get(7));
+		String currentTargetId = entityLines.get(2);
+		String worldTravel = entityLines.get(3);
+		String currentZoneName = entityLines.get(4);
+		String currentZoneId = entityLines.get(5);
+		ZoneFactory.setGeneratedMapCount(Integer.parseInt(entityLines.get(6)));
+		LabyrinthGenerator.loadState(entityLines.get(7));
+		SpecialLevelManager.loadState(entityLines.get(8));
 
 		data.setWorldTravel(Boolean.valueOf(worldTravel));
 		data.setCurrentZone(null);
@@ -316,6 +349,9 @@ public class DataSaveUtils
 		}
 
 		data.setPlayer(EntityMap.getActor(currentPlayerId));
+		
+		if (!NULL_STRING.equals(currentTargetId))
+			data.setTarget(EntityMap.getActor(currentTargetId));
 		
 		saveHandler.deleteSaveDir();
 		EntityMap.clearMappings();

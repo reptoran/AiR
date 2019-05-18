@@ -27,6 +27,8 @@ public class TileFactory
 				return TileBuilder.generateTile(tileType).setName("road").setIcon('.').setColor(6).setMoveCostModifier(.9).build();
 			case FLOOR:
 				return TileBuilder.generateTile(tileType).setName("floor").setIcon('.').setColor(7).build();
+			case CA_BLOCKER:
+				return TileBuilder.generateTile(tileType).setObstructsCoaligned(true).setName("floor").setIcon('.').setColor(7).build();
 			case STAIRS_DOWN:
 				return TileBuilder.generateTile(tileType).setName("stairs down").setIcon('>').setColor(7).build();
 			case STAIRS_UP:

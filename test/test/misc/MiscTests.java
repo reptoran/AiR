@@ -46,4 +46,12 @@ public class MiscTests
 		System.out.println(RPGlib.truncateDouble(123.45678, 5));
 		System.out.println(RPGlib.truncateDouble(123.45678, 7));
 	}
+	
+	@Test
+	public void roll_experimentation()
+	{
+		RPGlib.roll("3D12+14");
+		RPGlib.roll("2D4");
+		RPGlib.roll("4D3-10");
+	}
 }

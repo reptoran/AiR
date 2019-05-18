@@ -1,23 +1,22 @@
 package main.presentation.curses.inventory;
 
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 import main.entity.item.equipment.Equipment;
 import main.entity.item.equipment.EquipmentSlot;
 import main.logic.Engine;
 import main.presentation.GuiState;
-import main.presentation.Logger;
+import main.presentation.curses.AbtractCursesGuiListInput;
 import main.presentation.curses.CursesGui;
-import main.presentation.curses.CursesGuiUtil;
 import main.presentation.curses.terminal.CursesTerminal;
 
-public class CursesGuiEquipment extends CursesGuiUtil
+public class CursesGuiEquipment extends AbtractCursesGuiListInput
 {
 	private CursesGui parentGui;
 	private CursesGuiInventory inventoryUtil;
 	private Engine engine;
-	
-	private int equipmentSlots = 0;
 
 	public CursesGuiEquipment(CursesGui parentGui, CursesGuiInventory inventoryUtil, Engine engine, CursesTerminal terminal)
 	{
@@ -35,15 +34,12 @@ public class CursesGuiEquipment extends CursesGuiUtil
 		terminal.print(0, 0, "Equipped Items:", COLOR_LIGHT_GREY);
 		
 		Equipment equipment = engine.getData().getPlayer().getEquipment();
-		
-		equipmentSlots = 0;
+		List<String> slotStrings = new ArrayList<String>();
 		
 		for (EquipmentSlot slot : equipment.getEquipmentSlots())
-		{
-			equipmentSlots++;
-			char indexLetter = (char)(96 + equipmentSlots);
-			terminal.print(1, equipmentSlots, indexLetter + " - " + slot.getName() + ": " + getItemLabel(slot), COLOR_LIGHT_GREY);
-		}
+			slotStrings.add(" - " + slot.getName() + ": " + getItemLabel(slot));
+		
+		printList(slotStrings);
 		
 		terminal.print(0, 24, "Press [v] to view pack contents.", COLOR_LIGHT_GREY);
 		
@@ -77,12 +73,10 @@ public class CursesGuiEquipment extends CursesGuiUtil
 			return;
 		}
 		
-		int slotIndex = (int)(keyChar) - 97;
+		int slotIndex = getSelectedIndex(ke.getKeyChar());
 		
-		if (slotIndex < 0 || slotIndex > (equipmentSlots - 1))
+		if (slotIndex < 0 || slotIndex > (getElementCount() - 1))
 			return;
-		
-		Logger.info("Key " + keyChar + " pressed; this translates to a slot index of " + slotIndex + ".");
 		
 		Equipment equipment = engine.getData().getPlayer().getEquipment();
 		EquipmentSlot slot = equipment.getEquipmentSlots().get(slotIndex);

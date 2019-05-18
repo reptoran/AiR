@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import main.data.event.environment.SaveableEnvironmentEvent;
 import main.data.file.FileHandler;
 import main.entity.actor.Actor;
 import main.entity.feature.Feature;
@@ -25,9 +26,10 @@ public class SaveHandler extends FileHandler
 	private static final String ITEM_PATH = "items.dat";
 	private static final String FEATURE_PATH = "features.dat";
 	private static final String ACTOR_PATH = "actors.dat";
+	private static final String EVENT_PATH = "events.dat";
 	private static final String GAMEDATA_PATH = "game.dat";
 
-	private String savePath = ROOT_PATH + "save" + File.separator;
+	private String savePath = getDataPath();
 	private String cachePath = savePath + CACHE_DIR_NAME;
 	private String playerPath;
 	private String playerName;
@@ -40,7 +42,7 @@ public class SaveHandler extends FileHandler
 
 	public File getSaveFile()
 	{
-		File saveFile = new File(playerPath + ".sav");
+		File saveFile = new File(playerPath + "." + getExtension());
 		if (saveFile.exists())
 			return saveFile;
 
@@ -201,34 +203,6 @@ public class SaveHandler extends FileHandler
 		return writeLine(playerPath + File.separator + ACTOR_PATH, actor.saveAsText());
 	}
 
-	public boolean saveFeature(Feature feature)
-	{
-		if (EntityMap.getFeature(feature.getUniqueId()) == null)
-			EntityMap.put(feature.getUniqueId(), feature);
-		return writeLine(playerPath + File.separator + FEATURE_PATH, feature.saveAsText());
-	}
-
-	public boolean saveTile(Tile tile)
-	{
-		if (EntityMap.getTile(tile.getUniqueId()) == null)
-			EntityMap.put(tile.getUniqueId(), tile);
-		return writeLine(playerPath + File.separator + TILE_PATH, tile.saveAsText());
-	}
-
-	public boolean saveItem(Item item)
-	{
-		if (EntityMap.getTile(item.getUniqueId()) == null)
-			EntityMap.put(item.getUniqueId(), item);
-		return writeLine(playerPath + File.separator + ITEM_PATH, item.saveAsText());
-	}
-
-	public boolean saveZone(Zone zone)
-	{
-		if (EntityMap.getZone(zone.getUniqueId()) == null)
-			EntityMap.put(zone.getUniqueId(), zone);
-		return writeLine(playerPath + File.separator + ZONE_PATH, zone.saveAsText());
-	}
-
 	public boolean saveWorldTile(WorldTile tile)
 	{
 		if (EntityMap.getWorldTile(tile.getUniqueId()) == null)
@@ -278,6 +252,13 @@ public class SaveHandler extends FileHandler
 		return writeLine(cachePath + File.separator + zoneId + File.separator + ITEM_PATH, item.saveAsText());
 	}
 
+	public boolean cacheZoneEvent(SaveableEnvironmentEvent event, String zoneId)
+	{
+		if (EntityMap.getEvent(event.getUniqueId()) == null)
+			EntityMap.put(event.getUniqueId(), event);
+		return writeLine(cachePath + File.separator + zoneId + File.separator + EVENT_PATH, event.saveAsText());
+	}
+
 	public List<String> uncacheZones(String zoneId)
 	{
 		return loadFile(cachePath + File.separator + zoneId + File.separator + ZONE_PATH);
@@ -301,5 +282,22 @@ public class SaveHandler extends FileHandler
 	public List<String> uncacheZoneItems(String zoneId)
 	{
 		return loadFile(cachePath + File.separator + zoneId + File.separator + ITEM_PATH);
+	}
+
+	public List<String> uncacheZoneEvents(String zoneId)
+	{
+		return loadFile(cachePath + File.separator + zoneId + File.separator + EVENT_PATH);
+	}
+
+	@Override
+	protected String getExtension()
+	{
+		return "sav";
+	}
+
+	@Override
+	protected String getDataPath()
+	{
+		return ROOT_PATH + "save" + File.separator;
 	}
 }

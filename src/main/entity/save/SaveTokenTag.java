@@ -11,11 +11,11 @@ public enum SaveTokenTag
 	A_CLR,	//actor color
 	A_MHP,	//actor max hp
 	A_CHP,	//actor current hp
-	A_SPD,	//actor speed counter
 	A_AI_,	//actor ai
 	A_ATT,	//actor attributes
 	A_INV,	//actor inventory
 	A_EQP,	//actor equipment
+	A_TRT,	//actor traits
 	A_DAM,	//actor default damage
 	A_DAR,	//actor default armor
 	
@@ -39,6 +39,7 @@ public enum SaveTokenTag
 	T_AHR,	//tile actor here 
 	T_FHR,	//tile feature here
 	T_IHR,	//tile item here
+	T_OCA,	//tile obstructs coaligned
 	T_RIC,	//tile remembered icon
 	T_RCL,	//tile remembered color
 	T_FIC,	//tile fog icon
@@ -68,17 +69,25 @@ public enum SaveTokenTag
 	Z_TRN,	//zone last turn
 	Z_TIL,	//zone tiles
 	Z_ACT,	//zone actors
+	Z_EVT,	//zone events
 	Z_ZEK,	//zone zone entry keys
 	Z_PER,	//zone should persist
 	Z_CEW,	//zone can enter world
 	
 	W_UID,	//worldtile unique identifier
 	W_TYP,	//worldtile type
+	W_ZID,	//worldtile zone ID
 	
 	O_UID,	//overworld unique identifier
 	O_PCX,	//overworld player coordinate X
 	O_PCY,	//overworld player coordinate Y
 	O_HGT, 	//overworld height
 	O_WID,	//overworld width
-	O_TIL	//overworld tiles
+	O_TIL,	//overworld tiles
+	
+	E_UID,	//event unique identifier
+	E_TYP,	//event type
+	E_TIC,	//event ticks before acting
+	E_QUE,	//event queue
+	E_ACT	//event actor
 }

@@ -28,7 +28,7 @@ public class WorldTile extends FieldCoord
 		super(name, icon, color, sightObstruct, moveObstruct, moveCostModifier, blockedMessage);
 
 		this.zoneType = zoneType;
-		this.zoneId = null;
+		this.zoneId = "";
 	}
 
 	public void setZoneId(String zoneId)
@@ -78,6 +78,8 @@ public class WorldTile extends FieldCoord
 			ssb.addToken(new SaveToken(SaveTokenTag.C_OST, String.valueOf(obstructsSight)));
 		if (obstructsMotion != baseTile.obstructsMotion)
 			ssb.addToken(new SaveToken(SaveTokenTag.C_OMV, String.valueOf(obstructsMotion)));
+		if (!zoneId.equals(baseTile.zoneId))
+			ssb.addToken(new SaveToken(SaveTokenTag.W_ZID, zoneId));
 
 		return ssb.getSaveString();
 	}
@@ -97,6 +99,7 @@ public class WorldTile extends FieldCoord
 		setMember(ssb, SaveTokenTag.C_OMV);
 		setMember(ssb, SaveTokenTag.C_MOV);
 		setMember(ssb, SaveTokenTag.C_BLK);
+		setMember(ssb, SaveTokenTag.W_ZID);
 
 		return toRet;
 	}
@@ -154,6 +157,11 @@ public class WorldTile extends FieldCoord
 			this.blockedMessage = saveToken.getContents();
 			break;
 
+		case W_ZID:
+			saveToken = ssb.getToken(saveTokenTag);
+			this.zoneId = saveToken.getContents();
+			break;
+
 		default:
 			throw new IllegalArgumentException("WorldTile - Unhandled token: " + saveTokenTag.toString());
 		}
@@ -175,6 +183,10 @@ public class WorldTile extends FieldCoord
 		this.color = baseTile.color;
 		this.obstructsSight = baseTile.obstructsSight;
 		this.obstructsMotion = baseTile.obstructsMotion;
+		this.moveCostModifier = baseTile.moveCostModifier;
+		this.blockedMessage = baseTile.blockedMessage;
+		this.visible = baseTile.visible;
+		this.seen = baseTile.seen;
 	}
 
 	@Override

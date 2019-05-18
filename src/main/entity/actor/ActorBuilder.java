@@ -114,4 +114,10 @@ public class ActorBuilder
 		actor.setAttribute(Actor.ATT_STR, attributeValue);
 		return this;
 	}
+	
+	public ActorBuilder addTrait(ActorTraitType trait)
+	{
+		actor.addTrait(trait);
+		return this;
+	}
 }

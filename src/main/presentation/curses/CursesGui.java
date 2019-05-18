@@ -1,5 +1,6 @@
 package main.presentation.curses;
 
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
@@ -21,8 +22,10 @@ public class CursesGui extends AbstractGui implements KeyListener
 {
 	private CursesTerminal terminal;
 
-	private GuiState currentState = GuiState.NONE;
+	private GuiState currentState = GuiState.SELECT_PROFESSION;		//default assumes new game
 	
+	private CursesGuiProfessionSelect professionSelectUtil;
+	private CursesGuiMessages professionDescriptionUtil;
 	private CursesGuiMessages messageUtil;
 	private CursesGuiUtil displayUtil;
 	private CursesGuiInventory inventoryUtil;
@@ -36,7 +39,9 @@ public class CursesGui extends AbstractGui implements KeyListener
 		terminal = new CursesTerminalAsciiPanelImpl("Adventures in Reptoran v" + DataSaveUtils.VERSION);
 		terminal.addKeyListener(this);
 		
-		messageUtil = new CursesGuiMessages(this, terminal);
+		professionSelectUtil = new CursesGuiProfessionSelect(this, engine.getData(), terminal);
+		professionDescriptionUtil = new CursesGuiMessages(this, new Rectangle(0, 0, 80, 25), terminal, GuiState.PROFESSION_DESCRIPTION, GuiState.GAME_START);	//for now, this transitions right to the game, but that may change in the future (talent selection or whatever)
+		messageUtil = new CursesGuiMessages(this, new Rectangle(0, 0, 80, 2), terminal, GuiState.MESSAGE, GuiState.NONE);
 		displayUtil = new CursesGuiDisplay(engine, terminal);
 		inventoryUtil = new CursesGuiInventory(this, engine, terminal);
 		equipmentUtil = new CursesGuiEquipment(this, inventoryUtil, engine, terminal);
@@ -47,8 +52,19 @@ public class CursesGui extends AbstractGui implements KeyListener
 	@Override
 	public void refreshInterface()
 	{
+		Logger.debug("Refreshing interface; currentState is " + currentState);
+		
 		switch (currentState)
 		{
+		case GAME_START:
+			beginGame();
+			break;
+		case SELECT_PROFESSION:
+			displayProfessionSelection();
+			break;
+		case PROFESSION_DESCRIPTION:
+			displayProfessionDescription();
+			break;
 		case INVENTORY:
 			displayPackContents();
 			break;
@@ -61,6 +77,16 @@ public class CursesGui extends AbstractGui implements KeyListener
 			displayMainGameScreen();
 			break;
 		}
+	}
+	
+	private void displayProfessionSelection()
+	{
+		professionSelectUtil.refresh();
+	}
+	
+	private void displayProfessionDescription()
+	{
+		professionDescriptionUtil.refresh();
 	}
 	
 	private void displayPackContents()
@@ -87,11 +113,26 @@ public class CursesGui extends AbstractGui implements KeyListener
 	public void setCurrentState(GuiState currentState)
 	{
 		this.currentState = currentState;
+		Logger.debug("Changing GuiState to " + currentState);
 	}
 
 	@Override
 	public void keyPressed(KeyEvent ke)
 	{
+		if (currentState == GuiState.SELECT_PROFESSION)
+		{
+			professionSelectUtil.handleKeyEvent(ke);
+			refreshInterface();
+			return;
+		}
+		
+		if (currentState == GuiState.PROFESSION_DESCRIPTION)
+		{
+			professionDescriptionUtil.handleKeyEvent(ke);
+			refreshInterface();
+			return;
+		}
+		
 		if (currentState == GuiState.MESSAGE)
 		{
 			messageUtil.handleKeyEvent(ke);
@@ -108,6 +149,12 @@ public class CursesGui extends AbstractGui implements KeyListener
 		if (currentState == GuiState.EQUIPMENT)
 		{
 			equipmentUtil.handleKeyEvent(ke);
+			refreshInterface();
+			return;
+		}
+		
+		if (currentState == GuiState.GAME_START)
+		{
 			refreshInterface();
 			return;
 		}
@@ -171,6 +218,18 @@ public class CursesGui extends AbstractGui implements KeyListener
 			engine.receiveCommand("EXIT");
 			terminal.close();
 		}
+	}
+	
+	public void initializeNewGame()
+	{
+		engine.getData().initializeNewGame();
+	}
+	
+	public void beginGame()
+	{
+		currentState = GuiState.NONE;
+		engine.beginGame();
+		refreshInterface();
 	}
 
 	private void handleDrop()

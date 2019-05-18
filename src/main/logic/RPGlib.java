@@ -1,5 +1,6 @@
 package main.logic;
 
+import java.util.List;
 import java.util.Random;
 
 
@@ -10,6 +11,14 @@ public class RPGlib
 	public static int randInt(int lower, int upper)
 	{
 		return random.nextInt(upper + 1 - lower) + lower;
+	}
+	
+	public static <T> T getRandomListEntry(List<T> list)
+	{
+		if (list.isEmpty())
+			return null;
+		
+		return list.get(randInt(0, list.size() - 1));
 	}
 	
 	public static boolean percentage(int percentage)

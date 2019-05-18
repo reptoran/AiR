@@ -12,7 +12,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 
-import main.data.ActorTurnQueue;
+import main.data.event.environment.EnvironmentEvent;
+import main.data.event.environment.EnvironmentEventQueue;
+import main.data.event.environment.SaveableEnvironmentEvent;
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
 import main.entity.actor.Actor;
@@ -31,8 +33,8 @@ public class Zone extends SaveableEntity
 	private Tile[][] tiles;
 	private String name; // this is what the file holding a saved instance of this is called
 
-	private List<Actor> actors; // TODO: this may be redundant with actorQueue, but it might not be
-	private ActorTurnQueue actorQueue;
+	private List<Actor> actors;
+	private EnvironmentEventQueue eventQueue;
 
 	private Map<Point, Actor> actorAtPoint;
 	private Map<Actor, Point> pointOfActor;
@@ -61,7 +63,7 @@ public class Zone extends SaveableEntity
 		lastTurn = -1; // this means it hasn't been visited yet
 
 		actors = new ArrayList<Actor>();
-		actorQueue = new ActorTurnQueue();
+		eventQueue = new EnvironmentEventQueue();
 
 		actorAtPoint = new HashMap<Point, Actor>();
 		pointOfActor = new ActorMap();
@@ -181,6 +183,7 @@ public class Zone extends SaveableEntity
 		getTile(coords).setItemHere(item);
 	}
 
+	//TODO: verify this and the remove method both work still after the event overhaul
 	public int addActor(Actor actor, Point coords)
 	{
 		if (actor == null)
@@ -198,7 +201,7 @@ public class Zone extends SaveableEntity
 			throw new IllegalArgumentException("Actor is already present in the zone.");
 
 		actors.add(actor);
-		actorQueue.add(actor);
+		eventQueue.add(actor);
 		actorAtPoint.put(new Point(coords.x, coords.y), actor);
 		pointOfActor.put(actor, new Point(coords.x, coords.y));
 		getTile(coords).setActorHere(actor);
@@ -212,7 +215,7 @@ public class Zone extends SaveableEntity
 			return;
 		
 		actors.remove(actor);
-		actorQueue.remove(actor);
+		eventQueue.remove(actor);
 		
 		Point actorLocation = pointOfActor.get(actor);
 		pointOfActor.remove(actor);
@@ -231,16 +234,26 @@ public class Zone extends SaveableEntity
 	public int getActorIndex(Actor actor)
 	{
 		int index = -1;
+		boolean matchFound = false;
 
 		for (Actor checkedActor : actors)
 		{
+			Logger.info("Zone - Comparing " + actor + " with " + checkedActor);
+			
 			index++;
 
 			if (checkedActor == actor)
 			{ // these should be the same object, so no need for equals()
+				matchFound = true;
+				Logger.info("Zone - Match found: " + actor + " matches " + checkedActor);
 				break;
 			}
 		}
+		
+		if (!matchFound)
+			Logger.error("Zone - No actor match found!");
+		
+		Logger.debug("Zone - Getting actor index for actor " + actor.getName() + ", returning index of [" + index + "].  Total actors: " + actors.size());
 
 		return index;
 	}
@@ -250,9 +263,9 @@ public class Zone extends SaveableEntity
 		return actors.size();
 	}
 
-	public ActorTurnQueue getActorQueue()
+	public EnvironmentEventQueue getEventQueue()
 	{
-		return actorQueue;
+		return eventQueue;
 	}
 
 	public List<Actor> getActors()
@@ -361,6 +374,7 @@ public class Zone extends SaveableEntity
 		SaveStringBuilder ssb = new SaveStringBuilder(EntityType.ZONE);
 		List<String> tileList = new ArrayList<String>();
 		List<String> actorList = new ArrayList<String>();
+		List<String> eventList = new ArrayList<String>();
 		List<String> zoneKeyList = new ArrayList<String>();
 
 		String zoneUid = getUniqueId();
@@ -394,6 +408,21 @@ public class Zone extends SaveableEntity
 		}
 
 		ssb.addToken(new SaveToken(SaveTokenTag.Z_ACT, actorList));
+		
+		for (EnvironmentEvent event : eventQueue.getQueueContents())
+		{
+			SaveableEnvironmentEvent saveEvent = event.asSaveableEvent();
+			String eventUid = saveEvent.getUniqueId();
+
+			if (EntityMap.getEvent(eventUid) == null)
+				eventUid = EntityMap.put(eventUid, saveEvent);
+			else
+				eventUid = EntityMap.getSimpleKey(eventUid);
+
+			eventList.add(eventUid.substring(1));
+		}
+		
+		ssb.addToken(new SaveToken(SaveTokenTag.Z_EVT, eventList));
 		
 		Set<Point> zoneEntryPoints = zoneEntryKeys.keySet();
 		for (Point point : zoneEntryPoints)
@@ -445,6 +474,7 @@ public class Zone extends SaveableEntity
 		setMember(ssb, SaveTokenTag.Z_WID);
 		setMember(ssb, SaveTokenTag.Z_DEP);
 		setMember(ssb, SaveTokenTag.Z_ACT);
+		setMember(ssb, SaveTokenTag.Z_EVT);
 		setMember(ssb, SaveTokenTag.Z_ZEK);
 		setMember(ssb, SaveTokenTag.Z_TIL);
 
@@ -509,13 +539,28 @@ public class Zone extends SaveableEntity
 			saveToken = ssb.getToken(saveTokenTag);
 			strVals = saveToken.getContentSet();
 			actors.clear();
-			actorQueue.clear();
 			for (String val : strVals)
 			{
 				referenceKey = "A" + val;
 				Actor actor = EntityMap.getActor(referenceKey);
 				actors.add(actor);
-				actorQueue.add(actor);
+			}
+			break;
+
+		case Z_EVT:
+			saveToken = ssb.getToken(saveTokenTag);
+			strVals = saveToken.getContentSet();
+			eventQueue = null;
+			for (String val : strVals)
+			{
+				referenceKey = "E" + val;
+				EnvironmentEvent event = EntityMap.getEvent(referenceKey);
+				
+				if (eventQueue == null)
+					eventQueue = event.getEventQueue();
+				
+				eventQueue.add(event);
+				Logger.debug("Zone - Loading events into queue, total queue size is " + eventQueue.size());
 			}
 			break;
 
@@ -561,6 +606,7 @@ public class Zone extends SaveableEntity
 			}
 			break;
 
+		//$CASES-OMITTED$
 		default:
 			throw new IllegalArgumentException("Zone - Unhandled token: " + saveTokenTag.toString());
 		}

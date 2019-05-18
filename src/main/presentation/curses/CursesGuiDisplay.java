@@ -13,6 +13,7 @@ import main.entity.world.Overworld;
 import main.entity.world.WorldTile;
 import main.entity.zone.Zone;
 import main.logic.Engine;
+import main.presentation.Logger;
 import main.presentation.curses.terminal.CursesTerminal;
 
 public class CursesGuiDisplay extends CursesGuiUtil
@@ -168,6 +169,47 @@ public class CursesGuiDisplay extends CursesGuiUtil
 		terminal.print(0, 24, "Depth: " + localMap.getDepth(), PLAYER_INFO_COLOR);
 		
 		displayEquipmentCondition(player);
+		displayTargetHitpoints();
+	}
+	
+	private void displayTargetHitpoints()
+	{
+		int curHp = 0;
+		int totalHp = 1;
+		
+		Actor target = engine.getTarget();
+		
+		if (target != null)
+		{
+			curHp = target.getCurHp();
+			totalHp = target.getMaxHp();
+		}
+		
+		int percentage = (int)(((((double)curHp) / ((double)totalHp)) * 10) + .5);
+		if (percentage < 1 && curHp > 0)
+			percentage = 1;
+			
+		Logger.debug("Target HP is " + curHp + "/" + totalHp + "; percentage is " + percentage + ".");
+		
+		int hpColor = COLOR_DARK_RED;
+		
+		if (percentage > 2)
+			hpColor = COLOR_LIGHT_RED;
+		if (percentage > 4)
+			hpColor = COLOR_YELLOW;
+		if (percentage > 6)
+			hpColor = COLOR_LIGHT_GREEN;
+		if (percentage > 8)
+			hpColor = COLOR_DARK_GREEN;
+		
+		String hpGraph = "";
+		StringBuilder builder = new StringBuilder(hpGraph);
+		for (int i = 0; i < percentage; i++) {
+		    builder.append("*");
+		}
+		
+		terminal.print(68, 23, "[          ]", PLAYER_INFO_COLOR);
+		terminal.print(69, 23, builder.toString(), hpColor);
 	}
 	
 	private void displayEquipmentCondition(Actor player)

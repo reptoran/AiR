@@ -39,39 +39,42 @@ public class ItemFactory
 		case PLATE_MAIL:
 			return ItemBuilder.generateItem(itemType).setNames("plate mail").setSlot(EquipmentSlotType.ARMOR).setIcon('[').setColor(7)
 					.setAR(8).setCR(95).setDR(3).setHP(300).build();
+		case KNIFE:
+			return ItemBuilder.generateItem(itemType).setName("knife").setPlural("knives").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(7)
+					.setDamage("1d3").setHP(10).setDR(1).build();
 		case DAGGER:
 			return ItemBuilder.generateItem(itemType).setNames("dagger").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(8)
-					.setDamage("1d4").setHP(10).build();
+					.setDamage("1d4").setHP(10).setDR(1).build();
 		case CLUB:
 			return ItemBuilder.generateItem(itemType).setNames("club").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(6)
-					.setDamage("1d5").setHP(10).build();
+					.setDamage("1d5").setHP(10).setDR(1).build();
 		case HEAVY_CLUB:
 			return ItemBuilder.generateItem(itemType).setNames("heavy club").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(6)
-					.setDamage("2d4").setHP(25).build();
+					.setDamage("2d4").setHP(25).setDR(1).build();
 		case HAMMER:
 			return ItemBuilder.generateItem(itemType).setNames("hammer").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(8)
-					.setDamage("2d3").setHP(15).build();
+					.setDamage("2d3").setHP(15).setDR(1).build();
 		case MACE:
 			return ItemBuilder.generateItem(itemType).setNames("mace").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(8)
-					.setDamage("3d2").setHP(15).build();
+					.setDamage("3d2").setHP(15).setDR(1).build();
 		case SHORT_SWORD:
 			return ItemBuilder.generateItem(itemType).setNames("short sword").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(8)
-					.setDamage("1d7").setHP(20).build();
+					.setDamage("1d7").setHP(20).setDR(1).build();
 		case BUCKLER:
 			return ItemBuilder.generateItem(itemType).setNames("buckler").setSlot(EquipmentSlotType.ARMAMENT).setIcon('(').setColor(8)
-					.setCR(30).setAR(100).setHP(20).build();
+					.setCR(30).setAR(100).setHP(20).setDR(1).build();
 		case SMALL_SHIELD:
 			return ItemBuilder.generateItem(itemType).setNames("small shield").setSlot(EquipmentSlotType.ARMAMENT).setIcon('(').setColor(8)
-					.setCR(40).setAR(100).setHP(45).build();
+					.setCR(40).setAR(100).setHP(45).setDR(1).build();
 		case MEDIUM_SHIELD:
 			return ItemBuilder.generateItem(itemType).setNames("medium shield").setSlot(EquipmentSlotType.ARMAMENT).setIcon('(').setColor(8)
-					.setCR(50).setAR(100).setHP(80).build();
+					.setCR(50).setAR(100).setHP(80).setDR(1).build();
 		case LARGE_SHIELD:
 			return ItemBuilder.generateItem(itemType).setNames("large shield").setSlot(EquipmentSlotType.ARMAMENT).setIcon('(').setColor(8)
-					.setCR(65).setAR(100).setHP(125).build();
+					.setCR(65).setAR(100).setHP(125).setDR(2).build();
 		case TOWER_SHIELD:
 			return ItemBuilder.generateItem(itemType).setNames("tower shield").setSlot(EquipmentSlotType.ARMAMENT).setIcon('(').setColor(8)
-					.setCR(75).setAR(100).setHP(200).build();
+					.setCR(75).setAR(100).setHP(200).setDR(2).build();
 		case VIRTUAL_ITEM:
 			return ItemBuilder.generateItem(itemType).setDR(1000).build();
 		case NO_TYPE: // falls through

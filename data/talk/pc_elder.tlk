@@ -1,0 +1,37 @@
+[{
+		"tag": "ELDER1",
+		"text": "Good afternoon, Physician.",
+		"reqs": [{
+			"actorType": "PC_PHYSICIAN"
+		}],
+		"response": [{
+				"text": "Good afternoon."
+			},
+			{
+				"text": "What's new?",
+				"flowTo": "ELDER2"
+			},
+			{
+				"text": "I'm hurt.",
+				"flowTo": "ELDER3",
+				"reqs": [{
+					"hpBelowPercent": 100
+				}]
+			}
+		]
+	},
+	{
+		"tag": "ELDER2",
+		"text": "Things are as bad as usual, I'm afraid.",
+		"response": [{
+			"text": "Sorry to hear that."
+		}]
+	},
+	{
+		"tag": "ELDER3",
+		"text": "Why are you telling me? You're the physician!",
+		"response": [{
+			"text": "Ah, right.  I'll dig out some bandages, then."
+		}]
+	}
+]

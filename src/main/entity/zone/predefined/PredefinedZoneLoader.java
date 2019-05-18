@@ -23,8 +23,6 @@ public class PredefinedZoneLoader extends FileHandler
 
 	private ZoneDataState currentState = null;
 	private PredefinedZoneBuilder predefinedZoneBuilder = null;
-
-	private String dataPath = ROOT_PATH + "data" + File.separator + "zones" + File.separator;
 	
 	public List<PredefinedZone> loadAllPredefinedZones()
 	{
@@ -32,10 +30,13 @@ public class PredefinedZoneLoader extends FileHandler
 		
 		//TODO: unzip a .dat file that's just an archive of everything, then search the created folder
 		
-		File folder = new File(dataPath);
+		File folder = new File(getDataPath());
 
 		for (File file : folder.listFiles())
 		{
+			if (!getFileExtension(file).equals(getExtension()))
+				continue;
+			
 			loadedZones.add(loadZoneFromDataFile(file.getName()));
 		}
 		
@@ -44,7 +45,7 @@ public class PredefinedZoneLoader extends FileHandler
 
 	private PredefinedZone loadZoneFromDataFile(String zoneName)
 	{
-		String path = dataPath + zoneName;
+		String path = getDataPath() + zoneName;
 		List<String> lines = loadFile(path);
 		
 		predefinedZoneBuilder = new PredefinedZoneBuilder(++loadedZoneCount);
@@ -168,5 +169,17 @@ public class PredefinedZoneLoader extends FileHandler
 	private enum ZoneDataState
 	{
 		PLAN, TILES, ACTORS, ITEMS, ATTRIBUTES;
+	}
+
+	@Override
+	protected String getExtension()
+	{
+		return "zon";
+	}
+
+	@Override
+	protected String getDataPath()
+	{
+		return ROOT_PATH + "data" + File.separator + "zones" + File.separator;
 	}
 }

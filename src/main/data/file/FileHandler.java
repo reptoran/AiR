@@ -20,9 +20,11 @@ import java.util.zip.ZipOutputStream;
 
 import main.presentation.Logger;
 
-public class FileHandler
+public abstract class FileHandler
 {
 	protected static final String ROOT_PATH = System.getProperty("user.dir") + File.separator;
+	protected abstract String getExtension();
+	protected abstract String getDataPath();
 	
 	protected void createDirectory(String directory)
 	{

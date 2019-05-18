@@ -9,10 +9,12 @@ import main.logic.RPGlib;
 
 public class CaveGenerator extends RandomGenerator
 {
-	//also try 10/15/30
-	int size = 25;
-	int openness = 12;
-	int density = 35;
+	int size = 10;
+	int openness = 15;
+	int density = 30;
+//	int size = 25;
+//	int openness = 12;
+//	int density = 35;
 	
 	@Override
 	public char[][] generateCharMap(int height, int width)

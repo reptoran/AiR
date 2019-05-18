@@ -19,4 +19,10 @@ public class TileBuilder extends FieldCoordBuilder<Tile>
 		getFieldCoord().setType(type);
 		return this;
 	}
+	
+	public TileBuilder setObstructsCoaligned(boolean obstructsCoaligned)
+	{
+		getFieldCoord().setObstructsCoaligned(obstructsCoaligned);
+		return this;
+	}
 }

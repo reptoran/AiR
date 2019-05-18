@@ -20,6 +20,7 @@ public class CursesTerminalAsciiPanelImpl implements CursesTerminal
 		frame = new JFrame();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setContentPane(panel);
+//		frame.setResizable(false);	//this does odd things to the window size and location
 		frame.pack();
 		frame.setVisible(true);
 	}

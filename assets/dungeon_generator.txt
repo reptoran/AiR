@@ -1,0 +1,141 @@
+Reference here if necessary:https://www.reddit.com/r/roguelikedev/comments/6vf8j4/dungeon_and_town_generation_algorithms/
+http://www.roguebasin.com/index.php?title=Dungeon-Building_Algorithm
+
+There are two things I really want to avoid in my dungeons:
+1) Dead ends (hallways that don't terminate in rooms)
+2) No loops (everything branching off from some central point)
+
+The dungeons should be constructed with different elements, defined as either connectors or intersections.  Each element takes up a certain grid of tiles, which can never be used by any other elements in the dungeon.  Note that the dungeon doesn't have to be a regular grid, but rather just a patchwork of elements.
+
+Intersections do not have outer walls; connectors do.  Elements have a list of tiles that must be connected, as well as a list of tiles that cannot be connected.  Connectors 
+
+public class Dungeon
+{
+	private int minHallWidth;
+	private int maxHallWidth;
+	private int minHallLength;
+	private int minHallLength;
+	private int minRoomWidth;
+	private int maxRoomWidth;
+	private int minRoomLength;
+	private int minRoomLength;
+}
+
+Basically, base this on the RogueBasin "dungeon-building algorithm" page, with the following additions:
+1) Halls can never have dead-ends.  Prioritize adding elements to open-ended halls, and only once the dungeon is "valid" can additional rooms be generated.
+2) A corridor that overlaps another dungeon feature is acceptable as long as the new length (after shortening it to meet the other feature) is still within the length limits.
+3) Corridors can be more than a single tile wide.
+
+Generation is finished once a certain number of rooms have been added, or a threshold is met for element addition attempts.
+	minAdditionAttempts (generation cannot end until this is met)
+	minRooms			(generation cannot end until this is met or attempts is maxed out)
+	maxRooms			(ends generation once hit)
+	maxAdditionAttempts	(ends generation no matter what)
+
+
+public interface DungeonElement
+{
+	public boolean isIntersection();
+	public boolean isConnector();
+	public List<Point> 
+	MORE
+}
+
+1) Generate an intersection element to begin the dungeon.
+2) Pick a random existing element and generate another MORE
+
+Example metadungeon: (TODO)
+############################################
+#AAAA#######################################
+#AAAA#######################################
+#AAAA#######################################
+#AAAA#######################################
+############################################
+############################################
+############################################
+############################################
+
+Example intersections:
+....
+....
+....
+....
+
+#..#
+....
+....
+#..#
+
+...........
+.#.#.#.#.#.
+.#.#.#.#.#.
+...........
+
+Example connectors:
+###############
+#.............#
+###############
+
+######
+##..##
+##...#
+###..#
+##..##
+#...##
+##..##
+##.###
+##..##
+###..#
+###..#
+##...#
+######
+
+
+
+======
+
+1) Pick a random section to start generation
+################################################################################
+################################################################################
+#################################################################AAAAA##########
+#################################################################AAAAA##########
+#################################################################AAAAA##########
+#################################################################AAAAA##########
+#################################################################AAAAA##########
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+2) Pick a random element and fill that section with it.
+################################################################################
+################################################################################
+#################################################################$...$##########
+#################################################################.....##########
+#################################################################.....##########
+#################################################################.....##########
+#################################################################$...$##########
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+3) Pick a random eligible edge tile MORE

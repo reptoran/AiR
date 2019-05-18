@@ -1,6 +1,7 @@
 package main.presentation.curses;
 
 import java.awt.Color;
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,19 +15,29 @@ public class CursesGuiMessages extends CursesGuiUtil
 {
 	private static final Color DEFAULT_MESSAGE_COLOR = Color.LIGHT_GRAY;
 	
-	private int messageStartRow = 0;
-	private int messageStartCol = 0;
-	private int messageHeight = 2;
-	private int messageWidth = 80;
+	private int messageStartRow;
+	private int messageStartCol;
+	private int messageHeight;
+	private int messageWidth;
 	
 	private CursesGui parentGui;
+	private GuiState refreshState;
+	private GuiState defaultState;
+	
 	private List<String> messageLines = new ArrayList<String>();
 	
-	public CursesGuiMessages(CursesGui parentGui, CursesTerminal terminal)
+	public CursesGuiMessages(CursesGui parentGui, Rectangle messageDisplayBox, CursesTerminal terminal, GuiState refreshState, GuiState defaultState)
 	{
 		super(terminal);
 		
+		messageStartRow = messageDisplayBox.x;
+		messageStartCol = messageDisplayBox.y;
+		messageHeight = messageDisplayBox.height;
+		messageWidth = messageDisplayBox.width;
+		
 		this.parentGui = parentGui;
+		this.refreshState = refreshState;
+		this.defaultState = defaultState;
 	}
 
 	@Override
@@ -40,6 +51,7 @@ public class CursesGuiMessages extends CursesGuiUtil
 			displayNextMessages();
 		}
 		
+		updateState();		
 		terminal.refresh();
 	}
 	
@@ -58,6 +70,14 @@ public class CursesGuiMessages extends CursesGuiUtil
 		}
 	}
 	
+	protected void updateState()
+	{
+		if (!messageLines.isEmpty())
+			parentGui.setCurrentState(refreshState);
+		else
+			parentGui.setCurrentState(defaultState);
+	}
+	
 	protected void displayNextMessages()
 	{
 		for (int i = messageStartRow; i < messageStartRow + messageHeight; i++)
@@ -68,16 +88,12 @@ public class CursesGuiMessages extends CursesGuiUtil
 				terminal.print(messageStartCol, i, messageLine, DEFAULT_MESSAGE_COLOR);
 			}
 		}
-		
-		if (!messageLines.isEmpty())
-			parentGui.setCurrentState(GuiState.MESSAGE);
-		else
-			parentGui.setCurrentState(GuiState.NONE);
 	}
 
 	@Override
 	public void handleKeyEvent(KeyEvent ke)
 	{
+		Logger.debug("Key event received in CursesGuiMessages");
 		refresh();
 	}
 }

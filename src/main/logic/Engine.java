@@ -5,11 +5,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import main.data.ActorTurnQueue;
 import main.data.Data;
-import main.data.event.Event;
-import main.data.event.EventType;
+import main.data.event.InternalEvent;
+import main.data.event.InternalEventType;
+import main.data.event.environment.ActorTurnEvent;
+import main.data.event.environment.EnvironmentEvent;
+import main.data.event.environment.EnvironmentEventQueue;
+import main.data.event.environment.EnvironmentEventType;
 import main.entity.actor.Actor;
+import main.entity.actor.ActorTraitType;
 import main.entity.item.Item;
 import main.entity.tile.Tile;
 import main.entity.world.Overworld;
@@ -33,6 +37,8 @@ public class Engine
 	private Map<AiType, ActorAI> gameAIs;
 
 	private boolean acceptInput = false;
+	
+	@SuppressWarnings("unused")
 	private long turnIndex;
 
 	public Engine(Data theData)
@@ -47,13 +53,14 @@ public class Engine
 	{
 		gameAIs = new HashMap<AiType, ActorAI>();
 		gameAIs.put(AiType.RAND_MOVE, new MoveRandomAI());
+		gameAIs.put(AiType.COALIGNED, new MoveRandomAI());	//TODO: make a proper coaligned AI
 		gameAIs.put(AiType.ZOMBIE, new ZombieAI());
 		gameAIs.put(AiType.MELEE, new MeleeAI());
 	}
 
 	public void beginGame()
 	{
-		runAiTurns();
+		runEnvironmentEvents();
 		refreshPlayerFov(gameData.getPlayer());
 		
 		acceptInput = true;
@@ -78,6 +85,19 @@ public class Engine
 	{
 		return gameData;
 	}
+	
+	//TODO: if the player moves out of sight, but the target moves back into sight before the player's next turn, it's still cleared
+	public Actor getTarget()
+	{
+		Actor target = gameData.getTarget();
+		
+		if (target != null && target.getCurHp() <= 0)
+			gameData.setTarget(null);
+		else if (!canPlayerSeeActor(target))
+			gameData.setTarget(null);
+
+		return gameData.getTarget();
+	}
 
 	public void receiveCommand(String command)
 	{
@@ -91,26 +111,35 @@ public class Engine
 	
 	private void runTurns(String command)
 	{
-		ActorTurnQueue localActors = gameData.getActorQueue();
-		Actor playerActor = localActors.getNextActor();
+		EnvironmentEventQueue localEvents = gameData.getEventQueue();
 		
-		if (!AiType.HUMAN_CONTROLLED.equals(playerActor.getAI()))
+		if (!localEvents.nextEventIsHumanTurn())
 		{
-			Logger.warn("Next actor is not human controlled; simulating AI turns now.");
-			runAiTurns();
+			Logger.info("Next actor is not human controlled; simulating AI turns now.");
+			runEnvironmentEvents();
 			return;
 		}
 		
-		playerActor = localActors.popNextActor();
+		//must be separate logic because otherwise the event never gets put back in the queue to be saved
+		if (command.equals("SAVE"))
+		{
+			gameData.receiveInternalEvent(InternalEvent.saveInternalEvent());
+			return;
+		}
+		
+		//we've already checked that the next event is a turn event, so this is fine
+		ActorTurnEvent turnEvent = (ActorTurnEvent) localEvents.popNextEvent();
+		
+		Actor playerActor = turnEvent.getActor();
 		int actorIndex = gameData.getActorIndex(playerActor);
 
 		if (actorIndex == -1)
-			throw new IllegalStateException("localActors contained an actor not in zone");
+			throw new IllegalStateException("localEvents contained an actor not in zone");
 		
-		executeActorCommand(actorIndex, command);
-		localActors.add(playerActor);
+		int eventDuration = executeActorCommandAndReturnEventDuration(actorIndex, command);
+		turnEvent.recur(eventDuration);	//this re-adds the event to the queue 
 		
-		runAiTurns();
+		runEnvironmentEvents();
 		refreshPlayerFov(playerActor);
 	}
 	
@@ -132,25 +161,36 @@ public class Engine
 		return ActorSightUtil.losExists(currentZone, currentZone.getCoordsOfActor(gameData.getPlayer()), actorCoords, ACTOR_SIGHT_RADIUS);
 	}
 
-	private void runAiTurns()
+	private void runEnvironmentEvents()
 	{
-		ActorTurnQueue localActors = gameData.getActorQueue();
+		EnvironmentEventQueue localEvents = gameData.getEventQueue();
 		
-		while (!AiType.HUMAN_CONTROLLED.equals(localActors.getNextActorAi()))
+		while (!localEvents.nextEventIsHumanTurn())
 		{
-			turnIndex++;	//TODO: not completely accurate, because this only updates every time an actor acts, rather than with every game tick
+			turnIndex++;	//TODO: not completely accurate, because this only updates every time an event triggers, rather than with every game tick
 			
-			Actor curActor = localActors.popNextActor();
+			EnvironmentEvent event = localEvents.popNextEvent();
+			
+			if (event.getType() != EnvironmentEventType.ACTOR_TURN)
+			{
+				gameData.receiveInternalEvent(event.trigger());
+				continue;
+			}
+			
+			ActorTurnEvent turnEvent = (ActorTurnEvent) event;
+			
+			Actor curActor = turnEvent.getActor();
+			Logger.debug("AI Actor " + curActor.getName() + " is taking a turn.");
 			int actorIndex = gameData.getActorIndex(curActor);
 			
 			if (actorIndex == -1)
-				throw new IllegalStateException("localActors contained an actor not in zone");
+				throw new IllegalStateException("localEvents contained an actor not in zone");
 			
 			AiType aiType = curActor.getAI();
 			ActorAI curAI = gameAIs.get(aiType);
 			String command = curAI.getNextCommand(gameData.getCurrentZone(), curActor);
-			executeActorCommand(actorIndex, command);
-			localActors.add(curActor);
+			int eventDuration = executeActorCommandAndReturnEventDuration(actorIndex, command);
+			turnEvent.recur(eventDuration);	//this re-adds the event to the queue 
 		}
 	}
 
@@ -158,42 +198,50 @@ public class Engine
 	// Note that strings are fine here, because this only deals with actors moving
 	// I'll need a different method for in-game effects that aren't actor-driven
 	// Remember, this doesn't modify data, but rather sends change requests to the data layer
-	private void executeActorCommand(int actorIndex, String theCommand)
+	private int executeActorCommandAndReturnEventDuration(int actorIndex, String theCommand)
 	{
+		if (theCommand.substring(0, 3).equals("DIR"))
+			return handleDirectionAndReturnEventDuration(actorIndex, theCommand);
+		
+		InternalEvent event = null;
+		
 		if (theCommand.equals("SAVE"))
 		{
-			gameData.receiveEvent(Event.saveEvent());
+			event = InternalEvent.saveInternalEvent();
 		} else if (theCommand.equals("EXIT"))
 		{
-			gameData.receiveEvent(Event.exitEvent());
+			event = InternalEvent.exitInternalEvent();
 		} else if (theCommand.equals("PICKUP"))
 		{
-			pickupItem(actorIndex);
+			event = pickupItem(actorIndex);
 		} else if (theCommand.startsWith("DROP"))
 		{
-			dropItem(actorIndex, Integer.parseInt(theCommand.substring(4)));
+			event = dropItem(actorIndex, Integer.parseInt(theCommand.substring(4)));
 		} else if (theCommand.startsWith("EQUIP"))
 		{
-			equipItem(actorIndex, Integer.parseInt(theCommand.substring(5, 6)), Integer.parseInt(theCommand.substring(6)));
+			event = equipItem(actorIndex, Integer.parseInt(theCommand.substring(5, 6)), Integer.parseInt(theCommand.substring(6)));
 		} else if (theCommand.startsWith("UNEQUIP"))
 		{
-			unequipItem(actorIndex, Integer.parseInt(theCommand.substring(7)));
+			event = unequipItem(actorIndex, Integer.parseInt(theCommand.substring(7)));
 		} else if ((theCommand.equals("CHANGE_ZONE_UP") || theCommand.equals("CHANGE_ZONE_DOWN")) && canTransitionToNewZone(actorIndex))
 		{
-			gameData.receiveEvent(Event.transitionZoneEvent(actorIndex));
+			event = InternalEvent.transitionZoneInternalEvent(actorIndex);
 		} else if (theCommand.equals("CHANGE_ZONE_UP") && !gameData.isWorldTravel() && gameData.getCurrentZone().canEnterWorld())
 		{
-			gameData.receiveEvent(Event.enterWorldEvent(actorIndex));
+			event = InternalEvent.enterWorldInternalEvent(actorIndex);
 		} else if (theCommand.equals("CHANGE_ZONE_DOWN") && gameData.isWorldTravel())
 		{
-			gameData.receiveEvent(Event.enterLocalEvent(actorIndex));
-		} else if (theCommand.substring(0, 3).equals("DIR"))
-		{
-			handleDirection(actorIndex, theCommand);
+			event = InternalEvent.enterLocalInternalEvent(actorIndex);
 		}
+		
+		if (event == null)
+			return 0;
+		
+		gameData.receiveInternalEvent(event);
+		return event.getActionCost();
 	}
 
-	private void pickupItem(int actorIndex)
+	private InternalEvent pickupItem(int actorIndex)
 	{
 		Actor actor = gameData.getActor(actorIndex);
 		Tile tile = getCurrentZone().getTile(actor);
@@ -202,48 +250,47 @@ public class Engine
 		if (item == null)
 		{
 			MessageBuffer.addMessageIfHuman("There is nothing to pick up.", actor.getAI());
-			return;
+			return null;
 		}
 		
 		//TODO: check for item size, etc.
 		
-		gameData.receiveEvent(Event.pickupEvent(actorIndex));
+		InternalEvent event = InternalEvent.pickupInternalEvent(actorIndex);
 		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the pick%1s up " + item.getNameOnGround() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		return event;
 	}
 	
-	private void dropItem(int actorIndex, int itemIndex)
+	private InternalEvent dropItem(int actorIndex, int itemIndex)
 	{
 		Actor actor = gameData.getActor(actorIndex);
 		Item item = actor.getInventory().get(itemIndex);
 		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the drop%1s " + item.getNameInPack() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
 		
-		gameData.receiveEvent(Event.dropEvent(actorIndex, itemIndex));
+		return InternalEvent.dropInternalEvent(actorIndex, itemIndex);
 	}
 	
-	private void equipItem(int actorIndex, int slotIndex, int itemIndex)
+	private InternalEvent equipItem(int actorIndex, int slotIndex, int itemIndex)
 	{
-		gameData.receiveEvent(Event.equipEvent(actorIndex, slotIndex, itemIndex));
+		return InternalEvent.equipInternalEvent(actorIndex, slotIndex, itemIndex);
 	}
 	
-	private void unequipItem(int actorIndex, int slotIndex)
+	private InternalEvent unequipItem(int actorIndex, int slotIndex)
 	{
-		gameData.receiveEvent(Event.unequipEvent(actorIndex, slotIndex));
+		return InternalEvent.unequipInternalEvent(actorIndex, slotIndex);
 	}
 
-	private void handleDirection(int actorIndex, String theCommand)
+	private int handleDirectionAndReturnEventDuration(int actorIndex, String theCommand)
 	{
-		Event event = handleMove(actorIndex, theCommand);
+		InternalEvent event = handleMove(actorIndex, theCommand);
 
 		if (event == null)
-			return;
+			return 0;
 		
-		if (event.getEventType() == EventType.ATTACK)
-		{
-			resolveAttackEvent(event);
-			return;
-		}
+		if (event.getInternalEventType() == InternalEventType.ATTACK)
+			return resolveAttackInternalEvent(event);
 		
-		gameData.receiveEvent(event);
+		gameData.receiveInternalEvent(event);
+		return event.getActionCost();
 	}
 	
 	private boolean canTransitionToNewZone(int actorIndex)
@@ -260,7 +307,7 @@ public class Engine
 		return true;
 	}
 
-	private Event handleMove(int actorIndex, String theCommand)
+	private InternalEvent handleMove(int actorIndex, String theCommand)
 	{
 		Actor actor = gameData.getActor(actorIndex);
 		Point origin;
@@ -296,7 +343,7 @@ public class Engine
 				// TODO: world travel should take a lot longer than local travel (massively increased movement cost)
 				// actionCost = tile.getMoveCost();
 
-				return Event.worldMoveEvent(actorIndex, x2, y2, actor.getMovementCost());
+				return InternalEvent.worldMoveInternalEvent(actorIndex, x2, y2, actor.getMovementCost());
 			}
 		}
 
@@ -311,12 +358,12 @@ public class Engine
 		if (targetActor != null)
 		{
 			if (targetActor == actor)
-				return Event.waitEvent(actorIndex, actor.getMovementCost());
+				return InternalEvent.waitInternalEvent(actorIndex, actor.getMovementCost());
 			
-			return Event.attackEvent(actorIndex, gameData.getActorIndex(targetActor), -1, actor.getMovementCost());
+			return InternalEvent.attackInternalEvent(actorIndex, gameData.getActorIndex(targetActor), -1, actor.getMovementCost());
 		}
 		
-		if (destinationTile.obstructsMotion())
+		if (destinationTile.obstructsMotion() || (actor.getAI().equals(AiType.COALIGNED) && destinationTile.obstructsCoaligned()))
 		{
 			// we never care if an AI actor runs into an obstruction (well, unless it's confused?)
 			MessageBuffer.addMessageIfHuman(destinationTile.getBlockedMessage(), actor.getAI());
@@ -328,7 +375,7 @@ public class Engine
 		//we know that the move is successful at this point, so if there's an item in the destination tile, alert the player
 		addItemMessage(destinationTile, actor);
 		
-		return Event.localMoveEvent(actorIndex, x2, y2, actionCost);
+		return InternalEvent.localMoveInternalEvent(actorIndex, x2, y2, actionCost);
 	}
 	
 	private void addItemMessage(Tile destinationTile, Actor actor)
@@ -344,10 +391,10 @@ public class Engine
 		MessageBuffer.addMessage("There is " + itemHere.getNameOnGround() + " here.");
 	}
 	
-	private void resolveAttackEvent(Event attackEvent)
+	private int resolveAttackInternalEvent(InternalEvent attackInternalEvent)
 	{
-		Actor attacker = gameData.getActor(attackEvent.getFlag(0));
-		Actor defender = gameData.getActor(attackEvent.getFlag(1));
+		Actor attacker = gameData.getActor(attackInternalEvent.getFlag(0));
+		Actor defender = gameData.getActor(attackInternalEvent.getFlag(1));
 		
 		List<Item> attackerWeapons = attacker.getWeapons();
 		
@@ -356,10 +403,18 @@ public class Engine
 		
 		while (!attackerWeapons.isEmpty() && defender.getCurHp() > 0)
 			handleAttack(attacker, attackerWeapons.remove(0), defender);
+		
+		return attacker.getMovementCost();		//TODO: for now, assume that no matter how many attacks an actor has, it only takes up one "turn" 
 	}
 
 	private void handleAttack(Actor attacker, Item attackingWeapon, Actor defender)
 	{
+		Actor player = gameData.getPlayer();
+		if (attacker == player)
+			gameData.setTarget(defender);
+		if (defender == player)
+			gameData.setTarget(attacker);
+		
 		boolean canSeeSource = canPlayerSeeActor(attacker);
 		boolean canSeeTarget = canPlayerSeeActor(defender);
 		
@@ -370,20 +425,21 @@ public class Engine
 		String armorDestroyedMessage = messageStorer.getArmorDestroyedMessage();
 		String weaponDestroyedMessage = messageStorer.getWeaponDestroyedMessage();
 		
+		//TODO: right an action cost of 0 is being set on the event because it's not used anyway - a constant duration is returned regardless of attack count
 		if (damageToDefender < 0)
 		{
 			attackMessage = "@2the deflect%2s @1thes attack.";
-			gameData.receiveEvent(Event.waitEvent(gameData.getActorIndex(attacker), attacker.getMovementCost()));
+			gameData.receiveInternalEvent(InternalEvent.waitInternalEvent(gameData.getActorIndex(attacker), 0));
 		}
 		else if (damageToDefender == 0)
 		{
-			attackMessage = "@1the miss%1e%1s @2the.";
-			gameData.receiveEvent(Event.waitEvent(gameData.getActorIndex(attacker), attacker.getMovementCost()));
+			attackMessage = "@1the fail%1s to hurt @2the.";
+			gameData.receiveInternalEvent(InternalEvent.waitInternalEvent(gameData.getActorIndex(attacker), 0));
 		}
 		else
 		{
 			attackMessage = "@1the hit%1s @2the.";
-			gameData.receiveEvent(Event.attackEvent(gameData.getActorIndex(attacker), gameData.getActorIndex(defender), damageToDefender, attacker.getMovementCost()));
+			gameData.receiveInternalEvent(InternalEvent.attackInternalEvent(gameData.getActorIndex(attacker), gameData.getActorIndex(defender), damageToDefender, 0));
 		}
 		
 		MessageBuffer.addMessage(new FormattedMessageBuilder(attackMessage).setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
@@ -397,7 +453,7 @@ public class Engine
 		if (defender.getCurHp() <= 0)	//valid check because the data layer has already received and applied the damage
 		{
 			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the is killed!").setSource(defender).setSourceVisibility(canSeeSource).format());
-			gameData.receiveEvent(Event.deathEvent(gameData.getActorIndex(defender)));
+			gameData.receiveInternalEvent(InternalEvent.deathInternalEvent(gameData.getActorIndex(defender)));
 		}
 	}
 
@@ -461,9 +517,11 @@ public class Engine
 		double weaponConditionBeforeAttack = weapon.getConditionModifer();
 		
 		damageToArmor = rawDamage > armor.getAR() ? armor.getAR() : rawDamage;
-		damageToWeapon = damageToArmor - weapon.getDR();
+//		damageToWeapon = damageToArmor - weapon.getDR();
+		damageToWeapon = damageToArmor - getItemDR(weapon, attacker);
 		damageToDefender = rawDamage - damageToArmor;
-		damageToArmor -= armor.getDR();
+//		damageToArmor -= armor.getDR();
+		damageToArmor -= getItemDR(armor, defender);
 		
 		if (damageToArmor < 0)
 			damageToArmor = 0;
@@ -477,9 +535,12 @@ public class Engine
 			damageToArmor = armor.getCurHp();
 		}
 		
+		if (damageToWeapon > weapon.getCurHp())
+			damageToWeapon = weapon.getCurHp();
+		
 		if (damageToArmor > 0)
 		{
-			gameData.receiveEvent(Event.changeHeldItemHpEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), damageToArmor * -1));
+			gameData.receiveInternalEvent(InternalEvent.changeHeldItemHpInternalEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), damageToArmor * -1));
 			
 			boolean armorDestroyed = (damageToArmor == armor.getCurHp() ? true : false);
 			String effect = getDescriptionOfCondition(armorDestroyed, armor.getConditionModifer(), armorConditionBeforeAttack);
@@ -490,7 +551,7 @@ public class Engine
 		
 		if (damageToWeapon > 0)
 		{
-			gameData.receiveEvent(Event.changeHeldItemHpEvent(gameData.getActorIndex(attacker), attacker.getIndexOfEquippedItem(weapon), damageToWeapon * -1));
+			gameData.receiveInternalEvent(InternalEvent.changeHeldItemHpInternalEvent(gameData.getActorIndex(attacker), attacker.getIndexOfEquippedItem(weapon), damageToWeapon * -1));
 			
 			boolean weaponDestroyed = (damageToWeapon == weapon.getCurHp() ? true : false);
 			String effect = getDescriptionOfCondition(weaponDestroyed, weapon.getConditionModifer(), weaponConditionBeforeAttack);
@@ -503,6 +564,18 @@ public class Engine
 			return -1;
 			
 		return damageToDefender;
+	}
+	
+	private int getItemDR(Item item, Actor itemOwner)
+	{
+		int DR = item.getDR();
+		
+		if (itemOwner.hasTrait(ActorTraitType.DURABLE_EQ))
+			DR = (int)(item.getDR() * 1.5);
+		
+		Logger.debug("Actor " + itemOwner.getName() + " is wielding " + item.getName() + "; base DR is " + item.getDR() + " and effective DR is " + DR + ".");
+		
+		return DR;
 	}
 	
 	private String getDescriptionOfCondition(boolean destroyed, double currentCondition, double conditionBeforeAttack)

@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import main.entity.item.equipment.EquipmentSlotType;
-import main.presentation.Logger;
 
 public class Inventory implements Collection<Item>
 {
@@ -217,5 +216,18 @@ public class Inventory implements Collection<Item>
 		{
 			return item1.compareTo(item2);
 		}
+	}
+	
+	@Override
+	public Inventory clone()
+	{
+		Inventory toRet = new Inventory();
+		
+		for (Item item : this)
+		{
+			toRet.add(item.clone());
+		}
+		
+		return toRet;
 	}
 }

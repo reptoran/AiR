@@ -10,6 +10,9 @@ public class ActorSightUtil
 {
 	public static boolean losExists(Zone zone, Point origin, Point target, int radius)
 	{
+		if (origin == null || target == null)
+			return false;
+		
 		Line visionRay = new Line(origin.x, origin.y, target.x, target.y);
 		List<Point> rayPoints = visionRay.getPoints();
 		boolean previousPointObstructed = false;

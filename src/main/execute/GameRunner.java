@@ -2,8 +2,12 @@ package main.execute;
 
 import javax.swing.JOptionPane;
 
+import org.apache.commons.lang3.StringUtils;
+
 import main.data.Data;
+import main.data.ObjectIndexTranslator;
 import main.logic.Engine;
+import main.presentation.GuiState;
 import main.presentation.Logger;
 import main.presentation.UiManager;
 import main.presentation.curses.CursesGui;
@@ -15,23 +19,29 @@ public class GameRunner
 
 	public static void main(String[] args)
 	{
-		Logger.setLogLevel(Logger.DEBUG);
+		Logger.setLogLevel(Logger.WARN);
+//		Logger.setLogLevel(Logger.DEBUG);
+//		Logger.setLogLevel(Logger.INFO);
 		String playerName = "";
 
 		while (playerName.length() == 0)
 		{
 			playerName = JOptionPane.showInputDialog("What is your name?");
-			if (playerName == null)		//TODO: check for whitespace
+			if (StringUtils.isEmpty(playerName))
 				return;
 		}
 
 		dataLayer = new Data();
-		dataLayer.begin(playerName);
-
 		logicLayer = new Engine(dataLayer);
+		
+		ObjectIndexTranslator.getInstance().setData(dataLayer);
+		CursesGui gui = new CursesGui(logicLayer);
+		UiManager.getInstance().setGui(gui);
 
-		UiManager.getInstance().setGui(new CursesGui(logicLayer));
-
-		logicLayer.beginGame();
+		if (dataLayer.setPlayerNameAndLoadGame(playerName))
+		{
+			gui.setCurrentState(GuiState.NONE);
+			logicLayer.beginGame();
+		}
 	}
 }

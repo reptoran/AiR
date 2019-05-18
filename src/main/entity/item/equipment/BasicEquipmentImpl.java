@@ -45,9 +45,12 @@ public class BasicEquipmentImpl implements Equipment
 	@Override
 	public int getIndexOfItem(Item item)
 	{
+		if (item == null)
+			return -1;
+		
 		for (int i = 0; i < TOTAL_SLOTS; i++)
 		{
-			if (equipmentSlots[i].getItem().equals(item))
+			if (item.equals(equipmentSlots[i].getItem()))
 				return i;
 		}
 		

@@ -1,14 +1,20 @@
 package main.data;
 
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JOptionPane;
 
-import main.data.event.Event;
+import main.data.event.InternalEvent;
+import main.data.event.environment.EnvironmentEventQueue;
+import main.data.file.TextLoader;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorFactory;
 import main.entity.actor.ActorType;
+import main.entity.actor.GenderType;
 import main.entity.feature.Feature;
 import main.entity.feature.FeatureFactory;
 import main.entity.feature.FeatureType;
@@ -25,60 +31,134 @@ import main.entity.zone.ZoneFactory;
 import main.entity.zone.ZoneKey;
 import main.entity.zone.predefined.PredefinedZone;
 import main.entity.zone.predefined.PredefinedZoneLoader;
+import main.logic.AI.AiType;
 import main.presentation.Logger;
+import main.presentation.message.FormattedMessageBuilder;
+import main.presentation.message.MessageBuffer;
 
 public class Data
 {
 	protected Zone currentZone;
 	private Overworld overworld;
+	private ActorType profession = null;
 	private Actor player;
+	private Actor target = null;
 
 	private DataSaveUtils dataSaveUtils = null;
-	List<PredefinedZone> predefinedZones;
-	
+	private List<PredefinedZone> predefinedZones;
+	private Map<String, String> gameTextEntries;
 
 	private String playerName = null;
-	private ActorTurnQueue worldTravelQueue = new ActorTurnQueue();
+	private EnvironmentEventQueue worldTravelQueue = new EnvironmentEventQueue();
 
 	private boolean worldTravel = false;
 
 	public Data()
 	{
+		TextLoader gameTextLoader = new TextLoader();
 		PredefinedZoneLoader predefinedZoneLoader = new PredefinedZoneLoader();
+		
+		gameTextEntries = gameTextLoader.loadAllGameText();
 		predefinedZones = predefinedZoneLoader.loadAllPredefinedZones();
 	}
-
-	public void begin(String newPlayerName)
+	
+	public boolean setPlayerNameAndLoadGame(String newPlayerName)
 	{
 		playerName = newPlayerName;
 		dataSaveUtils = new DataSaveUtils(playerName);
 
-		if (!dataSaveUtils.loadSavedGame(this))
-			newGame();
-
-		worldTravelQueue.add(player);
+		boolean gameHasBeenLoaded = dataSaveUtils.loadSavedGame(this);
+		
+		if (gameHasBeenLoaded)
+			worldTravelQueue.add(player);
+		
+		return gameHasBeenLoaded;
 	}
 
-	public void newGame()
+	public void initializeNewGame()
 	{
 		SpecialLevelManager.populateSpecialZonesForLevels(predefinedZones);
 		
+		Point playerWorldCoords = new Point(2, 2);	//this is where the dungeon is located on the overworld
+		
 		overworld = new Overworld();
+		currentZone = getZoneAtLocation(playerWorldCoords);
+		
+		for (Actor actor : currentZone.getActors())
+		{
+			if (actor.getType() == profession)
+			{
+				actor.setAI(AiType.HUMAN_CONTROLLED);
+				actor.setGender(GenderType.PLAYER);
+				actor.setName(playerName);
+				player = actor;
+				return;
+			}
+		}
 
+		//since we're here, no actor matching the chosen profession was found on the map, so create a new one 
 		Actor playerActor = ActorFactory.generateNewActor(ActorType.PLAYER);
 		playerActor.setName(playerName);
-		updatePlayerWorldCoords(2, 2);
+		updatePlayerWorldCoords(playerWorldCoords.x, playerWorldCoords.y);
 		player = playerActor;
 
 		enterLocalZoneFromWorldTravel();
+		worldTravelQueue.add(player);
+	}
+	
+	public List<String> getAvailableProfessions()
+	{
+		List<String> professionNames = new ArrayList<String>();
+		professionNames.add("Physician");
+		professionNames.add("Blacksmith");
+		professionNames.add("Wanderer");
+		return professionNames;
+	}
+	
+	public void setPlayerProfession(int professionIndex)
+	{
+		Map<Integer, ActorType> professionMap = new HashMap<Integer, ActorType>();
+		professionMap.put(0, ActorType.PC_PHYSICIAN);
+		professionMap.put(1, ActorType.PC_SMITH);
+		profession = professionMap.get(professionIndex);
+		setProfessionBackground(professionIndex);
+	}
+
+	private void setProfessionBackground(int professionIndex)
+	{
+		List<String> professionBackgroundKeys = new ArrayList<String>();
+		professionBackgroundKeys.add("PROF_BG_PHYS");
+		professionBackgroundKeys.add("PROF_BG_SMITH");
+		
+		if (professionBackgroundKeys.size() <= professionIndex)
+			return;
+		
+		Actor nameActor = new Actor();
+		nameActor.setName(playerName);
+		String backgroundMessage = gameTextEntries.get(professionBackgroundKeys.get(professionIndex));
+		String formattedMessage = new FormattedMessageBuilder(backgroundMessage).setSource(nameActor).setSourceVisibility(true).format();
+		MessageBuffer.addMessage(formattedMessage);	//this will be displayed immediately after the profession is chosen
 	}
 
 	public Zone getZoneAtLocation(int x, int y)
 	{
+		Zone toRet = null;
 		WorldTile tile = overworld.getTile(x, y);
-		Zone toRet = ZoneFactory.getInstance().generateNewZone(tile);
-
-		// TODO: if there's a saved field at these coordinates, update it based on the turn cycles that have gone by; otherwise return a random map
+		String newZoneId = tile.getZoneId();
+		
+		if (currentZone != null && currentZone.getUniqueId().equals(newZoneId))	//if we're already here, no need to update anything
+		{
+			return currentZone;
+		} else if (dataSaveUtils.isZoneCached(newZoneId))	//if the current zone is not here, then any saved zone must already be cached
+		{
+			toRet = dataSaveUtils.uncacheZone(newZoneId);
+			//TODO: update the saved zone based on the turn cycles that have gone by
+		} else {
+			toRet = ZoneFactory.getInstance().generateNewZone(tile);
+			
+			if (toRet.shouldPersist())
+				tile.setZoneId(toRet.getUniqueId());
+		}
 
 		return toRet;
 	}
@@ -97,6 +177,16 @@ public class Data
 	{
 		return player;
 	}
+	
+	public Actor getTarget()
+	{
+		return target;
+	}
+	
+	public void setTarget(Actor target)
+	{
+		this.target = target;
+	}
 
 	public Tile getGenericTile(TileType tileType)
 	{
@@ -113,12 +203,12 @@ public class Data
 		return ActorFactory.generateNewActor(actorType);
 	}
 
-	public ActorTurnQueue getActorQueue()
+	public EnvironmentEventQueue getEventQueue()
 	{
 		if (isWorldTravel())
 			return worldTravelQueue;
 
-		return currentZone.getActorQueue();
+		return currentZone.getEventQueue();
 	}
 
 	public int getActorIndex(Actor actor)
@@ -133,6 +223,9 @@ public class Data
 	{
 		if (worldTravel)
 			return player;
+		
+		if (currentZone == null)
+			return null;
 
 		return currentZone.getActor(actorIndex);
 	}
@@ -197,18 +290,20 @@ public class Data
 
 	// events are assumed to be checked and sanitized by the logic layer, so just
 	// act dumbly on whatever comes through
-	public void receiveEvent(Event event)
+	public void receiveInternalEvent(InternalEvent internalEvent)
 	{
-		if (event == null)
+		if (internalEvent == null)
 		{
-			System.out.println("Data - NULL event received.");
+			Logger.info("Data - NULL event received.");
 			return;
 		}
+		
+		Logger.debug("Data - Internal event came through with an actor index of " + internalEvent.getFlag(0));
+		
+		Actor actor = getActor(internalEvent.getFlag(0));
+//		actor.increaseTicksLeftBeforeActing(internalEvent.getActionCost());		//TODO: done in engine now; remove line once this is verified to be working
 
-		Actor actor = getActor(event.getFlag(0));
-		actor.increaseTicksLeftBeforeActing(event.getActionCost());
-
-		switch (event.getEventType())
+		switch (internalEvent.getInternalEventType())
 		{
 		case WAIT:
 			break;	//the only thing that happens here is the action cost reduction, which is already done
@@ -217,15 +312,16 @@ public class Data
 			break;
 			
 		case LOCAL_MOVE:
-			updateActorLocalCoords(actor, event.getFlag(1), event.getFlag(2));
+			updateActorLocalCoords(actor, internalEvent.getFlag(1), internalEvent.getFlag(2));
+			Logger.debug("Actor " + actor.getName() + " has hit points of " + actor.getCurHp());
 			break;
 
 		case WORLD_MOVE:
-			updatePlayerWorldCoords(event.getFlag(1), event.getFlag(2));
+			updatePlayerWorldCoords(internalEvent.getFlag(1), internalEvent.getFlag(2));
 			break;
 			
 		case ATTACK:
-			damageActor(getActor(event.getFlag(1)), event.getFlag(2));
+			damageActor(getActor(internalEvent.getFlag(1)), internalEvent.getFlag(2));
 			break;
 			
 		case PICKUP:
@@ -233,25 +329,25 @@ public class Data
 			break;
 			
 		case DROP:
-			dropItem(actor, event.getFlag(1));
+			dropItem(actor, internalEvent.getFlag(1));
 			break;
 			
 		case EQUIP:
-			equipItem(actor, event.getFlag(1), event.getFlag(2));
+			equipItem(actor, internalEvent.getFlag(1), internalEvent.getFlag(2));
 			break;
 			
 		case UNEQUIP:
-			unequipItem(actor, event.getFlag(1));
+			unequipItem(actor, internalEvent.getFlag(1));
 			break;
 			
 		case CHANGE_ITEM_HP:
-			changeItemHp(actor, event);
+			changeItemHp(actor, internalEvent);
 		break;
 			
 		case ZONE_TRANSITION:
 			Point playerLocation = currentZone.getCoordsOfActor(actor);
 			ZoneKey zoneKey = currentZone.getZoneKey(playerLocation);
-			updateZone(zoneKey, actor, (event.getFlag(1) == 1));
+			updateZone(zoneKey, actor, (internalEvent.getFlag(1) == 1));
 			break;
 
 		case ENTER_LOCAL:
@@ -266,7 +362,7 @@ public class Data
 			break;
 
 		case SAVE_GAME:
-			dataSaveUtils.saveGameData(overworld, currentZone, player, worldTravel);
+			dataSaveUtils.saveGameData(overworld, currentZone, player, target, worldTravel);
 			break;
 
 		case EXIT_GAME:
@@ -276,7 +372,7 @@ public class Data
 		}
 	}
 
-	private void changeItemHp(Actor actor, Event event)
+	private void changeItemHp(Actor actor, InternalEvent internalEvent)
 	{
 		//if flag 0 (actor index) is -1, then flags 1 and 2 are the coordinates of the item
 		//otherwise, the item is held by an actor, either worn or in the pack
@@ -285,9 +381,9 @@ public class Data
 		// flag 3 is the amount to change the item's hp
 		
 		Item item;
-		int flag1 = event.getFlag(1);
-		int flag2 = event.getFlag(2);
-		int flag3 = event.getFlag(3);
+		int flag1 = internalEvent.getFlag(1);
+		int flag2 = internalEvent.getFlag(2);
+		int flag3 = internalEvent.getFlag(3);
 		
 		if (actor == null)
 			item = currentZone.getTile(flag1, flag2).getItemHere();
@@ -300,7 +396,7 @@ public class Data
 			item.changeCurHp(flag3);
 		} catch (NullPointerException npe)
 		{
-			Logger.error("Null pointer exception caught when changing item HP! Actor: " + actor + ", Flag 1: " + flag1 + ", Flag 2: " + flag2 + ", Flag 3: " + flag3);
+			Logger.error("Data - Null pointer exception caught when changing item HP! Actor: " + actor + ", Flag 1: " + flag1 + ", Flag 2: " + flag2 + ", Flag 3: " + flag3);
 			return;
 		}
 		
@@ -365,7 +461,7 @@ public class Data
 		{
 			//TODO: ideally refresh the GUI so the messages get displayed
 			JOptionPane.showMessageDialog(null,"You have been killed.", "Game Over", JOptionPane.ERROR_MESSAGE);
-			receiveEvent(Event.exitEvent());
+			receiveInternalEvent(InternalEvent.exitInternalEvent());
 		}
 		
 		dropAllItems(actor);
@@ -404,14 +500,23 @@ public class Data
 
 	private void updateActorLocalCoords(Actor actor, int x, int y)
 	{
+		Logger.debug("Data - Moving actor " + actor.getName() + " to (" + x + ", " + y + ").");
 		currentZone.updateActorCoords(actor, new Point(x, y));
 	}
 
 	private void updatePlayerWorldCoords(int x, int y)
 	{
-		Logger.debug("Data.java - Updating world coordinates to (" + x + ", " + y + ").");
+		Logger.debug("Data - Updating world coordinates to (" + x + ", " + y + ").");
 
-		currentZone = null;
+		//if the player is moving elsewhere in the world, they can't be in the same zone
+		//TODO: this probably shouldn't be here, since it's not this method's job to "fix" the currentZone with every world move.  it should be assumed that that's taken care of already
+		if (currentZone != null && currentZone.shouldPersist())
+		{
+			currentZone.removeActor(player);
+			dataSaveUtils.cacheZone(currentZone);
+			currentZone = null;
+		}
+		
 		overworld.setPlayerCoords(new Point(x, y));
 	}
 

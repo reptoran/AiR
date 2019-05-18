@@ -1,0 +1,18 @@
+#####**********
+#####W*********
+#####**********
+
+#####
+#####D########
+#####
+
+
+regions are always generated directly adjacent to the existing one, and are given one tile of padding all around
+
+error - generating a west-facing hall (and likely a north-facing one as well) dig into the room, rather than away from it
+
+todo - "center" the new region around the entrance point (rather than having that be the origin)
+
+todo - halls need to mark their deadends (also need to create actual hall elements rather than just thin rooms
+-Create a NormalHall element that takes in a length, width, and direction, and builds the tiles (and dead ends) based on that.
+-Return false if a hall is generated (to not add to room count) - I think this should work

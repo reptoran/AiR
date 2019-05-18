@@ -2,7 +2,9 @@ package main.entity.actor;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
@@ -40,11 +42,11 @@ public class Actor extends SaveableEntity
 
 	private int maxHp;
 	private int curHp;
-	private int ticksLeftBeforeActing;
 	private AiType AI;
 
 	private int attributes[] = new int[TOTAL_ATTRIBUTES];
 	
+	private Set<ActorTraitType> traits = new HashSet<ActorTraitType>();
 	private Inventory inventory = new Inventory();
 	private EquipmentType equipmentType = EquipmentType.NONE;
 	private Equipment equipment;
@@ -74,8 +76,6 @@ public class Actor extends SaveableEntity
 		curHp = maxHp;
 
 		AI = AiType.MELEE;
-
-		ticksLeftBeforeActing = 0;
 
 		hashModifier = currentHash;
 		currentHash++;
@@ -116,12 +116,17 @@ public class Actor extends SaveableEntity
 		toRet.gender = gender;
 		toRet.maxHp = maxHp;
 		toRet.curHp = curHp;
-		toRet.ticksLeftBeforeActing = ticksLeftBeforeActing;
 		toRet.hashModifier = hashModifier; // if we're truly cloning this, then they need the same unique identifier as well.
 		toRet.equipmentType = equipmentType;
+		toRet.inventory = inventory.clone();
 		toRet.equipment = equipment.clone();
 		toRet.defaultDamage = defaultDamage;
 		toRet.defaultArmor = defaultArmor;
+		
+		for (ActorTraitType trait : traits)
+		{
+			toRet.traits.add(trait);
+		}
 
 		return toRet;
 	}
@@ -142,7 +147,6 @@ public class Actor extends SaveableEntity
 		this.maxHp = baseActor.maxHp;
 		this.curHp = baseActor.curHp;
 		this.AI = baseActor.AI;
-		this.ticksLeftBeforeActing = baseActor.ticksLeftBeforeActing;
 
 		for (int i = 0; i < TOTAL_ATTRIBUTES; i++)
 		{
@@ -151,6 +155,11 @@ public class Actor extends SaveableEntity
 		
 		this.inventory = new Inventory();
 		this.setEquipment(baseActor.equipmentType);
+		
+		for (ActorTraitType trait : baseActor.traits)
+		{
+			this.traits.add(trait);
+		}
 		
 		this.defaultDamage = baseActor.defaultDamage;
 		this.defaultArmor = baseActor.defaultArmor;
@@ -253,20 +262,15 @@ public class Actor extends SaveableEntity
 	{
 		return attributes[index];
 	}
-
-	public void reduceTicksLeftBeforeActing(int amount)
+	
+	public boolean addTrait(ActorTraitType trait)
 	{
-		ticksLeftBeforeActing -= amount;
+		return traits.add(trait);
 	}
-
-	public void increaseTicksLeftBeforeActing(int amount)
+	
+	public boolean hasTrait(ActorTraitType trait)
 	{
-		ticksLeftBeforeActing += amount;
-	}
-
-	public int getTicksLeftBeforeActing()
-	{
-		return ticksLeftBeforeActing;
+		return traits.contains(trait);
 	}
 
 	public int getMovementCost()
@@ -364,10 +368,9 @@ public class Actor extends SaveableEntity
 		return equipment.getShields();
 	}
 
-	public int getIndexOfEquippedItem(Item armor)
+	public int getIndexOfEquippedItem(Item item)
 	{
-		// TODO Auto-generated method stub
-		return 0;
+		return equipment.getIndexOfItem(item);
 	}
 
 	@Override
@@ -402,8 +405,6 @@ public class Actor extends SaveableEntity
 			ssb.addToken(new SaveToken(SaveTokenTag.A_MHP, String.valueOf(maxHp)));
 		if (curHp != baseActor.curHp)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_CHP, String.valueOf(curHp)));
-		if (ticksLeftBeforeActing != baseActor.ticksLeftBeforeActing)
-			ssb.addToken(new SaveToken(SaveTokenTag.A_SPD, String.valueOf(ticksLeftBeforeActing)));
 		if (AI != baseActor.AI)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_AI_, String.valueOf(AI)));
 		if (!defaultDamage.equals(baseActor.defaultDamage))
@@ -418,6 +419,9 @@ public class Actor extends SaveableEntity
 		
 		if (!equipment.isEmpty())
 			ssb.addToken(new SaveToken(SaveTokenTag.A_EQP, convertEquipmentToList()));
+		
+		if (!traits.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.A_TRT, convertTraitsToList()));
 
 		return ssb.getSaveString();
 	}
@@ -451,11 +455,11 @@ public class Actor extends SaveableEntity
 		setMember(ssb, SaveTokenTag.A_CLR);
 		setMember(ssb, SaveTokenTag.A_MHP);
 		setMember(ssb, SaveTokenTag.A_CHP);
-		setMember(ssb, SaveTokenTag.A_SPD);
 		setMember(ssb, SaveTokenTag.A_AI_);
 		setMember(ssb, SaveTokenTag.A_ATT);
 		setMember(ssb, SaveTokenTag.A_INV);
 		setMember(ssb, SaveTokenTag.A_EQP);
+		setMember(ssb, SaveTokenTag.A_TRT);
 		setMember(ssb, SaveTokenTag.A_DAM);
 		setMember(ssb, SaveTokenTag.A_DAR);
 
@@ -480,6 +484,16 @@ public class Actor extends SaveableEntity
 
 		for (Item item : inventory)
 			toReturn.add(getItemUid(item));
+
+		return toReturn;
+	}
+	
+	private List<String> convertTraitsToList()
+	{
+		List<String> toReturn = new ArrayList<String>();
+
+		for (ActorTraitType trait : traits)
+			toReturn.add(trait.toString());
 
 		return toReturn;
 	}
@@ -574,11 +588,6 @@ public class Actor extends SaveableEntity
 			this.curHp = Integer.parseInt(saveToken.getContents());
 			break;
 
-		case A_SPD:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.ticksLeftBeforeActing = Integer.parseInt(saveToken.getContents());
-			break;
-
 		case A_AI_:
 			saveToken = ssb.getToken(saveTokenTag);
 			this.AI = AiType.valueOf(saveToken.getContents());
@@ -624,7 +633,19 @@ public class Actor extends SaveableEntity
 				equipment.equipItem(EntityMap.getItem(referenceKey).clone(), i);
 			}
 			break;
-
+			
+		case A_TRT:
+			saveToken = ssb.getToken(saveTokenTag);
+			strVals = saveToken.getContentSet();
+			
+			traits = new HashSet<ActorTraitType>();
+			
+			for (String value : strVals)
+			{
+				traits.add(ActorTraitType.valueOf(value));
+			}
+			break;
+			
 		case A_DAM:
 			saveToken = ssb.getToken(saveTokenTag);
 			this.defaultDamage = saveToken.getContents();
@@ -654,7 +675,7 @@ public class Actor extends SaveableEntity
 
 		if (!type.equals(actor.type) || icon != actor.icon || color != actor.color || !name.equals(actor.name)
 				|| !gender.equals(actor.gender) || unique != actor.unique || maxHp != actor.maxHp || curHp != actor.curHp
-				|| ticksLeftBeforeActing != actor.ticksLeftBeforeActing || AI != actor.AI || hashModifier != actor.hashModifier
+				|| AI != actor.AI || hashModifier != actor.hashModifier
 				|| defaultDamage != actor.defaultDamage || defaultArmor != actor.defaultArmor)
 			return false;
 
@@ -668,6 +689,9 @@ public class Actor extends SaveableEntity
 			return false;
 		
 		if (!equipment.equals(actor.equipment))
+			return false;
+		
+		if (!traits.equals(actor.traits))
 			return false;
 
 		return true;
@@ -685,7 +709,6 @@ public class Actor extends SaveableEntity
 		hash = 31 * hash + gender.toString().hashCode();
 		hash = 31 * hash + maxHp;
 		hash = 31 * hash + curHp;
-		hash = 31 * hash + ticksLeftBeforeActing;
 		hash = 31 * hash + AI.hashCode();
 
 		for (int i = 0; i < TOTAL_ATTRIBUTES; i++)
@@ -695,6 +718,7 @@ public class Actor extends SaveableEntity
 		
 		hash = 31 * hash + inventory.hashCode();
 		hash = 31 * hash + equipment.hashCode();
+		hash = 31 * hash + traits.hashCode();
 		hash = 31 * hash + defaultDamage.hashCode();
 		hash = 31 * hash + defaultArmor;
 		

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import main.data.event.environment.EnvironmentEvent;
 import main.entity.actor.Actor;
 import main.entity.feature.Feature;
 import main.entity.item.Item;
@@ -23,13 +24,14 @@ public class EntityMap
 	private static Map<String, Zone> knownZones = new HashMap<String, Zone>();
 	private static Map<String, WorldTile> knownWorldTiles = new HashMap<String, WorldTile>();
 	private static Map<String, Overworld> knownOverworlds = new HashMap<String, Overworld>();
+	private static Map<String, EnvironmentEvent> knownEvents = new HashMap<String, EnvironmentEvent>();
 	
 	private static Map<String, String> entityComplexIdFinder = new HashMap<String, String>();
 	private static Map<String, String> entitySimpleIdFinder = new HashMap<String, String>();
 	
 	public static String put(String key, Object value)
 	{
-		//System.out.println("EntityMap - Putting object with key " + key);
+		Logger.debug("EntityMap - Putting object with key " + key);
 
 		if (value == null)
 		{
@@ -74,6 +76,11 @@ public class EntityMap
 			knownOverworlds.put(key, (Overworld)value);
 			simpleKey = entityType + String.valueOf(knownOverworlds.size());
 		}
+		if (entityType.equals("E"))
+		{
+			knownEvents.put(key, (EnvironmentEvent)value);
+			simpleKey = entityType + String.valueOf(knownEvents.size());
+		}
 			
 		entityComplexIdFinder.put(simpleKey, key);
 		entitySimpleIdFinder.put(key, simpleKey);
@@ -114,6 +121,11 @@ public class EntityMap
 	public static Overworld getOverworld(String key)
 	{
 		return knownOverworlds.get(key);
+	}
+	
+	public static EnvironmentEvent getEvent(String key)
+	{
+		return knownEvents.get(key);
 	}
 	
 	public static List<String> getActorKeys()
@@ -165,6 +177,13 @@ public class EntityMap
 		return toRet;
 	}
 	
+	public static List<String> getEventKeys()
+	{
+		List<String> toRet = new ArrayList<String>();
+		toRet.addAll(knownEvents.keySet());
+		return toRet;
+	}
+	
 	public static String getSimpleKey(String complexKey)
 	{
 		return entitySimpleIdFinder.get(complexKey);
@@ -184,6 +203,7 @@ public class EntityMap
 		knownZones.clear();
 		knownWorldTiles.clear();
 		knownOverworlds.clear();
+		knownEvents.clear();
 		
 		entitySimpleIdFinder.clear();
 		entityComplexIdFinder.clear();

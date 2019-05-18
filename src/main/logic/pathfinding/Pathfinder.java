@@ -28,10 +28,10 @@ public class Pathfinder
 		distanceMap = updateDistanceAroundPoint(obstructionMap, distanceMap, destination);
 //		distanceMap.printMap();
 		
-		return getAndAddNearestPointToDestination(new ArrayList<Point>(), distanceMap, origin);
+		return getAndAddNearestPointToDestination(new ArrayList<Point>(), distanceMap, origin, destination);
 	}
 	
-	private static List<Point> getAndAddNearestPointToDestination(List<Point> travelledPoints, PathfindingMap distanceMap, Point currentLocation)
+	private static List<Point> getAndAddNearestPointToDestination(List<Point> travelledPoints, PathfindingMap distanceMap, Point currentLocation, Point destination)
 	{
 		int x = currentLocation.x;
 		int y = currentLocation.y;
@@ -43,6 +43,9 @@ public class Pathfinder
 		{
 			for (int j = -1; j <= 1; j++)
 			{
+				if (i == 0 && j == 0)
+					continue;
+				
 				if (!distanceMap.containsCell(x + i, y + j))
 					continue;
 				
@@ -51,20 +54,40 @@ public class Pathfinder
 				if (newPointDistance < distanceAtPoint)
 				{
 					potentialNextLocationCoords.clear();
-					potentialNextLocationCoords.add(new Point(x + i, y + j));
 					distanceAtPoint = newPointDistance;
 				}
+				
+				if (newPointDistance == distanceAtPoint)
+					potentialNextLocationCoords.add(new Point(x + i, y + j));
 			}
 		}
 		
 		if (potentialNextLocationCoords.isEmpty())
 			return travelledPoints;
 		
-		//TODO: choose the point closest to the destination, so if both on in the same row, it's not "best" to go diagonal up until the center, then diagonal down
-		Point nextPoint = potentialNextLocationCoords.get(0);
+//		Point nextPoint = potentialNextLocationCoords.get(0);
+		Point nextPoint = getNextPointFavoringCardinalDirection(potentialNextLocationCoords, destination);
 		
 		travelledPoints.add(nextPoint);
-		return getAndAddNearestPointToDestination(travelledPoints, distanceMap, nextPoint);
+		return getAndAddNearestPointToDestination(travelledPoints, distanceMap, nextPoint, destination);
+	}
+	
+	private static Point getNextPointFavoringCardinalDirection(List<Point> potentialPoints, Point destination)
+	{
+		int absoluteCoordSum = Integer.MAX_VALUE;
+		Point bestPoint = null;
+		
+		for (Point point : potentialPoints)
+		{
+			int newCoordSum = Math.abs(point.x - destination.x) + Math.abs(point.y - destination.y);
+			if (newCoordSum < absoluteCoordSum)
+			{
+				bestPoint = point;
+				absoluteCoordSum = newCoordSum;
+			}
+		}
+		
+		return bestPoint;
 	}
 	
 	private static PathfindingMap updateDistanceAroundPoint(PathfindingMap obstructionMap, PathfindingMap distanceMap, Point point)

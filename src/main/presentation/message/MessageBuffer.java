@@ -9,6 +9,7 @@ import main.logic.AI.AiType;
 public class MessageBuffer
 {
 	private static final String MORE_PROMPT = "(more)";
+	public static final String NEWLINE = "%NL%";
 	
 	private static StringBuffer messageBuffer = new StringBuffer();
 	
@@ -47,7 +48,7 @@ public class MessageBuffer
 			if (rowOnScreen == messageHeight && splitter.hasNext())
 				maxLineLength = maxLineLength - MORE_PROMPT.length();
 			
-			if (newLength > maxLineLength)
+			if (newLength > maxLineLength || NEWLINE.equals(toAdd))
 			{
 				if (rowOnScreen == messageHeight && splitter.hasNext())
 				{
@@ -60,7 +61,12 @@ public class MessageBuffer
 				}
 				
 				messageLines.add(currentLine);
-				currentLine = toAdd + " ";
+				
+				//if the NEWLINE string is detected, pull it out instead of adding it to the next line
+				if (NEWLINE.equals(toAdd))
+					currentLine = "";
+				else
+					currentLine = toAdd + " ";
 			}
 			else
 			{
