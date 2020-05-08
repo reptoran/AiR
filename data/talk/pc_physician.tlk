@@ -1,0 +1,83 @@
+[
+   {
+      "tag":"PHYS_HEAL",
+      "text":"There, all patched up.  Stay safe.",
+      "entry":false
+   },
+   {
+      "tag":"PHYS_SALVE_INFO",
+      "text":"For every two pieces of medicinal fungus you bring me, I can create a jar of healing salve for you to take with you.  If you find any such fungus in the labyrinth, be sure to bring it to me, as my ointment will be far more effective in treating your wounds than the fungus itself.",
+      "entry":false
+   },
+   {
+      "tag":"PHYS_SALVE_PROMPT",
+      "text":"Of course.  How many jars would you like?",
+      "entry":false,
+      "response":[
+         {
+            "text":"Actually, never mind.  I'll come back when you're less busy."
+         }
+      ]
+   },
+   {
+      "tag":"PHYS_GIVE_SALVE",
+      "text":"I suppose so.  Here's a jar of salve.",
+      "entry":false
+   },
+   {
+      "tag":"PHYS_DEFAULT",
+      "text":"It's good to see you're safe.  Do you need medical attention, or would you like some healing salve for your journey?",
+      "entry":true,
+      "response":[
+         {
+            "text":"Can you take a look at my injuries?",
+            "flowTo":"PHYS_HEAL",
+            "reqs":[
+               {
+                  "HP_PERCENT":"<100"
+               }
+            ],
+            "triggers":[
+               {
+                  "CHANGE_HP":"=10000"
+               }
+            ]
+         },
+         {
+            "text":"What would you need to make me some healing salve?",
+            "flowTo":"PHYS_SALVE_INFO",
+            "reqs":[
+               {
+                  "ACTOR_HAS_ITEM":"PLAYER:MEDICINAL_FUNGUS<2"
+               }
+            ]
+         },
+         {
+            "text":"Will you please make me some salve from this fungus?",
+            "flowTo":"PHYS_SALVE_PROMPT",
+            "reqs":[
+               {
+                  "ACTOR_HAS_ITEM":"PLAYER:MEDICINAL_FUNGUS>1"
+               }
+            ]
+         },
+         {
+            "text":"Just wanted to drop by."
+         },
+         {
+            "text":"Can't you just give me some salve?",
+            "flowTo":"PHYS_GIVE_SALVE",
+            "reqs":[
+               {
+                  "ACTOR_HAS_ITEM":"PC_PHYSICIAN:HEALING_SALVE>0"
+               }
+            ],
+            "triggers":[
+               {
+                  "GET_ITEM_FROM":"PC_PHYSICIAN:HEALING_SALVE=1"
+               }
+            ]
+         }
+      ]
+   }
+]

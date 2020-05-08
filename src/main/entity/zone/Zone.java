@@ -233,6 +233,12 @@ public class Zone extends SaveableEntity
 
 	public int getActorIndex(Actor actor)
 	{
+		if (actor == null)
+		{
+			Logger.warn("Attempting to get actor index of null; returning -1.");
+			return -1;
+		}
+		
 		int index = -1;
 		boolean matchFound = false;
 

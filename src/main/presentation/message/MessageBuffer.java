@@ -13,6 +13,11 @@ public class MessageBuffer
 	
 	private static StringBuffer messageBuffer = new StringBuffer();
 	
+	public static void reset()
+	{
+		messageBuffer.delete(0, messageBuffer.capacity());
+	}
+	
 	public static void addMessage(String message)
 	{
 		messageBuffer.append(" ");
@@ -79,7 +84,7 @@ public class MessageBuffer
 			messageLines.add(currentLine);
 		
 		splitter.close();
-		messageBuffer.delete(0, messageBuffer.capacity());
+		reset();
 		
 		return messageLines;
 	}

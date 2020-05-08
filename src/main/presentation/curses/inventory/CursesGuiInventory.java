@@ -9,11 +9,12 @@ import main.entity.item.Item;
 import main.entity.item.equipment.EquipmentSlotType;
 import main.logic.Engine;
 import main.presentation.GuiState;
-import main.presentation.curses.AbtractCursesGuiListInput;
+import main.presentation.curses.AbstractCursesGuiListInput;
+import main.presentation.curses.ColorScheme;
 import main.presentation.curses.CursesGui;
 import main.presentation.curses.terminal.CursesTerminal;
 
-public class CursesGuiInventory extends AbtractCursesGuiListInput
+public class CursesGuiInventory extends AbstractCursesGuiListInput
 {
 	private CursesGui parentGui;
 	private Engine engine;
@@ -25,7 +26,7 @@ public class CursesGuiInventory extends AbtractCursesGuiListInput
 	
 	public CursesGuiInventory(CursesGui parentGui, Engine engine, CursesTerminal terminal)
 	{
-		super(terminal);
+		super(terminal, ColorScheme.monochromeScheme());
 		
 		this.parentGui = parentGui;
 		this.engine = engine;
@@ -39,7 +40,7 @@ public class CursesGuiInventory extends AbtractCursesGuiListInput
 		
 		Actor player = engine.getData().getPlayer();
 		
-		List<Item> itemsInInventory = player.getInventory().getItemsOfType(filter);
+		List<Item> itemsInInventory = player.getStoredItems().getItemsForSlot(filter);
 		List<String> itemStrings = new ArrayList<String>();
 		
 		if (itemsInInventory.isEmpty())
@@ -65,7 +66,7 @@ public class CursesGuiInventory extends AbtractCursesGuiListInput
 		if (code == KeyEvent.VK_ESCAPE)
 		{
 			filter = null;
-			player.getInventory().resetFilters();
+			player.getStoredItems().resetFilters();
 			
 			if (state == InventoryState.EQUIP || state == InventoryState.VIEW)	//viewing also comes from the equipment screen, so return there
 				parentGui.setCurrentState(GuiState.EQUIPMENT);

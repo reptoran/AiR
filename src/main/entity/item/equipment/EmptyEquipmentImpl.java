@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import main.entity.item.Item;
+import main.entity.item.ItemType;
 
 public class EmptyEquipmentImpl implements Equipment
 {
@@ -61,6 +62,30 @@ public class EmptyEquipmentImpl implements Equipment
 	public boolean isEmpty()
 	{
 		return true;
+	}
+
+	@Override
+	public boolean hasEmptySlotAvailable(EquipmentSlotType slotType)
+	{
+		return false;
+	}
+
+	@Override
+	public int getIndexOfFirstSlotAvailable(EquipmentSlotType slotType)
+	{
+		return -1;
+	}
+
+	@Override
+	public int getTotalItemsOfType(ItemType type)
+	{
+		return 0;
+	}
+
+	@Override
+	public Item getFirstItemOfType(ItemType type)
+	{
+		return null;
 	}
 	
 	@Override

@@ -8,18 +8,29 @@ import java.util.Map;
 
 import javax.swing.JOptionPane;
 
+import main.data.chat.ChatManager;
+import main.data.chat.EventTriggerExecutor;
+import main.data.chat.RequirementValidator;
+import main.data.event.EventObserver;
 import main.data.event.InternalEvent;
 import main.data.event.environment.EnvironmentEventQueue;
+import main.data.file.ChatLoader;
 import main.data.file.TextLoader;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorFactory;
 import main.entity.actor.ActorType;
 import main.entity.actor.GenderType;
+import main.entity.chat.Chat;
 import main.entity.feature.Feature;
 import main.entity.feature.FeatureFactory;
 import main.entity.feature.FeatureType;
 import main.entity.item.Inventory;
 import main.entity.item.Item;
+import main.entity.item.ItemFactory;
+import main.entity.item.ItemSource;
+import main.entity.item.ItemType;
+import main.entity.item.ItemUsageMap;
+import main.entity.item.equipment.Equipment;
 import main.entity.item.equipment.EquipmentSlot;
 import main.entity.tile.Tile;
 import main.entity.tile.TileFactory;
@@ -36,7 +47,7 @@ import main.presentation.Logger;
 import main.presentation.message.FormattedMessageBuilder;
 import main.presentation.message.MessageBuffer;
 
-public class Data
+public class Data implements EventObserver
 {
 	protected Zone currentZone;
 	private Overworld overworld;
@@ -47,6 +58,7 @@ public class Data
 	private DataSaveUtils dataSaveUtils = null;
 	private List<PredefinedZone> predefinedZones;
 	private Map<String, String> gameTextEntries;
+	private Map<ActorType, List<Chat>> gameChatEntries;
 
 	private String playerName = null;
 	private EnvironmentEventQueue worldTravelQueue = new EnvironmentEventQueue();
@@ -55,11 +67,17 @@ public class Data
 
 	public Data()
 	{
-		TextLoader gameTextLoader = new TextLoader();
-		PredefinedZoneLoader predefinedZoneLoader = new PredefinedZoneLoader();
+		ItemUsageMap.getInstance();									//populates item usage map
+		RequirementValidator.getInstance().setData(this);
+		ChatManager.getInstance().setData(this);
+		EventTriggerExecutor.getInstance().setData(this);
 		
-		gameTextEntries = gameTextLoader.loadAllGameText();
-		predefinedZones = predefinedZoneLoader.loadAllPredefinedZones();
+		gameTextEntries = TextLoader.getInstance().loadAllGameText();
+		predefinedZones = PredefinedZoneLoader.getInstance().loadAllPredefinedZones();
+		gameChatEntries = ChatLoader.getInstance().loadAllChats();	//TODO: currently returns a map of talk elements associated with a given (presumably unique) actor type,
+																	//		which is specified by the name of the file containing those elements.
+																	//		That said, it also makes sense for multiple non-unique monsters to have the same conversation trees,
+																	//		so this is fine.
 	}
 	
 	public boolean setPlayerNameAndLoadGame(String newPlayerName)
@@ -77,7 +95,8 @@ public class Data
 
 	public void initializeNewGame()
 	{
-		SpecialLevelManager.populateSpecialZonesForLevels(predefinedZones);
+		SpecialLevelManager.getInstance().populateSpecialZonesForLevels(predefinedZones);
+		ChatManager.getInstance().populateChats(gameChatEntries);
 		
 		Point playerWorldCoords = new Point(2, 2);	//this is where the dungeon is located on the overworld
 		
@@ -91,6 +110,7 @@ public class Data
 				actor.setAI(AiType.HUMAN_CONTROLLED);
 				actor.setGender(GenderType.PLAYER);
 				actor.setName(playerName);
+				actor.setDefaultTalkResponse("You engage in a deep, introspective conversation with yourself.");
 				player = actor;
 				return;
 			}
@@ -172,6 +192,11 @@ public class Data
 	{
 		return predefinedZones;
 	}
+	
+	public Map<ActorType, List<Chat>> getChatEntries()
+	{
+		return gameChatEntries;
+	}
 
 	public Actor getPlayer()
 	{
@@ -229,6 +254,28 @@ public class Data
 
 		return currentZone.getActor(actorIndex);
 	}
+	
+	public Actor getFirstActorOfType(ActorType actorType)
+	{
+		if (actorType == ActorType.PLAYER)
+			return player;
+		
+		if (worldTravel)
+			return null;
+		
+		if (currentZone == null)
+			return null;
+
+		List<Actor> actorsInZone = currentZone.getActors();
+		
+		for (Actor actor : actorsInZone)
+		{
+			if (actor.getType() == actorType)
+				return actor;
+		}
+		
+		return null;
+	}
 
 	public Zone getCurrentZone()
 	{
@@ -264,6 +311,33 @@ public class Data
 	{
 		this.player = player;
 	}
+	
+	public List<Actor> getAdjacentActors(Actor actor)
+	{
+		Point point = currentZone.getCoordsOfActor(actor);
+		return getAdjacentActors(point);
+	}
+	
+	public List<Actor> getAdjacentActors(Point point)
+	{
+		List<Actor> adjacentActors = new ArrayList<Actor>();
+		
+		for (int i = -1; i <= 1; i++)
+		{
+			for (int j = -1; j <= 1; j++)
+			{
+				if (i == 0 && j == 0)
+					continue;
+				
+				Point toCheck = new Point(point.x + i, point.y + j);
+				Actor actorHere = currentZone.getActorAtCoords(toCheck);
+				if (actorHere != null)
+					adjacentActors.add(actorHere);
+			}
+		}
+		
+		return adjacentActors;
+	}
 
 	private void updateZone(ZoneKey newZoneKey, Actor actor, boolean goingDown)
 	{
@@ -290,6 +364,7 @@ public class Data
 
 	// events are assumed to be checked and sanitized by the logic layer, so just
 	// act dumbly on whatever comes through
+	@Override
 	public void receiveInternalEvent(InternalEvent internalEvent)
 	{
 		if (internalEvent == null)
@@ -329,20 +404,35 @@ public class Data
 			break;
 			
 		case DROP:
-			dropItem(actor, internalEvent.getFlag(1));
+			dropItem(actor, internalEvent.getFlag(1), internalEvent.getFlag(2));
 			break;
 			
 		case EQUIP:
-			equipItem(actor, internalEvent.getFlag(1), internalEvent.getFlag(2));
+			equipItem(actor, internalEvent);
 			break;
 			
 		case UNEQUIP:
-			unequipItem(actor, internalEvent.getFlag(1));
+			unequipItem(actor, internalEvent);
 			break;
 			
 		case CHANGE_ITEM_HP:
 			changeItemHp(actor, internalEvent);
-		break;
+			break;
+			
+		case DELETE_ITEM:
+			deleteItem(actor, internalEvent);
+			break;
+			
+		case CREATE_ITEM:
+			createItem(actor, internalEvent);
+			
+		case MOVE_ITEM:
+			moveItem(actor, internalEvent);
+			break;
+			
+		case GIVE:
+			giveItem(actor, internalEvent);
+			break;
 			
 		case ZONE_TRANSITION:
 			Point playerLocation = currentZone.getCoordsOfActor(actor);
@@ -369,9 +459,13 @@ public class Data
 			dataSaveUtils.deleteCacheDir();
 			System.exit(0);
 			break;
+		default:
+			break;
 		}
 	}
 
+	//TODO: note that this has logic, when it should just be changing item HP and nothing more
+	//new internal event should be created to remove items (as in the "else item is destroyed" code here)
 	private void changeItemHp(Actor actor, InternalEvent internalEvent)
 	{
 		//if flag 0 (actor index) is -1, then flags 1 and 2 are the coordinates of the item
@@ -390,7 +484,7 @@ public class Data
 		else if (flag1 != -1)
 			item = actor.getEquipment().getItem(flag1);
 		else
-			item = actor.getInventory().get(flag1);
+			item = actor.getStoredItems().get(flag1);
 		
 		try {
 			item.changeCurHp(flag3);
@@ -399,46 +493,175 @@ public class Data
 			Logger.error("Data - Null pointer exception caught when changing item HP! Actor: " + actor + ", Flag 1: " + flag1 + ", Flag 2: " + flag2 + ", Flag 3: " + flag3);
 			return;
 		}
+	}
+	
+	private void deleteItem(Actor actor, InternalEvent internalEvent)
+	{
+		Item item;
+		int flag1 = internalEvent.getFlag(1);
+		int flag2 = internalEvent.getFlag(2);
+		int amountToDelete = internalEvent.getFlag(3);
 		
-		if (item.getCurHp() > 0)
+		if (actor == null)
+			item = currentZone.getTile(flag1, flag2).getItemHere();
+		else if (flag1 != -1)
+			item = actor.getEquipment().getItem(flag1);
+		else
+			item = actor.getStoredItems().get(flag1);
+		
+		int currentAmount = item.getAmount();
+		
+		if (currentAmount > amountToDelete)
+		{
+			item.setAmount(currentAmount - amountToDelete);
 			return;
+		}
 		
-		//else item is destroyed
+		//otherwise remove it entirely
 		if (actor == null)
 			currentZone.getTile(flag1, flag2).setItemHere(null);
 		else if (flag1 != -1)
 			actor.getEquipment().removeItem(flag1);
 		else
-			actor.getInventory().remove(flag1);
+			actor.getStoredItems().remove(flag1);
 	}
 
-	private void unequipItem(Actor actor, int slotIndex)
+	private void createItem(Actor actor, InternalEvent internalEvent)
 	{
+		Item item = ItemFactory.generateNewItem(ItemType.fromString(internalEvent.getValue()));
+		item.setAmount(internalEvent.getFlag(3));
+		
+		if (actor == null)
+		{
+			Point destination = new Point(internalEvent.getFlag(1), internalEvent.getFlag(2));
+			dropItem(destination, item);
+			return;
+		}
+		
+		actor.receiveItem(item);
+	}
+
+	private void moveItem(Actor actor, InternalEvent internalEvent)
+	{
+		Point destination = new Point(internalEvent.getFlag(3), internalEvent.getFlag(4));
+		
+		Item item;
+		int flag1 = internalEvent.getFlag(1);
+		int flag2 = internalEvent.getFlag(2);
+		
+		if (actor == null)
+		{
+			Point origin = new Point(internalEvent.getFlag(1), internalEvent.getFlag(2));
+			item = currentZone.getTile(origin).getItemHere();
+			
+			if (item == null)
+				return;
+			
+			currentZone.getTile(origin).setItemHere(null);
+		}
+		else
+		{
+			item = removeItemFromActor(actor, flag2, ItemSource.fromInt(flag1));
+		}
+		
+		if (item != null)
+			dropItem(destination, item);
+	}
+
+	//TODO: generify this for unequipping from spots other than just equipment (magic, readied)
+	private void unequipItem(Actor actor, InternalEvent event)
+	{
+		int slotIndex = event.getFlag(2);
+		
 		EquipmentSlot slot = actor.getEquipment().getEquipmentSlots().get(slotIndex);
-		Inventory inventory = actor.getInventory();
+		Inventory inventory = actor.getStoredItems();
 		
 		inventory.add(slot.removeItem());
 	}
-
-	private void equipItem(Actor actor, int slotIndex, int itemIndex)
+	
+	private void equipItem(Actor actor, InternalEvent event)
 	{
-		EquipmentSlot slot = actor.getEquipment().getEquipmentSlots().get(slotIndex);
-		Inventory inventory = actor.getInventory();
+		ItemSource itemSource = ItemSource.fromInt(event.getFlag(1));
+		int itemIndex = event.getFlag(2);
+		ItemSource equipmentZone = ItemSource.fromInt(event.getFlag(3));
+		int slotIndex = event.getFlag(4);
 		
-		Item item = inventory.remove(itemIndex);	//at this point, any filtering should still be active on the inventory, since it's the act of getting or removing the item that resets it
-		Item itemToEquip = item.split(1);
+		Equipment equipment;
+		
+		switch (equipmentZone)
+		{
+		case EQUIPMENT:
+			equipment = actor.getEquipment();
+			break;
+		case MAGIC:
+			equipment = actor.getMagicItems();
+			break;
+		case READY:
+			equipment = actor.getReadiedItems();
+			break;
+		//$CASES-OMITTED$
+		default:
+			throw new IllegalArgumentException("Items cannot be equipped to zone " + equipmentZone);
+		
+		}
+		
+		EquipmentSlot slot = equipment.getEquipmentSlots().get(slotIndex);
+		Item itemToEquip = null;
+		
+		switch (itemSource)
+		{
+		case PACK:
+			Inventory inventory = actor.getStoredItems();
+			
+			itemToEquip = inventory.remove(itemIndex, 1);	//at this point, any filtering should still be active on the inventory, since it's the act of getting or removing the item that resets it
+			break;
+			
+		case GROUND:
+			Tile tile = currentZone.getTile(actor);
+			itemToEquip = tile.getItemHere();
+			tile.setItemHere(null);
+			break;
+		//$CASES-OMITTED$	
+		default:
+			throw new IllegalArgumentException("No equip behavior defined for item source " + itemSource);
+		}
 		
 		slot.setItem(itemToEquip);
-		
-		if (item.getAmount() > 0)
-			inventory.add(item);
 	}
 
-	private void dropItem(Actor actor, int itemIndex)
+	private void dropItem(Actor actor, int itemSourceInt, int itemIndex)
 	{
+		ItemSource itemSource = ItemSource.fromInt(itemSourceInt);
+		Item itemToDrop = removeItemFromActor(actor, itemIndex, itemSource);
+		
 		Point coordsToDropItem = getClosestOpenTileCoords(currentZone.getCoordsOfActor(actor));
-		Item itemToDrop = actor.removeItem(itemIndex);
 		currentZone.getTile(coordsToDropItem).setItemHere(itemToDrop);
+	}
+	
+	private void giveItem(Actor giver, InternalEvent internalEvent)
+	{
+		ItemSource itemSource = ItemSource.fromInt(internalEvent.getFlag(1));
+		int itemIndex = internalEvent.getFlag(2);
+		Item itemToGive = removeItemFromActor(giver, itemIndex, itemSource);
+		Actor receiver = getActor(internalEvent.getFlag(3));
+		receiver.receiveItem(itemToGive);
+	}
+	
+	private Item removeItemFromActor(Actor actor, int itemIndex, ItemSource itemSource)
+	{
+		switch (itemSource)
+		{
+		case PACK:
+			return actor.removeStoredItem(itemIndex);
+		case MATERIAL:
+			return actor.removeMaterial(itemIndex);
+		case EQUIPMENT:
+			return actor.getEquipment().removeItem(itemIndex);
+		case MAGIC:
+			return actor.getMagicItems().removeItem(itemIndex);
+		default:
+			throw new IllegalArgumentException("No drop behavior defined for item source " + itemSource);
+		}
 	}
 
 	private void dropItem(Point coords, Item item)
@@ -484,10 +707,10 @@ public class Data
 			slot.setItem(null);	//probably unncessary, but it can't hurt
 		}
 		
-		for (Item item : actor.getInventory())
+		for (Item item : actor.getStoredItems())
 			dropItem(coords, item);
 		
-		actor.getInventory().clear();
+		actor.getStoredItems().clear();
 	}
 
 	private void enterLocalZoneFromWorldTravel()

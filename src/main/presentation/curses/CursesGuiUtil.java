@@ -8,22 +8,22 @@ public abstract class CursesGuiUtil
 {
 	protected CursesTerminal terminal;
 	
-	protected static final int COLOR_BLACK = 0;
-	protected static final int COLOR_DARK_BLUE = 1;
-	protected static final int COLOR_DARK_GREEN = 2;
-	protected static final int COLOR_DARK_CYAN = 3;
-	protected static final int COLOR_DARK_RED = 4;
-	protected static final int COLOR_DARK_MAGENTA = 5;
-	protected static final int COLOR_BROWN = 6;
-	protected static final int COLOR_LIGHT_GREY = 7;
-	protected static final int COLOR_DARK_GREY = 8;
-	protected static final int COLOR_LIGHT_BLUE = 9;
-	protected static final int COLOR_LIGHT_GREEN = 10;
-	protected static final int COLOR_LIGHT_CYAN = 11;
-	protected static final int COLOR_LIGHT_RED = 12;
-	protected static final int COLOR_LIGHT_MAGENTA = 13;
+	public static final int COLOR_BLACK = 0;
+	public static final int COLOR_DARK_BLUE = 1;
+	public static final int COLOR_DARK_GREEN = 2;
+	public static final int COLOR_DARK_CYAN = 3;
+	public static final int COLOR_DARK_RED = 4;
+	public static final int COLOR_DARK_MAGENTA = 5;
+	public static final int COLOR_BROWN = 6;
+	public static final int COLOR_LIGHT_GREY = 7;
+	public static final int COLOR_DARK_GREY = 8;
+	public static final int COLOR_LIGHT_BLUE = 9;
+	public static final int COLOR_LIGHT_GREEN = 10;
+	public static final int COLOR_LIGHT_CYAN = 11;
+	public static final int COLOR_LIGHT_RED = 12;
+	public static final int COLOR_LIGHT_MAGENTA = 13;
 	protected static final int COLOR_YELLOW = 14;
-	protected static final int COLOR_WHITE = 15;
+	public static final int COLOR_WHITE = 15;
 	
 	public CursesGuiUtil(CursesTerminal csi)
 	{

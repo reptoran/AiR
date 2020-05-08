@@ -31,6 +31,7 @@ public class ActorFactory
 			return ActorBuilder.generateActor(actorType).setName("physician").setHP(15).setIcon('@').setColor(15)
 					.setEquipmentType(EquipmentType.BASIC).equip(ItemType.KNIFE, BasicEquipmentImpl.RHAND_INDEX)
 					.equip(ItemType.QUILTED_SHIRT, BasicEquipmentImpl.ARMOR_INDEX).addTrait(ActorTraitType.HP_REGEN).setAI(AiType.COALIGNED)
+					.carry(ItemType.HEALING_SALVE).carry(ItemType.HEALING_SALVE)
 					.setGender(GenderType.MALE).setUnique(true).build();
 		case PC_SMITH:
 			return ActorBuilder.generateActor(actorType).setName("blacksmith").setHP(25).setIcon('@').setColor(8)

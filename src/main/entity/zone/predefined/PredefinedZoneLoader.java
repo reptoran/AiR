@@ -24,6 +24,18 @@ public class PredefinedZoneLoader extends FileHandler
 	private ZoneDataState currentState = null;
 	private PredefinedZoneBuilder predefinedZoneBuilder = null;
 	
+	private static PredefinedZoneLoader instance = null;
+	
+	private PredefinedZoneLoader() {}
+	
+	public static PredefinedZoneLoader getInstance()
+	{
+		if (instance == null)
+			instance = new PredefinedZoneLoader();
+		
+		return instance;
+	}
+	
 	public List<PredefinedZone> loadAllPredefinedZones()
 	{
 		List<PredefinedZone> loadedZones = new ArrayList<PredefinedZone>();

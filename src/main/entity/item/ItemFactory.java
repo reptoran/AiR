@@ -4,6 +4,7 @@ import java.text.ParseException;
 
 import main.entity.item.equipment.EquipmentSlotType;
 import main.entity.save.EntityMap;
+import main.presentation.curses.CursesGuiUtil;
 
 public class ItemFactory
 {
@@ -40,8 +41,8 @@ public class ItemFactory
 			return ItemBuilder.generateItem(itemType).setNames("plate mail").setSlot(EquipmentSlotType.ARMOR).setIcon('[').setColor(7)
 					.setAR(8).setCR(95).setDR(3).setHP(300).build();
 		case KNIFE:
-			return ItemBuilder.generateItem(itemType).setName("knife").setPlural("knives").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(7)
-					.setDamage("1d3").setHP(10).setDR(1).build();
+			return ItemBuilder.generateItem(itemType).setName("knife").setPlural("knives").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/')
+					.setColor(7).setDamage("1d3").setHP(10).setDR(1).build();
 		case DAGGER:
 			return ItemBuilder.generateItem(itemType).setNames("dagger").setSlot(EquipmentSlotType.ARMAMENT).setIcon('/').setColor(8)
 					.setDamage("1d4").setHP(10).setDR(1).build();
@@ -75,6 +76,12 @@ public class ItemFactory
 		case TOWER_SHIELD:
 			return ItemBuilder.generateItem(itemType).setNames("tower shield").setSlot(EquipmentSlotType.ARMAMENT).setIcon('(').setColor(8)
 					.setCR(75).setAR(100).setHP(200).setDR(2).build();
+		case MEDICINAL_FUNGUS:
+			return ItemBuilder.generateItem(itemType).setName("medicinal fungus").setPlural("medicinal fungi")
+					.setSlot(EquipmentSlotType.MATERIAL).setIcon(',').setColor(4).build();
+		case HEALING_SALVE:
+			return ItemBuilder.generateItem(itemType).setName("jar of healing salve").setPlural("jars of healing salve")
+					.setSlot(EquipmentSlotType.MAGIC).setIcon('!').setColor(CursesGuiUtil.COLOR_LIGHT_RED).build();
 		case VIRTUAL_ITEM:
 			return ItemBuilder.generateItem(itemType).setDR(1000).build();
 		case NO_TYPE: // falls through

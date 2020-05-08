@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
 
+import main.data.chat.ChatManager;
 import main.data.event.environment.EnvironmentEvent;
 import main.data.event.environment.EnvironmentEventFactory;
 import main.data.event.environment.SaveableEnvironmentEvent;
@@ -28,7 +29,7 @@ import main.presentation.Logger;
 
 public class DataSaveUtils
 {
-	public static final String VERSION = "0.6.2";
+	public static final String VERSION = "0.6.4";
 	private static final String NULL_STRING = "null";
 	
 	private SaveHandler saveHandler;
@@ -268,7 +269,7 @@ public class DataSaveUtils
 		saveHandler.saveGameDataElement(currentZoneId); // current zone ID
 		saveHandler.saveGameDataElement(String.valueOf(ZoneFactory.getGeneratedMapCount())); //determines the number of the next zone to be generated
 		saveHandler.saveGameDataElement(LabyrinthGenerator.saveState());
-		saveHandler.saveGameDataElement(SpecialLevelManager.saveState());
+		saveHandler.saveGameDataElement(SpecialLevelManager.getInstance().saveState());
 		//TODO: consider saving the current random seed (and loading it later in the appropriate method)
 
 		saveHandler.zipSaveDir();	// zip the individual files into a single save file
@@ -315,12 +316,13 @@ public class DataSaveUtils
 		String currentZoneId = entityLines.get(5);
 		ZoneFactory.setGeneratedMapCount(Integer.parseInt(entityLines.get(6)));
 		LabyrinthGenerator.loadState(entityLines.get(7));
-		SpecialLevelManager.loadState(entityLines.get(8));
+		SpecialLevelManager.getInstance().loadState(entityLines.get(8));
 
 		data.setWorldTravel(Boolean.valueOf(worldTravel));
 		data.setCurrentZone(null);
 		
-		SpecialLevelManager.populateSpecialZonesForLevels(data.getPredefinedZones());
+		SpecialLevelManager.getInstance().populateSpecialZonesForLevels(data.getPredefinedZones());
+		ChatManager.getInstance().populateChats(data.getChatEntries());		//TODO: load this from the save file if I make Talk elements modifiable in-game
 		
 		EntityMap.clearMappings();
 

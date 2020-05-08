@@ -10,14 +10,14 @@ import main.presentation.GuiState;
 import main.presentation.Logger;
 import main.presentation.curses.terminal.CursesTerminal;
 
-public class CursesGuiProfessionSelect extends AbtractCursesGuiListInput
+public class CursesGuiProfessionSelect extends AbstractCursesGuiListInput
 {
 	private CursesGui parentGui;
 	private Data gameData;
 	
 	protected CursesGuiProfessionSelect(CursesGui parentGui, Data gameData, CursesTerminal terminal)
 	{
-		super(terminal);
+		super(terminal, ColorScheme.monochromeScheme());
 		
 		this.parentGui = parentGui;
 		this.gameData = gameData;

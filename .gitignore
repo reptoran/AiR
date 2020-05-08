@@ -1,0 +1,9 @@
+/air-entities/.settings
+/air-entities/target/test-classes/main/entity/talk/*.class
+/air-entities/target/classes/main/entity/event/*.class
+/air-entities/target/classes/main/entity/*.class
+/air-entities/target/classes/main/entity/actor/*.class
+/air-entities/target/classes/main/entity/chat/*.class
+/air-entities/target/classes/main/entity/item/*.class
+/air-entities/target/test-classes/main/entity/event/*.class
+target

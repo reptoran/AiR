@@ -8,11 +8,12 @@ import main.entity.item.equipment.Equipment;
 import main.entity.item.equipment.EquipmentSlot;
 import main.logic.Engine;
 import main.presentation.GuiState;
-import main.presentation.curses.AbtractCursesGuiListInput;
+import main.presentation.curses.AbstractCursesGuiListInput;
+import main.presentation.curses.ColorScheme;
 import main.presentation.curses.CursesGui;
 import main.presentation.curses.terminal.CursesTerminal;
 
-public class CursesGuiEquipment extends AbtractCursesGuiListInput
+public class CursesGuiEquipment extends AbstractCursesGuiListInput
 {
 	private CursesGui parentGui;
 	private CursesGuiInventory inventoryUtil;
@@ -20,7 +21,7 @@ public class CursesGuiEquipment extends AbtractCursesGuiListInput
 
 	public CursesGuiEquipment(CursesGui parentGui, CursesGuiInventory inventoryUtil, Engine engine, CursesTerminal terminal)
 	{
-		super(terminal);
+		super(terminal, ColorScheme.monochromeScheme());
 		
 		this.parentGui = parentGui;
 		this.inventoryUtil = inventoryUtil;

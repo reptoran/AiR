@@ -1,6 +1,7 @@
 package main.data.event.environment;
 
 import java.text.ParseException;
+import java.util.List;
 
 import main.data.event.InternalEvent;
 import main.entity.EntityType;
@@ -13,7 +14,7 @@ public class SaveableEnvironmentEvent extends AbstractEnvironmentEvent
 	private int queueHash = -1;
 
 	@Override
-	public InternalEvent trigger()
+	public List<InternalEvent> trigger()
 	{
 		throw new UnsupportedOperationException("A SaveableEnvironmentEvent object should never be triggered.");
 	}

@@ -2,12 +2,17 @@ package main.data.event;
 
 import java.awt.Point;
 
+import main.entity.item.InventorySelectionKey;
+import main.entity.item.ItemSource;
+import main.entity.item.ItemType;
+
 public class InternalEvent
 {
-	private static final int TOTAL_FLAGS = 4;
+	private static final int TOTAL_FLAGS = 5;
 	
 	private InternalEventType internalEventType;
 	private int[] flags = new int[TOTAL_FLAGS];
+	private String value;
 	private int actionCost;
 	
 	private InternalEvent(InternalEventType internalEventType)
@@ -19,6 +24,7 @@ public class InternalEvent
 			flags[i] = 0;
 		}
 		
+		value = "";
 		actionCost = 0;
 	}
 	
@@ -43,6 +49,15 @@ public class InternalEvent
 		
 		return toRet;
 	}
+	
+	private static InternalEvent noActorInternalEvent(InternalEventType internalEventType)
+	{
+		InternalEvent toRet = new InternalEvent(internalEventType);
+		
+		toRet.flags[0] = -1;
+		
+		return toRet;
+	}
 
 	//if flag 0 (actor index) is -1, then flags 1 and 2 are the coordinates of the item
 	//otherwise, the item is held by an actor, either worn or in the pack
@@ -55,6 +70,53 @@ public class InternalEvent
 		internalEvent.flags[2] = flag2;
 		internalEvent.flags[3] = changeAmount;
 		return internalEvent;
+	}
+	
+	//fields as above
+	private static InternalEvent deleteItemInternalEvent(int actorIndex, int flag1, int flag2, int amountToRemove)
+	{
+		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.DELETE_ITEM, actorIndex);
+		internalEvent.flags[1] = flag1;
+		internalEvent.flags[2] = flag2;
+		internalEvent.flags[3] = amountToRemove;
+		return internalEvent;
+	}
+	
+	//if flag 0 (actor index) is -1, then flags 1 and 2 are the coordinates of the item
+	//otherwise, the item is held by an actor
+	// flag 1 is the item source as an int
+	// flag 2 is the slot index
+	private static InternalEvent moveItemInternalEvent(int actorIndex, int flag1, int flag2, Point target)
+	{
+		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.MOVE_ITEM, actorIndex);
+		internalEvent.flags[1] = flag1;
+		internalEvent.flags[2] = flag2;
+		internalEvent.flags[3] = target.x;
+		internalEvent.flags[4] = target.y;
+		return internalEvent;
+	}
+	
+	public static InternalEvent createItemForActorInternalEvent(int actorIndex, ItemType itemType, int quantity)
+	{
+		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.CREATE_ITEM, actorIndex);
+		internalEvent.flags[3] = quantity;
+		internalEvent.value = itemType.name();
+		return internalEvent;
+	}
+	
+	public static InternalEvent createItemOnGroundInternalEvent(ItemType itemType, Point coords, int quantity)
+	{
+		InternalEvent internalEvent = noActorInternalEvent(InternalEventType.CREATE_ITEM);
+		internalEvent.flags[1] = coords.x;
+		internalEvent.flags[2] = coords.y;
+		internalEvent.flags[3] = quantity;
+		internalEvent.value = itemType.name();
+		return internalEvent;
+	}
+	
+	public static InternalEvent moveItemInternalEvent(Point origin, Point target)
+	{
+		return moveItemInternalEvent(-1, origin.x, origin.y, target);
 	}
 
 	public static InternalEvent waitInternalEvent(int actorIndex, int movementCost)
@@ -69,26 +131,50 @@ public class InternalEvent
 		return actorOnlyInternalEvent(InternalEventType.PICKUP, actorIndex);
 	}
 	
-	public static InternalEvent dropInternalEvent(int actorIndex, int itemIndex)
+	public static InternalEvent dropInternalEvent(int actorIndex, ItemSource itemSource, int itemIndex)
 	{
 		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.DROP, actorIndex);
-		internalEvent.flags[1] = itemIndex;
-		return internalEvent;
-	}
-	
-	public static InternalEvent equipInternalEvent(int actorIndex, int slotIndex, int itemIndex)
-	{
-		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.EQUIP, actorIndex);
-		internalEvent.flags[1] = slotIndex;
+		internalEvent.flags[1] = itemSource.intValue();
 		internalEvent.flags[2] = itemIndex;
 		return internalEvent;
 	}
 	
-	public static InternalEvent unequipInternalEvent(int actorIndex, int slotIndex)
+	public static InternalEvent equipInternalEvent(int actorIndex, InventorySelectionKey originalInventorySlot, InventorySelectionKey targetInventorySlot)
 	{
-		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.UNEQUIP, actorIndex);
-		internalEvent.flags[1] = slotIndex;
+		return inventoryItemTransferInternalEvent(InternalEventType.EQUIP, actorIndex, originalInventorySlot, targetInventorySlot);
+	}
+	
+	public static InternalEvent unequipInternalEvent(int actorIndex, InventorySelectionKey originalInventorySlot, InventorySelectionKey targetInventorySlot)
+	{
+		return inventoryItemTransferInternalEvent(InternalEventType.UNEQUIP, actorIndex, originalInventorySlot, targetInventorySlot);
+	}
+	
+	private static InternalEvent inventoryItemTransferInternalEvent(InternalEventType eventType, int actorIndex, InventorySelectionKey originalInventorySlot, InventorySelectionKey targetInventorySlot)
+	{
+		InternalEvent internalEvent = actorOnlyInternalEvent(eventType, actorIndex);
+		internalEvent.flags[1] = originalInventorySlot.getItemSource().intValue();
+		internalEvent.flags[2] = originalInventorySlot.getItemIndex();
+		internalEvent.flags[3] = targetInventorySlot.getItemSource().intValue();
+		internalEvent.flags[4] = targetInventorySlot.getItemIndex();
 		return internalEvent;
+	}
+	
+	public static InternalEvent giveItemInternalEvent(int giverActorIndex, ItemSource itemSource, int itemIndex, int receiverActorIndex)
+	{
+		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.GIVE, giverActorIndex);
+		internalEvent.flags[1] = itemSource.intValue();
+		internalEvent.flags[2] = itemIndex;
+		internalEvent.flags[3] = receiverActorIndex;
+		return internalEvent;
+	}
+	
+	public static InternalEvent chatInternalEvent(int actorIndex, int targetIndex)
+	{
+		InternalEvent toRet = actorOnlyInternalEvent(InternalEventType.CHAT, actorIndex);
+		
+		toRet.flags[1] = targetIndex;
+		
+		return toRet;
 	}
 	
 	public static InternalEvent changeHeldItemHpInternalEvent(int actorIndex, int slotIndex, int changeAmount)
@@ -104,6 +190,31 @@ public class InternalEvent
 	public static InternalEvent changeGroundItemHpInternalEvent(Point coords, int changeAmount)
 	{
 		return changeItemHpInternalEvent(-1, coords.x, coords.y, changeAmount);
+	}
+	
+	public static InternalEvent deleteHeldItemHpInternalEvent(int actorIndex, int slotIndex, int amountToRemove)
+	{
+		return deleteItemInternalEvent(actorIndex, slotIndex, -1, amountToRemove);
+	}
+	
+	public static InternalEvent deleteInventoryItemHpInternalEvent(int actorIndex, int itemIndex, int amountToRemove)
+	{
+		return deleteItemInternalEvent(actorIndex, 1, itemIndex, amountToRemove);
+	}
+	
+	public static InternalEvent deleteGroundItemHpInternalEvent(Point coords, int amountToRemove)
+	{
+		return deleteItemInternalEvent(-1, coords.x, coords.y, amountToRemove);
+	}
+	
+	public static InternalEvent moveHeldItemInternalEvent(int actorIndex, int slotIndex, Point target)
+	{
+		return moveItemInternalEvent(actorIndex, ItemSource.EQUIPMENT.intValue(), slotIndex, target);
+	}
+	
+	public static InternalEvent moveInventoryItemInternalEvent(int actorIndex, int itemIndex, Point target)
+	{
+		return moveItemInternalEvent(actorIndex, ItemSource.PACK.intValue(), itemIndex, target);
 	}
 
 	public static InternalEvent localMoveInternalEvent(int actorIndex, int targetRow, int targetCol, int actionCost)
@@ -153,6 +264,18 @@ public class InternalEvent
 		return toRet;
 	}
 	
+	public static InternalEvent changeHpInternalEvent(int playerIndex, int amount)
+	{
+		InternalEvent toRet = new InternalEvent(InternalEventType.ATTACK);
+		
+		toRet.flags[1] = playerIndex;
+		toRet.flags[2] = amount * -1;
+		
+		toRet.actionCost = 0;
+		
+		return toRet;
+	}
+	
 	public static InternalEvent deathInternalEvent(int deadActorIndex)
 	{
 		return actorOnlyInternalEvent(InternalEventType.DEATH, deadActorIndex);
@@ -179,8 +302,24 @@ public class InternalEvent
 		return flags[index];
 	}
 	
+	public String getValue()
+	{
+		return value;
+	}
+	
 	public int getActionCost()
 	{
 		return actionCost;
+	}
+	
+	@Override
+	public String toString()
+	{
+		String returnString =  "InternalEvent(" + internalEventType + ")[";
+		
+		for (int i = 0; i < TOTAL_FLAGS; i++)
+			returnString = returnString + flags[i] + " ";
+		
+		return returnString + "], value=" + value + ", cost=" + actionCost;
 	}
 }

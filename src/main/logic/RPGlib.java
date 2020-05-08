@@ -1,5 +1,7 @@
 package main.logic;
 
+import java.awt.Point;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -73,22 +75,41 @@ public class RPGlib
 		random.setSeed(seed);
 	}
 	
-	public static String convertCoordChangeToDirection(int rowChange, int colChange)
+	public static Direction convertCoordChangeToDirection(int rowChange, int colChange)
 	{
-		String command = "DIR";
+		String direction = "DIR";
 		if (rowChange < 0)
-			command = command + "N";
+			direction = direction + "N";
 		if (rowChange > 0)
-			command = command + "S";
+			direction = direction + "S";
 		if (colChange < 0)
-			command = command + "W";
+			direction = direction + "W";
 		if (colChange > 0)
-			command = command + "E";
+			direction = direction + "E";
 		
-		if (command.equals("DIR"))
-			return "DIRNONE";
+		if (direction.equals("DIR"))
+			return Direction.DIRNONE;
 
-		return command;
+		return Direction.fromString(direction);
+	}
+	
+	public static Point convertDirectionToCoordChange(Direction directionEnum)
+	{
+		String direction = directionEnum.name();
+		
+		int x = 0;
+		int y = 0;
+		
+		if (direction.equals("DIRNW") || direction.equals("DIRN") || direction.equals("DIRNE"))
+			x--;
+		if (direction.equals("DIRSW") || direction.equals("DIRS") || direction.equals("DIRSE"))
+			x++;
+		if (direction.equals("DIRNW") || direction.equals("DIRW") || direction.equals("DIRSW"))
+			y--;
+		if (direction.equals("DIRNE") || direction.equals("DIRE") || direction.equals("DIRSE"))
+			y++;
+		
+		return new Point(x, y);	
 	}
 	
 	public static double truncateDouble(double value, int decimalPlaces)
@@ -99,5 +120,59 @@ public class RPGlib
 		double multiplier = Math.pow(10, decimalPlaces);
 		int multipliedValue = (int)(value * multiplier);
 		return multipliedValue / multiplier;
+	}
+	
+	public static String padStringRight(String toPad, int width, char fill)
+	{
+		if (width <= toPad.length())
+			return toPad;
+		
+		return new String(new char[width - toPad.length()]).replace('\0', fill) + toPad;
+	}
+	
+	public static String padStringLeft(String toPad, int width, char fill)
+	{
+		if (width <= toPad.length())
+			return toPad;
+		
+		String toReturn = toPad;
+		
+		while (toReturn.length() < width)
+			toReturn = fill + toReturn;
+		
+		return toReturn;
+	}
+	
+	public static String padString(String toPad, int width, char fill)
+	{
+		if (width <= toPad.length())
+			return toPad;
+		
+		String toReturn = toPad;
+		
+		while (toReturn.length() < width)
+			toReturn = fill + toReturn + fill;
+		
+		return toReturn;
+	}
+	
+	public static String stringValue(Object object)
+	{
+		if (object == null)
+			return null;
+		return object.toString();
+	}
+	
+	@SafeVarargs
+	public static <T> List<T> generateList(T... listElements)
+	{
+		List<T> list = new ArrayList<T>();
+		
+		for (T element : listElements)
+		{
+			list.add(element);
+		}
+		
+		return list;
 	}
 }

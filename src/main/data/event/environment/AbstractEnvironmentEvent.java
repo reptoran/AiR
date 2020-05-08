@@ -17,6 +17,10 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 	protected EnvironmentEventType type;		//needed for loading from a file
 	
 	protected Actor actor = null;
+	protected Actor secondaryActor = null;
+	
+	protected int value = 0;
+	protected int secondaryValue = 0;
 	//TODO: tiles, features, items, etc. as events are created that act on them; remember to also add getters
 	
 	@Override
@@ -35,6 +39,24 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 	public Actor getActor()
 	{
 		return actor;
+	}
+	
+	@Override
+	public Actor getSecondaryActor()
+	{
+		return secondaryActor;
+	}
+	
+	@Override
+	public int getValue()
+	{
+		return value;
+	}
+	
+	@Override
+	public int getSecondaryValue()
+	{
+		return secondaryValue;
 	}
 
 	@Override
@@ -64,6 +86,9 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		event.type = getType();
 		event.ticksBeforeActing = ticksBeforeActing;
 		event.actor = actor;
+		event.secondaryActor = secondaryActor;
+		event.value = value;
+		event.secondaryValue = secondaryValue;
 		
 		return event;
 	}
@@ -85,6 +110,19 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		ssb.addToken(new SaveToken(SaveTokenTag.E_TYP, getType().toString()));
 		ssb.addToken(new SaveToken(SaveTokenTag.E_TIC, String.valueOf(ticksBeforeActing)));
 		ssb.addToken(new SaveToken(SaveTokenTag.E_QUE, String.valueOf(eventQueue.hashCode())));
+		ssb.addToken(new SaveToken(SaveTokenTag.E_VAL, String.valueOf(value)));
+		ssb.addToken(new SaveToken(SaveTokenTag.E_VA2, String.valueOf(secondaryValue)));
+		
+		savePrimaryActor(ssb);
+		saveSecondaryActor(ssb);
+		
+		return ssb.getSaveString();
+	}
+	
+	private void savePrimaryActor(SaveStringBuilder ssb)
+	{
+		if (actor == null)
+			return;
 		
 		String actorUid = actor.getUniqueId();
 		
@@ -94,10 +132,23 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 			actorUid = EntityMap.getSimpleKey(actorUid);
 		
 		ssb.addToken(new SaveToken(SaveTokenTag.E_ACT, actorUid.substring(1)));
-		
-		return ssb.getSaveString();
 	}
 	
+	private void saveSecondaryActor(SaveStringBuilder ssb)
+	{
+		if (secondaryActor == null)
+			return;
+		
+		String secondaryActorUid = secondaryActor.getUniqueId();
+		
+		if (EntityMap.getActor(secondaryActorUid) == null)
+			secondaryActorUid = EntityMap.put(secondaryActorUid, actor);
+		else
+			secondaryActorUid = EntityMap.getSimpleKey(secondaryActorUid);
+		
+		ssb.addToken(new SaveToken(SaveTokenTag.E_AC2, secondaryActorUid.substring(1)));
+	}
+
 	@Override
 	public String loadFromText(String text) throws ParseException
 	{
@@ -108,6 +159,9 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		setMember(ssb, SaveTokenTag.E_TYP);
 		setMember(ssb, SaveTokenTag.E_TIC);
 		setMember(ssb, SaveTokenTag.E_ACT);
+		setMember(ssb, SaveTokenTag.E_AC2);
+		setMember(ssb, SaveTokenTag.E_VAL);
+		setMember(ssb, SaveTokenTag.E_VA2);
 		
 		return toRet;
 	}
@@ -141,6 +195,23 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 			Actor loadedActor = EntityMap.getActor(referenceKey);
 			this.actor = loadedActor;
 			break;
+
+		case E_AC2:
+			saveToken = ssb.getToken(saveTokenTag);
+			referenceKey = "A" + saveToken.getContents();
+			Actor loadedSecondaryActor = EntityMap.getActor(referenceKey);
+			this.secondaryActor = loadedSecondaryActor;
+			break;
+
+		case E_VAL:
+			saveToken = ssb.getToken(saveTokenTag);
+			this.value = Integer.parseInt(saveToken.getContents());
+			break;
+
+		case E_VA2:
+			saveToken = ssb.getToken(saveTokenTag);
+			this.secondaryValue = Integer.parseInt(saveToken.getContents());
+			break;
 			
 		default:
 			throw new IllegalArgumentException("EnvironmentEvent - Unhandled token: " + saveTokenTag.toString());
@@ -167,7 +238,7 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		
 		AbstractEnvironmentEvent event = (AbstractEnvironmentEvent) obj;
 		
-		if (type != event.type || ticksBeforeActing != event.ticksBeforeActing)
+		if (type != event.type || ticksBeforeActing != event.ticksBeforeActing || value != event.value || secondaryValue != event.secondaryValue)
 			return false;
 		
 		if (eventQueue == null)
@@ -184,6 +255,13 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		} else if (!actor.equals(event.actor))
 			return false;
 		
+		if (secondaryActor == null)
+		{
+			if (event.secondaryActor != null)
+				return false;
+		} else if (!secondaryActor.equals(event.secondaryActor))
+			return false;
+		
 		return true;
 	}
 
@@ -195,8 +273,11 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 
 		hash = prime * hash + ((type == null) ? 0 : type.toString().hashCode());
 		hash = prime * hash + ((actor == null) ? 0 : actor.hashCode());
+		hash = prime * hash + ((secondaryActor == null) ? 0 : secondaryActor.hashCode());
 		hash = prime * hash + ((eventQueue == null) ? 0 : eventQueue.hashCode());
 		hash = prime * hash + ticksBeforeActing;
+		hash = prime * hash + value;
+		hash = prime * hash + secondaryValue;
 		
 		return hash;
 	}

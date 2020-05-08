@@ -44,6 +44,11 @@ public class Feature extends FieldCoord
 		this.type = type;
 	}
 	
+	public FeatureType getType()
+	{
+		return type;
+	}
+	
 	private void convertToType(FeatureType featureType)
 	{
 		if (type == featureType)

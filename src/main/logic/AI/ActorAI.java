@@ -4,9 +4,11 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
+import main.data.event.ActorCommand;
 import main.entity.actor.Actor;
 import main.entity.zone.Zone;
 import main.logic.ActorSightUtil;
+import main.logic.Direction;
 import main.logic.Engine;
 import main.logic.RPGlib;
 import main.logic.pathfinding.Pathfinder;
@@ -17,7 +19,7 @@ public abstract class ActorAI
 	protected Actor nearestActor = null;
 	protected Actor nearestEnemy = null;
 	
-	public abstract String getNextCommand(Zone zone, Actor actor);	//maybe return something better than a String later
+	public abstract ActorCommand getNextCommand(Zone zone, Actor actor);	//maybe return something better than a String later
 	protected abstract List<AiType> getEnemyAiTypes();
 
 	//TODO: eventually remember the last location of the last target, so they can chase around corners, etc.
@@ -68,11 +70,12 @@ public abstract class ActorAI
 		return line.get(0);
 	}
 	
-	protected String getRandomLegalMove(Zone zone, Actor actor)
+	protected ActorCommand getRandomLegalMoveCommand(Zone zone, Actor actor)
 	{
 		//TODO: check for walls
 		String moveTo[] = {"DIRNW", "DIRN", "DIRNE", "DIRW", "DIRE", "DIRSW", "DIRS", "DIRSE"};
-	    return moveTo[RPGlib.randInt(0, 7)];
+	    Direction direction = Direction.fromString(moveTo[RPGlib.randInt(0, 7)]);
+	    return ActorCommand.move(direction);
 	}
 	
 	protected List<AiType> generateAiList(AiType... types)

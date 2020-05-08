@@ -22,11 +22,13 @@ import main.logic.pathfinding.Pathfinder;
 public class ZoneLoaderTest
 {
 	private PredefinedZoneLoader predefinedZoneLoader;
+	private SpecialLevelManager specialLevelManager;
 	
 	@Before
 	public void setup()
 	{
-		predefinedZoneLoader = new PredefinedZoneLoader();
+		predefinedZoneLoader = PredefinedZoneLoader.getInstance();
+		specialLevelManager = SpecialLevelManager.getInstance();
 	}
 	
 	@Test
@@ -50,18 +52,18 @@ public class ZoneLoaderTest
 	@Test
 	public void generateSpecialLevel_validDataFiles_specialLevelGenerated()
 	{
-		SpecialLevelManager.populateSpecialZonesForLevels(predefinedZoneLoader.loadAllPredefinedZones());
+		specialLevelManager.populateSpecialZonesForLevels(predefinedZoneLoader.loadAllPredefinedZones());
 		
-		assertNotNull(SpecialLevelManager.generateSpecialLevel(0));
-		assertNotNull(SpecialLevelManager.generateSpecialLevel(15));
-		assertNotNull(SpecialLevelManager.generateSpecialLevel(1));
+		assertNotNull(specialLevelManager.generateSpecialLevel(0));
+		assertNotNull(specialLevelManager.generateSpecialLevel(15));
+		assertNotNull(specialLevelManager.generateSpecialLevel(1));
 	}
 	
 	@Test
 	public void limitedPathfindingInTown_runAloneWithoutRunningOtherTests()
 	{
-		SpecialLevelManager.populateSpecialZonesForLevels(predefinedZoneLoader.loadAllPredefinedZones());
-		Zone town = SpecialLevelManager.generateSpecialLevel(0);
+		specialLevelManager.populateSpecialZonesForLevels(predefinedZoneLoader.loadAllPredefinedZones());
+		Zone town = specialLevelManager.generateSpecialLevel(0);
 		
 		List<Point> path = Pathfinder.findPath(town, new Point(17, 25), new Point(7, 34));
 		

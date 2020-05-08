@@ -15,6 +15,18 @@ public class TextLoader extends FileHandler
 
 	private TextDataState currentState = null;
 	private Map<String, String> loadedText = new HashMap<String, String>();
+	
+	private static TextLoader instance = null;
+	
+	private TextLoader() {}
+	
+	public static TextLoader getInstance()
+	{
+		if (instance == null)
+			instance = new TextLoader();
+		
+		return instance;
+	}
 
 	public Map<String, String> loadAllGameText()
 	{

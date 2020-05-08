@@ -51,6 +51,28 @@ public class Queue
 
 		elements.add(element); // put it at the end if we haven't inserted it yet
 	}
+	
+	public void addPriority(Queueable element)
+	{
+		if (elements.contains(element))
+		{
+			return;
+		}
+
+		for (int i = 0; i < elements.size(); i++)
+		{
+			Queueable currentElement = elements.get(i);
+
+			// this should allow events to be inserted earlier in the queue than other events with the same ticks remaining
+			if (element.getTicksLeftBeforeActing() <= currentElement.getTicksLeftBeforeActing())
+			{
+				elements.add(i, element);
+				return;
+			}
+		}
+
+		elements.add(element); // put it at the end if we haven't inserted it yet
+	}
 
 	public boolean remove(Queueable element)
 	{

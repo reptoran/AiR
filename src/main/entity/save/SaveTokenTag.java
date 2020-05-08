@@ -13,11 +13,15 @@ public enum SaveTokenTag
 	A_CHP,	//actor current hp
 	A_AI_,	//actor ai
 	A_ATT,	//actor attributes
-	A_INV,	//actor inventory
+	A_INV,	//actor stored items (pack inventory)
+	A_MAT,	//actor material inventory
 	A_EQP,	//actor equipment
+	A_RDY,	//actor readied items
+	A_MAG,	//actor magic items
 	A_TRT,	//actor traits
 	A_DAM,	//actor default damage
 	A_DAR,	//actor default armor
+	A_TLK,	//actor default talk response
 	
 	C_NAM,	//fieldcoord name
 	C_ICO,	//fieldcoord icon
@@ -89,5 +93,8 @@ public enum SaveTokenTag
 	E_TYP,	//event type
 	E_TIC,	//event ticks before acting
 	E_QUE,	//event queue
-	E_ACT	//event actor
+	E_ACT,	//event actor
+	E_AC2,	//event secondary actor
+	E_VAL,	//event value
+	E_VA2	//event secondary value
 }

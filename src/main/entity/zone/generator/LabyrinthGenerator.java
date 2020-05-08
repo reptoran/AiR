@@ -38,7 +38,7 @@ public class LabyrinthGenerator extends AbstractLinearZoneSystemGenerator
 		
 		if (specialLevelShouldBeGenerated())
 		{
-			generatedZone = SpecialLevelManager.generateSpecialLevel(generatedLevels);
+			generatedZone = SpecialLevelManager.getInstance().generateSpecialLevel(generatedLevels);
 			
 			if (generatedZone != null)
 			{

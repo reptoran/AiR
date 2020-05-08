@@ -1,0 +1,119 @@
+########################################$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+---------------[Equipped]--------------+------------[Stored (00/12)]------------
+[ ] Head:							   |[ ]
+[ ] Neck:							   |[ ]
+[ ] Cloak:							   |[ ]
+[ ] Armor:							   |[ ]
+[ ] R Hand:							   |[ ]
+[ ] L Hand:							   |[ ]
+[ ] Bracers:						   |[ ]
+[ ] Gloves:							   |[ ]
+[ ] Boots:							   |[ ]
+[ ] Ring:							   |[ ]
+									   |[ ]
+									   |[ ]
+---------------[Readied]---------------+---------------[Materials]--------------
+[ ]									   |[ ]
+[ ]									   |[ ]
+[ ]									   |[ ]
+[ ]									   |[ ]
+----------------[Magic]----------------+[ ]
+[ ]									   |[ ]
+[ ]									   |[ ]
+[ ]									   |[ ]
+[ ]									   |[ ]
+----------------[Ground]---------------+[ ]
+[ ]									   +----------------------------------------
+
+--
+
+20 on the left, 22 on the right.
+
+-OR-
+
+-----------------[Equipped]----------------+-------------[Readied]--------------
+[ ] Head:								   |[ ] bow
+[ ] Neck:								   |[ ] shield
+[ ] Cloak:								   |[ ] tool
+[ ] Armor:								   |[ ]
+[ ] R Hand:	123456789012345678901234567890 +----------[Stored (04/12)]----------
+[ ] L Hand:	(30 total characters here)	   |[ ] 32 characters available length
+[ ] Gloves:								   |[ ] 28 counting a size at the end
+[ ] Boots:								   |[ ] Long Sword [1D7]			 (4)
+[ ] Ring:								   |[ ]
+[ ] Ammo: (perhaps this is in off hand?)   |[ ]
+----------------[Materials]----------------+[ ]
+[1]										   |[ ]
+[2]										   |[ ]
+[3]										   |[ ]
+[4]										   |[ ]
+[5]										   |[ ]
+[6]										   |[ ]
+[7]										   +---------------[Magic]--------------
+[8]										   |[ ]
+[9]										   |[ ]
+[0]										   |[ ]
+------------------[Ground]-----------------+[ ]											+[ ]
+[-]									   	   |[ ]										OR	+-----------------
+-------------------------------------------+------------------------------------		|'u' Use, 'd' Drop		(the letter highlights after it's been pressed and the interfaces awaits the item selection)
+
+--
+
+21 on the left, 21 on the right.
+
+----
+
+Armor is size 10.
+Large items (weapons, shields, tools) are size 4.
+Medium items (knives, clothing) are size 2.
+Small items (jewelry, potions, scrolls) are size 1.
+Materials are "size 0" but have their own storage.
+Ammo and materials stack; everything else does not.
+
+Materials are always labelled with numbers, while everything else is labelled with a letter.
+
+--
+
+Pickup messages (no cursed items):
+ You pick up the ITEM and equip it.
+ You pick up the ITEM and ready it.
+ You pick up the ITEM and store it.
+ 
+Interruption message: "You are interrupted! The -foo- hits you." (action is unsuccessful)
+ 
+--
+
+Flow:
+ (State: VIEW) Pressing "i" brings up this screen with labels on selectable slots.
+  By default, all Equipped and Readied items are considered selectable.
+   If both the pack and ground are full, equipped and readied items will not be selectable (no letter).
+   If there are no eligible items for the slot, empty slots will not be selectable (no letter).
+   If there is no item in the slot above it, empty slots in Readied and Magic will not be selectable (no letter).
+    Offering an empty Readied/Magic slot to "fill" is the only way to pull out stored items.
+   If there is no place to put it (equip/ready/stored), the ground item will not be selectable.
+  Readied, Magic, and Stored items all collapse upward (so no gaps between slots); Equipped remains static.
+  Selecting an equipped item removes it and puts it in the first available Readied slot, or the first available Stored slot if no Readied spaces are free (or finally the Ground if both Readied and Stored are full).
+  Selecting a readied item removes it and puts it in the first available Stored slot, or on the ground if Stored is full.
+  Selecting the item on the ground removes it and puts it (in order of preference) in the proper Equipped slot, or the first available Readied slot, or the first available Stored slot.
+   In all three cases, it takes turns equal to an item's size to store the item.
+ (State: EQUIP) Selecting an empty item slot (Equipped, Readied, Magic, or Ground) highlights it in a different color, removes the letters from the left side, and displays them on the right side (including the "-" for ground items) instead for any eligible item.
+   
+  
+ Pressing "d" brings up this screen with letters along right side, numbers in front of the materials, and nothing for equipped items (you can't drop equipped items).
+  The "Ground" element is unselectable regardless of if it's empty or full.
+  Selecting any item drops it on the ground and closes the screen.  Dropping stored items can be interrupted, in which case the screen closes but the item remains stored.
+   Dropping a stored item takes turns equal to its size; dropping anything else is free and cannot be interrupted.
+   
+ Pressing "u" GO INTO MORE DETAIL, BUT AFTER SELECTING AN ITEM, IT PROMPTS FOR A DIRECTION, WITH 5 OR MAYBE SOMETHING ELSE BRINGING UP THE INTERFACE AGAIN TO CHOOSE AN ITEM TO USE IT WITH; OTHERWISE THE DIRECTION TARGETS THE TOPMOST ENTITY IN THAT DIRECTION - ACTOR, THEN FEATURE, THEN TILE.
+  perhaps you can't use items on other items? if you want to, that's a recipe? but on the other hand, how would you apply raw materials to items to give them that quick boost?
+  perhaps 'u' from the inventory screen assumes first that you're using it on another item, while doing it from outside makes the opposite assumption
+   -I like this: 'u' from the main game screen prompts an item, then a direction, and it's applied in the order actor/item/feature/tile (and never to an item in the inventory)
+  
+--
+
+Tricky things:
+ You basically always have to keep one "readied" slot open to swap weapons, since you need to remove the weapon first and therefore need a free spot to put it.
+ "Magic" placement is difficult, because it probably should be together as in the first mockup, but doesn't really interact with anything else.  Also, such items should be droppable, but if I leave that out, the rest only requires 26 selectors (10 equip + 4 ready + 12 stored), which is perfect for letters.  Maybe F1-F5 for magic items?
+ You should be able to use any item regardless of where it is (ready or not), but even if that's prompted by pressing 'u' instead of 'i', there aren't enough selectors unless equipped items are ignored.
+ I can't immediately decide how best to represent an object's bulk, or why a bulky item that can't fit into the pack isn't allowed to be selected.  Perhaps color-code items?
+ Currently not clear which state (view, drop, equip) you're in.

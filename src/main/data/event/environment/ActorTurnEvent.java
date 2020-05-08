@@ -1,5 +1,7 @@
 package main.data.event.environment;
 
+import java.util.List;
+
 import main.data.event.InternalEvent;
 import main.entity.actor.Actor;
 import main.logic.AI.AiType;
@@ -18,7 +20,7 @@ public class ActorTurnEvent extends RecurringEnvironmentEvent
 	}
 	
 	@Override
-	public InternalEvent trigger()
+	public List<InternalEvent> trigger()
 	{
 		throw new UnsupportedOperationException("This is an ActorTurnEvent with no defined logic.  Call getActor() instead to access the actor.");
 	}

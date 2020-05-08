@@ -75,6 +75,18 @@ public abstract class FileHandler
 			return "";
 		}
 	}
+	
+	protected String getFileNameNoExtension(File file)
+	{
+		String name = file.getName();
+		try
+		{
+			return name.substring(0, name.lastIndexOf("."));
+		} catch (Exception e)
+		{
+			return "";
+		}
+	}
 
 	public void zipDirectory(String directory, String extension) throws IOException
 	{

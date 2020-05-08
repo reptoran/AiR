@@ -1,6 +1,8 @@
 package main.entity.item;
 
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
@@ -24,7 +26,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	private int color = 15;
 	
 	private String damage = ZERO_DAMAGE;
-	private int size = 0;
+	private int size = 0;		//TODO: possibly remove this, since I think this is covered by bulk now
 	private int amount = 1;
 	private EquipmentSlotType inventorySlot = EquipmentSlotType.ANY;
 	
@@ -140,7 +142,9 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	{
 		String suffix = "";
 		
-		if (!damage.equals(ZERO_DAMAGE))
+		if (inventorySlot == EquipmentSlotType.MATERIAL || inventorySlot == EquipmentSlotType.MAGIC)
+			return suffix;
+		else if (!damage.equals(ZERO_DAMAGE))
 			suffix = " (" + damage + ")";
 		else if (isShield())
 			suffix = " (" + CR + ")";
@@ -195,6 +199,22 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		this.damage = damage;
 	}
 	
+	public int getBulk()
+	{
+		return inventorySlot.getBulk();
+	}
+	
+	public int getMaxStackSize()
+	{
+		switch (inventorySlot)
+		{
+			case MATERIAL:
+				return 5;
+		}
+		
+		return 1;
+	}
+	
 	public int getSize()
 	{
 		return size;
@@ -215,17 +235,30 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		this.amount = amount;
 	}
 	
-	public void add(Item item)
+	public List<Item> add(Item item)
 	{
 		if (!item.equalsIgnoreAmount(this))
-			return;
+			return RPGlib.generateList(this, item);
 		
-		add(item.amount);
+		return add(item.amount);
 	}
 	
-	public void add(int amountToAdd)
+	public List<Item> add(int amountToAdd)
 	{
+		List<Item> itemStacks = new ArrayList<Item>();
+		
 		amount += amountToAdd;
+		
+		while (amount > getMaxStackSize())
+		{
+			Item cloneItem = clone();
+			cloneItem.setAmount(getMaxStackSize());
+			itemStacks.add(cloneItem);
+			amount -= getMaxStackSize();
+		}
+		
+		itemStacks.add(this);
+		return itemStacks;
 	}
 	
 	public EquipmentSlotType getInventorySlot()
@@ -562,6 +595,17 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	@Override
 	public int compareTo(Item other)
 	{
+		//bigger stacks of same items should come first
+		if (equalsIgnoreAmount(other))
+		{
+			if (amount > other.amount)
+				return -1;
+			if (amount < other.amount)
+				return 1;
+			
+			return 0;
+		}
+		
 		if (inventorySlot != other.inventorySlot)
 		{
 			return inventorySlot.compareTo(other.inventorySlot);	//compares based on the order the enumeration elements are declared

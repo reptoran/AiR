@@ -11,11 +11,15 @@ import main.entity.SaveableEntity;
 import main.entity.item.Inventory;
 import main.entity.item.Item;
 import main.entity.item.ItemFactory;
+import main.entity.item.ItemSource;
 import main.entity.item.ItemType;
 import main.entity.item.equipment.Equipment;
 import main.entity.item.equipment.EquipmentFactory;
 import main.entity.item.equipment.EquipmentSlot;
+import main.entity.item.equipment.EquipmentSlotType;
 import main.entity.item.equipment.EquipmentType;
+import main.entity.item.equipment.MagicEquipmentImpl;
+import main.entity.item.equipment.ReadyEquipmentImpl;
 import main.entity.save.EntityMap;
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
@@ -31,6 +35,9 @@ public class Actor extends SaveableEntity
 	public static final int ATT_DEX = 4;
 	public static final int TOTAL_ATTRIBUTES = 5;
 	private static final int MOVEMENT_COST = 10; // not enough variation in speed to bother making this bigger right now
+	
+	private static final int DEFAULT_READY_SLOTS = 4;
+	private static final int DEFAULT_MAGIC_SLOTS = 3;
 
 	private ActorType type;
 
@@ -47,15 +54,19 @@ public class Actor extends SaveableEntity
 	private int attributes[] = new int[TOTAL_ATTRIBUTES];
 	
 	private Set<ActorTraitType> traits = new HashSet<ActorTraitType>();
-	private Inventory inventory = new Inventory();
+	private Inventory storedItems = new Inventory();
+	private Inventory materials = new Inventory();
 	private EquipmentType equipmentType = EquipmentType.NONE;
 	private Equipment equipment;
+	private Equipment readiedItems = new ReadyEquipmentImpl(DEFAULT_READY_SLOTS);  		//TODO: or perhaps make it monster by monster, like the main equipment
+	private Equipment magicItems = new MagicEquipmentImpl(DEFAULT_MAGIC_SLOTS);			//TODO: as above, though we'll see how monsters use readied items
 
 	private static int currentHash = 0;
 	private int hashModifier;
 	
 	private String defaultDamage = "1D1";
 	private int defaultArmor = 0;
+	private String defaultTalkResponse = "There's no response.";
 
 	public Actor()
 	{
@@ -118,10 +129,14 @@ public class Actor extends SaveableEntity
 		toRet.curHp = curHp;
 		toRet.hashModifier = hashModifier; // if we're truly cloning this, then they need the same unique identifier as well.
 		toRet.equipmentType = equipmentType;
-		toRet.inventory = inventory.clone();
+		toRet.storedItems = storedItems.clone();
+		toRet.materials = materials.clone();
 		toRet.equipment = equipment.clone();
+		toRet.readiedItems = readiedItems.clone();
+		toRet.magicItems = magicItems.clone();
 		toRet.defaultDamage = defaultDamage;
 		toRet.defaultArmor = defaultArmor;
+		toRet.defaultTalkResponse = defaultTalkResponse;
 		
 		for (ActorTraitType trait : traits)
 		{
@@ -153,8 +168,11 @@ public class Actor extends SaveableEntity
 			this.attributes[i] = baseActor.attributes[i];
 		}
 		
-		this.inventory = new Inventory();
+		this.storedItems = new Inventory();
+		this.materials = new Inventory();
 		this.setEquipment(baseActor.equipmentType);
+		this.magicItems = new MagicEquipmentImpl(DEFAULT_MAGIC_SLOTS);
+		this.readiedItems = new MagicEquipmentImpl(DEFAULT_MAGIC_SLOTS);
 		
 		for (ActorTraitType trait : baseActor.traits)
 		{
@@ -163,6 +181,7 @@ public class Actor extends SaveableEntity
 		
 		this.defaultDamage = baseActor.defaultDamage;
 		this.defaultArmor = baseActor.defaultArmor;
+		this.defaultTalkResponse = baseActor.defaultTalkResponse;
 	}
 
 	public void damage(int damageAmount)
@@ -238,19 +257,48 @@ public class Actor extends SaveableEntity
 		return AI;
 	}
 	
-	public Inventory getInventory()
+	public Inventory getStoredItems()
 	{
-		return inventory;
+		return storedItems;
 	}
 	
-	public void receiveItem(Item i)
+	public Inventory getMaterials()
 	{
-		inventory.add(i);
+		return materials;
 	}
 	
-	public Item removeItem(int itemIndex)
+	public Equipment getReadiedItems()
 	{
-		return inventory.remove(itemIndex);
+		return readiedItems;
+	}
+	
+	public Equipment getMagicItems()
+	{
+		return magicItems;
+	}
+	
+	//TODO: eventually have the actor manage item placement - probably equip first, then ready, then store, with special cases for materials and magic
+	public void receiveItem(Item item)
+	{
+		if (item.getInventorySlot().equals(EquipmentSlotType.MATERIAL))
+			materials.add(item);
+		else if (item.getInventorySlot().equals(EquipmentSlotType.MAGIC) && magicItems.hasEmptySlotAvailable(EquipmentSlotType.MAGIC))
+		{
+			int slotIndex = magicItems.getIndexOfFirstSlotAvailable(EquipmentSlotType.MAGIC);
+			magicItems.equipItem(item, slotIndex);
+		}
+		else
+			storedItems.add(item);
+	}
+	
+	public Item removeStoredItem(int itemIndex)
+	{
+		return storedItems.remove(itemIndex);
+	}
+	
+	public Item removeMaterial(int itemIndex)
+	{
+		return materials.remove(itemIndex);
 	}
 
 	public void setAttribute(int index, int value)
@@ -298,6 +346,15 @@ public class Actor extends SaveableEntity
 		this.curHp = curHp;
 	}
 	
+	public int getHpPercent()
+	{
+		int percentage = (int)(((((double)curHp) / ((double)maxHp)) * 100) + .5);
+		if (percentage < 1 && curHp > 0)
+			percentage = 1;
+		
+		return percentage;
+	}
+	
 	//protected because the equipment type of an actor should never change (unless they polymorph, but that's a problem for the very, very distant future)
 	protected void setEquipment(EquipmentType equipmentType)
 	{
@@ -333,6 +390,16 @@ public class Actor extends SaveableEntity
 	public void setDefaultArmor(int armor)
 	{
 		this.defaultArmor = armor;
+	}
+	
+	public void setDefaultTalkResponse(String defaultTalk)
+	{
+		this.defaultTalkResponse = defaultTalk;
+	}
+	
+	public String getDefaultTalkResponse()
+	{
+		return defaultTalkResponse;
 	}
 	
 	public List<Item> getWeapons()
@@ -371,6 +438,41 @@ public class Actor extends SaveableEntity
 	public int getIndexOfEquippedItem(Item item)
 	{
 		return equipment.getIndexOfItem(item);
+	}
+	
+	public int getIndexOfMaterial(Item item)
+	{
+		return materials.indexOf(item); 
+	}
+	
+	public int getIndexOfStoredItem(Item item)
+	{
+		return storedItems.indexOf(item); 
+	}
+	
+	//TODO: right now this doesn't check held or ready items - only materials, magic items, and items in the pack
+	public int getTotalItemCount(ItemType itemType)
+	{
+		Item virtualItem = ItemFactory.generateNewItem(itemType);
+		
+		if (virtualItem.getInventorySlot().equals(EquipmentSlotType.MATERIAL))
+			return materials.getTotalItemsOfType(itemType);
+		else if (virtualItem.getInventorySlot().equals(EquipmentSlotType.MAGIC))
+			return magicItems.getTotalItemsOfType(itemType);
+		return storedItems.getTotalItemsOfType(itemType);
+	}
+	
+	//TODO: right now, this is only used to determine where to give an item from, so it only checks materials, magic items, and pack contents (not sure if worn/ready items should be eligible)
+	public ItemSource getFirstAvailableSourceForItem(ItemType itemType)
+	{
+		if (materials.getTotalItemsOfType(itemType) != 0)
+			return ItemSource.MATERIAL;
+		if (magicItems.getTotalItemsOfType(itemType) != 0)
+			return ItemSource.MAGIC;
+		if (storedItems.getTotalItemsOfType(itemType) != 0)
+			return ItemSource.PACK;
+		
+		return null;
 	}
 
 	@Override
@@ -411,14 +513,25 @@ public class Actor extends SaveableEntity
 			ssb.addToken(new SaveToken(SaveTokenTag.A_DAM, defaultDamage));
 		if (defaultArmor != baseActor.defaultArmor)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_DAR, String.valueOf(defaultArmor)));
+		if (!defaultTalkResponse.equals(baseActor.defaultTalkResponse))
+			ssb.addToken(new SaveToken(SaveTokenTag.A_TLK, defaultTalkResponse));
 
 		saveAttributes(baseActor, ssb);
 		
-		if (inventory != null && !inventory.isEmpty())
-			ssb.addToken(new SaveToken(SaveTokenTag.A_INV, convertInventoryToList()));
+		if (storedItems != null && !storedItems.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.A_INV, convertInventoryToList(storedItems)));
 		
+		if (materials != null && !materials.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.A_MAT, convertInventoryToList(materials)));
+
 		if (!equipment.isEmpty())
-			ssb.addToken(new SaveToken(SaveTokenTag.A_EQP, convertEquipmentToList()));
+			ssb.addToken(new SaveToken(SaveTokenTag.A_EQP, convertEquipmentObjectToList(equipment)));
+		
+		if (!readiedItems.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.A_RDY, convertEquipmentObjectToList(readiedItems)));
+		
+		if (!magicItems.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.A_MAG, convertEquipmentObjectToList(magicItems)));
 		
 		if (!traits.isEmpty())
 			ssb.addToken(new SaveToken(SaveTokenTag.A_TRT, convertTraitsToList()));
@@ -458,10 +571,14 @@ public class Actor extends SaveableEntity
 		setMember(ssb, SaveTokenTag.A_AI_);
 		setMember(ssb, SaveTokenTag.A_ATT);
 		setMember(ssb, SaveTokenTag.A_INV);
+		setMember(ssb, SaveTokenTag.A_MAT);
 		setMember(ssb, SaveTokenTag.A_EQP);
+		setMember(ssb, SaveTokenTag.A_RDY);
+		setMember(ssb, SaveTokenTag.A_MAG);
 		setMember(ssb, SaveTokenTag.A_TRT);
 		setMember(ssb, SaveTokenTag.A_DAM);
 		setMember(ssb, SaveTokenTag.A_DAR);
+		setMember(ssb, SaveTokenTag.A_TLK);
 
 		return toRet;
 	}
@@ -478,7 +595,7 @@ public class Actor extends SaveableEntity
 		return toRet;
 	}
 	
-	private List<String> convertInventoryToList()
+	private List<String> convertInventoryToList(Inventory inventory)
 	{
 		List<String> toReturn = new ArrayList<String>();
 
@@ -498,11 +615,11 @@ public class Actor extends SaveableEntity
 		return toReturn;
 	}
 
-	private List<String> convertEquipmentToList()
+	//if an actor's equipment type ever changes, that will need to be taken into account here
+	private List<String> convertEquipmentObjectToList(Equipment equipmentObj)
 	{
-		//because an actor's equipment type can never change (for now), we don't need to take it into account when saving equipped items
 		List<String> toReturn = new ArrayList<String>();
-		List<EquipmentSlot> slots = equipment.getEquipmentSlots();
+		List<EquipmentSlot> slots = equipmentObj.getEquipmentSlots();
 		
 		for (EquipmentSlot slot : slots)
 		{
@@ -531,8 +648,6 @@ public class Actor extends SaveableEntity
 		return itemUid.substring(1);
 	}
 	
-
-	@SuppressWarnings("incomplete-switch")
 	@Override
 	protected void setMember(SaveStringBuilder ssb, SaveTokenTag saveTokenTag)
 	{
@@ -606,12 +721,25 @@ public class Actor extends SaveableEntity
 			saveToken = ssb.getToken(saveTokenTag);
 			strVals = saveToken.getContentSet();
 			
-			inventory = new Inventory();
+			storedItems = new Inventory();
 			
 			for (String value : strVals)
 			{
 				referenceKey = "I" + value;
-				inventory.add(EntityMap.getItem(referenceKey).clone());
+				storedItems.add(EntityMap.getItem(referenceKey).clone());
+			}
+			break;
+
+		case A_MAT:
+			saveToken = ssb.getToken(saveTokenTag);
+			strVals = saveToken.getContentSet();
+			
+			materials = new Inventory();
+			
+			for (String value : strVals)
+			{
+				referenceKey = "I" + value;
+				materials.add(EntityMap.getItem(referenceKey).clone());
 			}
 			break;
 
@@ -631,6 +759,44 @@ public class Actor extends SaveableEntity
 				referenceKey = "I" + value;
 				
 				equipment.equipItem(EntityMap.getItem(referenceKey).clone(), i);
+			}
+			break;
+
+		case A_RDY:
+			saveToken = ssb.getToken(saveTokenTag);
+			strVals = saveToken.getContentSet();
+			
+			readiedItems = new ReadyEquipmentImpl(DEFAULT_READY_SLOTS);
+			
+			for (int i = 0; i < strVals.size(); i++)
+			{
+				String value = strVals.get(i);
+				
+				if (value.isEmpty())
+					continue;
+				
+				referenceKey = "I" + value;
+				
+				readiedItems.equipItem(EntityMap.getItem(referenceKey).clone(), i);
+			}
+			break;
+
+		case A_MAG:
+			saveToken = ssb.getToken(saveTokenTag);
+			strVals = saveToken.getContentSet();
+			
+			magicItems = new ReadyEquipmentImpl(DEFAULT_MAGIC_SLOTS);
+			
+			for (int i = 0; i < strVals.size(); i++)
+			{
+				String value = strVals.get(i);
+				
+				if (value.isEmpty())
+					continue;
+				
+				referenceKey = "I" + value;
+				
+				magicItems.equipItem(EntityMap.getItem(referenceKey).clone(), i);
 			}
 			break;
 			
@@ -655,7 +821,12 @@ public class Actor extends SaveableEntity
 			saveToken = ssb.getToken(saveTokenTag);
 			this.defaultArmor = Integer.parseInt(saveToken.getContents());
 			break;
-
+			
+		case A_TLK:
+			saveToken = ssb.getToken(saveTokenTag);
+			this.defaultTalkResponse = saveToken.getContents();
+			break;
+		//$CASES-OMITTED$
 		default:
 			throw new IllegalArgumentException("Actor - Unhandled token: " + saveTokenTag.toString());
 		}
@@ -676,7 +847,7 @@ public class Actor extends SaveableEntity
 		if (!type.equals(actor.type) || icon != actor.icon || color != actor.color || !name.equals(actor.name)
 				|| !gender.equals(actor.gender) || unique != actor.unique || maxHp != actor.maxHp || curHp != actor.curHp
 				|| AI != actor.AI || hashModifier != actor.hashModifier
-				|| defaultDamage != actor.defaultDamage || defaultArmor != actor.defaultArmor)
+				|| defaultDamage != actor.defaultDamage || defaultArmor != actor.defaultArmor || !defaultTalkResponse.equals(actor.defaultTalkResponse))
 			return false;
 
 		for (int i = 0; i < TOTAL_ATTRIBUTES; i++)
@@ -685,10 +856,19 @@ public class Actor extends SaveableEntity
 				return false;
 		}
 		
-		if (!inventory.equals(actor.inventory))
+		if (!storedItems.equals(actor.storedItems))
+			return false;
+		
+		if (!materials.equals(actor.materials))
 			return false;
 		
 		if (!equipment.equals(actor.equipment))
+			return false;
+		
+		if (!readiedItems.equals(actor.readiedItems))
+			return false;
+		
+		if (!magicItems.equals(actor.magicItems))
 			return false;
 		
 		if (!traits.equals(actor.traits))
@@ -715,12 +895,16 @@ public class Actor extends SaveableEntity
 		{
 			hash = 31 * hash + attributes[i];
 		}
-		
-		hash = 31 * hash + inventory.hashCode();
+
+		hash = 31 * hash + storedItems.hashCode();
+		hash = 31 * hash + materials.hashCode();
 		hash = 31 * hash + equipment.hashCode();
+		hash = 31 * hash + readiedItems.hashCode();
+		hash = 31 * hash + magicItems.hashCode();
 		hash = 31 * hash + traits.hashCode();
 		hash = 31 * hash + defaultDamage.hashCode();
 		hash = 31 * hash + defaultArmor;
+		hash = 31 * hash + defaultTalkResponse.hashCode();
 		
 		hash = 31 * hash + hashModifier;
 

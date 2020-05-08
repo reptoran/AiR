@@ -12,12 +12,24 @@ import main.presentation.Logger;
 
 public class SpecialLevelManager
 {
-	private static List<PredefinedZone> specialZones = new ArrayList<PredefinedZone>();
-	private static List<String> generatedZoneNames = new ArrayList<String>();
+	private List<PredefinedZone> specialZones = new ArrayList<PredefinedZone>();
+	private List<String> generatedZoneNames = new ArrayList<String>();
 	
 	private static final String DELIMITER = ";";
+	
+	private static SpecialLevelManager instance = null;
+	
+	private SpecialLevelManager() {}
+	
+	public static SpecialLevelManager getInstance()
+	{
+		if (instance == null)
+			instance = new SpecialLevelManager();
+		
+		return instance;
+	}
 
-	public static String saveState()
+	public String saveState()
 	{
 		String saveString = "";
 		
@@ -29,7 +41,7 @@ public class SpecialLevelManager
 		return saveString.substring(0, saveString.length() - 1);
 	}
 	
-	public static void loadState(String saveString)
+	public void loadState(String saveString)
 	{
 		generatedZoneNames.clear();
 		
@@ -44,7 +56,7 @@ public class SpecialLevelManager
 		scanner.close();
 	}
 	
-	public static Zone generateSpecialLevel(int level)
+	public Zone generateSpecialLevel(int level)
 	{
 		if (specialZones == null)
 			throw new IllegalStateException("No special levels loaded into the manager yet.");
@@ -77,7 +89,7 @@ public class SpecialLevelManager
 		return zoneToGenerate.getZone(); 
 	}
 
-	public static void populateSpecialZonesForLevels(List<PredefinedZone> predefinedZones)
+	public void populateSpecialZonesForLevels(List<PredefinedZone> predefinedZones)
 	{
 		specialZones.clear();
 		
@@ -91,7 +103,7 @@ public class SpecialLevelManager
 		}
 	}
 
-	private static int getIntegerAttribute(String attribute, int defaultValue)
+	private int getIntegerAttribute(String attribute, int defaultValue)
 	{
 		if (attribute == null)
 			return defaultValue;

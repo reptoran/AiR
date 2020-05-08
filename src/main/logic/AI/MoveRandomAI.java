@@ -2,15 +2,16 @@ package main.logic.AI;
 
 import java.util.List;
 
+import main.data.event.ActorCommand;
 import main.entity.actor.Actor;
 import main.entity.zone.Zone;
 
 public class MoveRandomAI extends ActorAI
 {
 	@Override
-	public String getNextCommand(Zone zone, Actor actor)
+	public ActorCommand getNextCommand(Zone zone, Actor actor)
 	{
-		return getRandomLegalMove(zone, actor);
+		return getRandomLegalMoveCommand(zone, actor);
 	}
 
 	@Override
