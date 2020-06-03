@@ -13,7 +13,7 @@ public class ColorScheme
 		return new ColorScheme(CursesGuiUtil.COLOR_BROWN, CursesGuiUtil.COLOR_YELLOW, CursesGuiUtil.COLOR_LIGHT_GREY,
 				CursesGuiUtil.COLOR_DARK_GREY, CursesGuiUtil.COLOR_WHITE);
 	}
-	
+
 	public static ColorScheme monochromeScheme()
 	{
 		return new ColorScheme(CursesGuiUtil.COLOR_LIGHT_GREY, CursesGuiUtil.COLOR_LIGHT_GREY, CursesGuiUtil.COLOR_LIGHT_GREY,

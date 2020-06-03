@@ -22,7 +22,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import main.entity.AbstractLogicalEvaluation;
+import main.entity.actor.ActorType;
 import main.entity.chat.CompareOperator;
+import main.entity.item.ItemType;
 
 public class Trigger extends AbstractLogicalEvaluation implements Comparable<Trigger>
 {
@@ -85,25 +87,6 @@ public class Trigger extends AbstractLogicalEvaluation implements Comparable<Tri
 				details = map.get(key);
 			}
 		}
-		
-		//this is so that equals operators are not required for values with no comparators
-		if (!detailsContainsOperator())
-		{
-			details = "=" + details;
-			map.put(type, details);
-		}
-	}
-	
-	private boolean detailsContainsOperator()
-	{
-		for (CompareOperator co : CompareOperator.values())
-		{
-			int index = details.indexOf(co.getSymbol());
-			if (index != -1)
-				return true;
-		}
-		
-		return false;
 	}
 
 	public void setType(TriggerType type)
@@ -221,5 +204,27 @@ public class Trigger extends AbstractLogicalEvaluation implements Comparable<Tri
 	protected String getTypeName()
 	{
 		return type.name();
+	}
+	
+	public ActorType getModifierActor()
+	{
+		try
+		{
+			return ActorType.fromString(modifier);
+		} catch (IllegalArgumentException iae)
+		{
+			return null;
+		}
+	}
+	
+	public ItemType getValueItem()
+	{
+		try
+		{
+			return ItemType.fromString(value);
+		} catch (IllegalArgumentException iae)
+		{
+			return null;
+		}
 	}
 }

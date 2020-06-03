@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import main.entity.actor.Actor;
+import main.entity.item.Item;
 import main.entity.item.ItemSource;
 import main.entity.save.EntityMap;
 import main.presentation.Logger;
@@ -27,10 +28,15 @@ public class EnvironmentEventFactory
 
 	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor, int value)
 	{
-		return generateNewEvent(queue, type, actor, null, value, 0);
+		return generateNewEvent(queue, type, actor, null, null, value, 0);
+	}
+
+	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor, Item item, int value)
+	{
+		return generateNewEvent(queue, type, actor, null, item, value, 0);
 	}
 	
-	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor, Actor secondaryActor, int value, int secondaryValue)
+	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor, Actor secondaryActor, Item item, int value, int secondaryValue)
 	{
 		switch (type)
 		{
@@ -45,7 +51,10 @@ public class EnvironmentEventFactory
 			
 		case GIVE_ITEM:
 			return new GiveItemEvent(actor, secondaryActor, ItemSource.fromInt(value), secondaryValue, queue);
-
+		
+		case CONSUME_ITEM:
+			return new ConsumeInventoryItemEvent(actor, item, value, queue);
+			
 		default:
 			Logger.warn("Generating a null environment event because behavior for the type [" + type + "] is not yet defined.");
 			return null;

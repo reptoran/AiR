@@ -46,7 +46,9 @@ public abstract class AbstractEquipment implements Equipment
 		
 		for (int i = 0; i < TOTAL_SLOTS; i++)
 		{
-			if (item.equals(equipmentSlots[i].getItem()))
+			//the idea of using == instead of equals() is that if we're requesting a specific item from the equipment,
+			//we care about THAT item exactly, not the first instance that matches
+			if (item == equipmentSlots[i].getItem())
 				return i;
 		}
 		

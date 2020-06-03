@@ -95,6 +95,8 @@ public enum SaveTokenTag
 	E_QUE,	//event queue
 	E_ACT,	//event actor
 	E_AC2,	//event secondary actor
+	E_ITM,	//event item
 	E_VAL,	//event value
-	E_VA2	//event secondary value
+	E_VA2,	//event secondary value
+	E_VA3	//event tertiary value
 }

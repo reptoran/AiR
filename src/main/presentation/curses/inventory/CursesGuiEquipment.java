@@ -4,6 +4,9 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import main.data.event.ActorCommand;
+import main.entity.item.InventorySelectionKey;
+import main.entity.item.ItemSource;
 import main.entity.item.equipment.Equipment;
 import main.entity.item.equipment.EquipmentSlot;
 import main.logic.Engine;
@@ -84,7 +87,8 @@ public class CursesGuiEquipment extends AbstractCursesGuiListInput
 		
 		if (slot.getItem() != null)
 		{
-			engine.receiveCommand("UNEQUIP" + slotIndex);
+			InventorySelectionKey key = new InventorySelectionKey(ItemSource.EQUIPMENT, slotIndex);
+			engine.receiveCommand(ActorCommand.unqeuip(key, new InventorySelectionKey(ItemSource.PACK)));
 			refresh();
 		} else
 		{

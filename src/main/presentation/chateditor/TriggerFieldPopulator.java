@@ -30,9 +30,19 @@ public class TriggerFieldPopulator extends AbstractFieldPopulator
 		{
 		case CHANGE_HP:
 			disableModifiers();
-			disableValues();
+			enableValues();
+			addFreeformValues();
 			addExactOperator();
+			enableComparisons();
 			clearComparisons();
+			break;
+		case CHANGE_HP_OF_ACTOR:
+			enableModifiers();
+			addActorModifiers();
+			enableValues();
+			addFreeformValues();
+			addExactOperator();
+			disableComparisons();
 			break;
 		case GIVE_ITEM_TO:	//falls through
 		case GET_ITEM_FROM:
@@ -41,6 +51,7 @@ public class TriggerFieldPopulator extends AbstractFieldPopulator
 			enableValues();
 			addItemValues();
 			addExactOperator();
+			enableComparisons();
 			clearComparisons();
 			break;
 		default:

@@ -22,7 +22,7 @@ public abstract class CursesGuiUtil
 	public static final int COLOR_LIGHT_CYAN = 11;
 	public static final int COLOR_LIGHT_RED = 12;
 	public static final int COLOR_LIGHT_MAGENTA = 13;
-	protected static final int COLOR_YELLOW = 14;
+	public static final int COLOR_YELLOW = 14;
 	public static final int COLOR_WHITE = 15;
 	
 	public CursesGuiUtil(CursesTerminal csi)

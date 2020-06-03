@@ -1,5 +1,6 @@
 package main.presentation.curses;
 
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -8,12 +9,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import main.data.DataSaveUtils;
 import main.data.event.ActorCommand;
-import main.data.event.ActorCommandType;
 import main.data.event.EventObserver;
 import main.data.event.InternalEvent;
 import main.data.event.InternalEventType;
 import main.entity.actor.Actor;
 import main.entity.item.InventorySelectionKey;
+import main.entity.item.equipment.Equipment;
 import main.logic.Direction;
 import main.logic.Engine;
 import main.logic.RPGlib;
@@ -21,8 +22,6 @@ import main.presentation.AbstractGui;
 import main.presentation.GuiState;
 import main.presentation.Logger;
 import main.presentation.curses.inventory.CursesGuiCompleteInventory;
-import main.presentation.curses.inventory.CursesGuiEquipment;
-import main.presentation.curses.inventory.CursesGuiInventory;
 import main.presentation.curses.inventory.InventoryState;
 import main.presentation.curses.terminal.CursesTerminal;
 import main.presentation.curses.terminal.CursesTerminalAsciiPanelImpl;
@@ -39,8 +38,8 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 	private CursesGuiMessages messageUtil;
 	private CursesGuiUtil displayUtil;
 	private CursesGuiChat chatUtil;
-	private CursesGuiInventory inventoryUtil;
-	private CursesGuiUtil equipmentUtil;
+//	private CursesGuiInventory inventoryUtil;
+//	private CursesGuiUtil equipmentUtil;
 	private CursesGuiCompleteInventory completeInventory;
 	
 	private ActorCommand pendingCommand = null;
@@ -60,8 +59,8 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 		messageUtil = new CursesGuiMessages(this, new Rectangle(0, 0, 80, 2), terminal, GuiState.MESSAGE, GuiState.NONE);
 		displayUtil = new CursesGuiDisplay(engine, terminal);
 		chatUtil = new CursesGuiChat(this, terminal);
-		inventoryUtil = new CursesGuiInventory(this, engine, terminal);
-		equipmentUtil = new CursesGuiEquipment(this, inventoryUtil, engine, terminal);
+//		inventoryUtil = new CursesGuiInventory(this, engine, terminal);
+//		equipmentUtil = new CursesGuiEquipment(this, inventoryUtil, engine, terminal);
 		completeInventory = new CursesGuiCompleteInventory(this, engine, terminal, ColorScheme.woodenScheme());
 
 		refreshInterface();
@@ -95,6 +94,7 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 			break;
 		case MESSAGE: // fall through
 		case NONE: // fall through
+		//$CASES-OMITTED$
 		default:
 			displayMainGameScreen();
 			break;
@@ -175,12 +175,7 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 		{
 			completeInventory.handleKeyEvent(ke);
 			refreshInterface();
-			
-			InventorySelectionKey itemToUse = completeInventory.getAndClearItemToUse();
-			
-			if (itemToUse != null)
-				promptForDirection(ActorCommand.use(itemToUse, null));
-			
+			attemptToUseItem();
 			return;
 		}
 		
@@ -210,31 +205,34 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 			refreshInterface();
 		} else if (code == KeyEvent.VK_NUMPAD1 || code == KeyEvent.VK_END)
 		{
-			handleDirection(1, -1);
+			handleDirection(Direction.DIRSW);
 		} else if (code == KeyEvent.VK_NUMPAD2 || code == KeyEvent.VK_KP_DOWN || code == KeyEvent.VK_DOWN)
 		{
-			handleDirection(1, 0);
+			handleDirection(Direction.DIRS);
 		} else if (code == KeyEvent.VK_NUMPAD3 || code == KeyEvent.VK_PAGE_DOWN)
 		{
-			handleDirection(1, 1);
+			handleDirection(Direction.DIRSE);
 		} else if (code == KeyEvent.VK_NUMPAD4 || code == KeyEvent.VK_KP_LEFT || code == KeyEvent.VK_LEFT)
 		{
-			handleDirection(0, -1);
+			handleDirection(Direction.DIRW);
 		} else if (code == KeyEvent.VK_NUMPAD5 || code == KeyEvent.VK_CLEAR)
 		{
-			handleDirection(0, 0);
+			handleDirection(Direction.DIRNONE);
 		} else if (code == KeyEvent.VK_NUMPAD6 || code == KeyEvent.VK_KP_RIGHT || code == KeyEvent.VK_RIGHT)
 		{
-			handleDirection(0, 1);
+			handleDirection(Direction.DIRE);
 		} else if (code == KeyEvent.VK_NUMPAD7 || code == KeyEvent.VK_HOME)
 		{
-			handleDirection(-1, -1);
+			handleDirection(Direction.DIRNW);
 		} else if (code == KeyEvent.VK_NUMPAD8 || code == KeyEvent.VK_KP_UP|| code == KeyEvent.VK_UP)
 		{
-			handleDirection(-1, 0);
+			handleDirection(Direction.DIRN);
 		} else if (code == KeyEvent.VK_NUMPAD9 || code == KeyEvent.VK_PAGE_UP)
 		{
-			handleDirection(-1, 1);
+			handleDirection(Direction.DIRNE);
+		} else if (code == KeyEvent.VK_F1 || code == KeyEvent.VK_F2 || code == KeyEvent.VK_F3)
+		{
+			handleFunctionKey(ke);
 		} else if (keyChar == '>')
 		{
 			engine.receiveCommand(ActorCommand.changeZoneDown());
@@ -270,6 +268,16 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 			engine.receiveCommand(ActorCommand.exit());
 			terminal.close();
 		}
+	}
+
+	private void handleFunctionKey(KeyEvent keyEvent)
+	{
+		if (currentState != GuiState.NONE)
+			return;
+		
+		completeInventory.setState(InventoryState.USE);
+		completeInventory.handleKeyEvent(keyEvent);
+		attemptToUseItem();
 	}
 
 	private void handleChatInput()
@@ -310,7 +318,7 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 	{
 		Actor player = engine.getData().getPlayer();
 
-		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty())
+		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty() && player.getMaterials().isEmpty() && player.getReadiedItems().isEmpty() && player.getMagicItems().isEmpty())
 		{
 			MessageBuffer.addMessage("You aren't carrying anything!");
 			currentState = GuiState.MESSAGE;
@@ -327,7 +335,7 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 	{
 		Actor player = engine.getData().getPlayer();
 
-		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty())
+		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty() && player.getMaterials().isEmpty() && player.getReadiedItems().isEmpty() && player.getMagicItems().isEmpty())
 		{
 			MessageBuffer.addMessage("You have no items to use!");
 			currentState = GuiState.MESSAGE;
@@ -340,7 +348,33 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 		refreshInterface();
 	}
 
-	//TODO: this doesn't work for USE right now; pending command needs to actually be a command, rather than just a type, so figure all that out
+	private void attemptToUseItem()
+	{
+		InventorySelectionKey itemToUse = completeInventory.getAndClearItemToUse();
+		
+		if (itemToUse == null)
+			return;
+		
+		Equipment magicItems = engine.getData().getPlayer().getMagicItems();
+		
+		if (magicItems.getItem(itemToUse.getItemIndex()) != null)
+		{
+			promptForDirection(ActorCommand.use(itemToUse, null));
+			return;
+		}
+		
+		MessageBuffer.addMessage("That slot is empty.");
+		currentState = GuiState.MESSAGE;
+		refreshInterface();
+		return;
+	}
+	
+	private void handleDirection(Direction direction)
+	{
+		Point coordChange = direction.getCoordChange();
+		handleDirection(coordChange.x, coordChange.y);
+	}
+
 	private void handleDirection(int rowChange, int colChange)
 	{
 		if (currentState != GuiState.NONE && currentState != GuiState.PENDING_DIRECTION)

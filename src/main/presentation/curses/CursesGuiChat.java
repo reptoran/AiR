@@ -11,6 +11,7 @@ import main.entity.chat.Chat;
 import main.entity.chat.ChatResponse;
 import main.logic.RPGlib;
 import main.presentation.GuiState;
+import main.presentation.Logger;
 import main.presentation.curses.terminal.CursesTerminal;
 import main.presentation.message.FormattedMessageBuilder;
 import main.presentation.message.MessageBuffer;
@@ -124,11 +125,14 @@ public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 		{
 			String text = responses.get(i).getText();
 			
+			if (text.length() > 61)
+				Logger.error("Response text is too long by " + (text.length() - 61) + " characters; string is \n[" + text + "]");
+			
 			int color = getTextColor();
 			if (i == selectedResponse)
 				color = getHighlightColor();
 			
-			terminal.print(9, 18 + i, text, color);			
+			terminal.print(9, 18 + i, text, color);
 		}
 	}
 

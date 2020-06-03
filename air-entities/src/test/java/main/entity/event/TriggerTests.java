@@ -14,7 +14,7 @@ public class TriggerTests
 	@Test
 	public void parseJsonDetailsString_noValue()
 	{
-		Trigger trigger = new Trigger(TriggerType.CHANGE_HP_OF_ACTOR, "PLAYER=1");
+		Trigger trigger = new Trigger(TriggerType.CHANGE_HP_OF_ACTOR, "PLAYER:1");
 		System.out.println(trigger.getDetails());
 	}
 }

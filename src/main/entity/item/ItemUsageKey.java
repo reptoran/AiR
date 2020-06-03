@@ -6,10 +6,10 @@ import main.entity.tile.TileType;
 
 public class ItemUsageKey
 {
-	private final ItemType itemUsed;
-	private final ActorType actorTarget;
-	private final ItemType itemTarget;
-	private final FeatureType featureTarget;
+	private final ItemGroup itemUsedGroup;		//TODO: This WILL NOT WORK in the usage maps, because maps need unique keys, and any group with an item
+	private final ActorType actorTarget;		//		will prevent any individual item in that group from being added.
+	private final ItemType itemTarget;			//		Note though that as long as the targets are different (so, for example, a one-off where any bladed
+	private final FeatureType featureTarget;	//		weapon can free a particular NPC), it will still work out.
 	private final TileType tileTarget;
 
 	public ItemUsageKey(ItemType item, ActorType target)
@@ -34,7 +34,12 @@ public class ItemUsageKey
 	
 	private ItemUsageKey(ItemType itemUsed, ActorType actorTarget, ItemType itemTarget, FeatureType featureTarget, TileType tileTarget)
 	{
-		this.itemUsed = itemUsed;
+		this(ItemGroup.singleItemGroup(itemUsed), actorTarget, itemTarget, featureTarget, tileTarget);
+	}
+	
+	private ItemUsageKey(ItemGroup itemUsedGroup, ActorType actorTarget, ItemType itemTarget, FeatureType featureTarget, TileType tileTarget)
+	{
+		this.itemUsedGroup = itemUsedGroup;
 		this.actorTarget = actorTarget;
 		this.itemTarget = itemTarget;
 		this.featureTarget = featureTarget;
@@ -57,7 +62,7 @@ public class ItemUsageKey
 		if (tileTarget != null)
 			tileTargetAny = TileType.ANY_TILE;
 		
-		return new ItemUsageKey(itemUsed, actorTargetAny, itemTargetAny, featureTargetAny, tileTargetAny);
+		return new ItemUsageKey(itemUsedGroup, actorTargetAny, itemTargetAny, featureTargetAny, tileTargetAny);
 	}
 
 	@Override
@@ -68,7 +73,7 @@ public class ItemUsageKey
 		result = prime * result + ((actorTarget == null) ? 0 : actorTarget.hashCode());
 		result = prime * result + ((featureTarget == null) ? 0 : featureTarget.hashCode());
 		result = prime * result + ((itemTarget == null) ? 0 : itemTarget.hashCode());
-		result = prime * result + ((itemUsed == null) ? 0 : itemUsed.hashCode());
+		result = prime * result + ((itemUsedGroup == null) ? 0 : itemUsedGroup.hashCode());
 		result = prime * result + ((tileTarget == null) ? 0 : tileTarget.hashCode());
 		return result;
 	}
@@ -89,7 +94,7 @@ public class ItemUsageKey
 			return false;
 		if (itemTarget != other.itemTarget)
 			return false;
-		if (itemUsed != other.itemUsed)
+		if (!itemUsedGroup.equals(other.itemUsedGroup))
 			return false;
 		if (tileTarget != other.tileTarget)
 			return false;
@@ -110,77 +115,6 @@ public class ItemUsageKey
 		if (tileTarget != null)
 			target = tileTarget.name();
 		
-		return "ItemUsageKey[" + itemUsed.name() + ":" + target + "]";
+		return "ItemUsageKey[" + itemUsedGroup.getName() + ":" + target + "]";
 	}
-
-//	@Override
-//	public boolean equals(Object obj)		//returns true when comparing against ANY_***** types
-//	{
-//		if (this == obj)
-//			return true;
-//		if (obj == null)
-//			return false;
-//		if (getClass() != obj.getClass())
-//			return false;
-//		ItemUsageKey other = (ItemUsageKey) obj;
-//		if (itemUsed != other.itemUsed)
-//			return false;
-//		if (!compareActorTargets(actorTarget, other.actorTarget))
-//			return false;
-//		if (!compareItemTargets(itemTarget, other.itemTarget))
-//			return false;
-//		if (!compareFeatureTargets(featureTarget, other.featureTarget))
-//			return false;
-//		if (!compareTileTargets(tileTarget, other.tileTarget))
-//			return false;
-//		return true;
-//	}
-//
-//	private boolean compareActorTargets(ActorType actorTarget1, ActorType actorTarget2)
-//	{
-//		if (actorTarget1 == null && actorTarget2 != null)
-//			return false;
-//		if (actorTarget1 != null && actorTarget2 == null)
-//			return false;
-//		if (actorTarget1 == ActorType.ANY_ACTOR || actorTarget2 == ActorType.ANY_ACTOR)
-//			return true;
-//		
-//		return actorTarget1 == actorTarget2;
-//	}
-//
-//	private boolean compareItemTargets(ItemType itemTarget1, ItemType itemTarget2)
-//	{
-//		if (itemTarget1 == null && itemTarget2 != null)
-//			return false;
-//		if (itemTarget1 != null && itemTarget2 == null)
-//			return false;
-//		if (itemTarget1 == ItemType.ANY_ITEM || itemTarget2 == ItemType.ANY_ITEM)
-//			return true;
-//		
-//		return itemTarget1 == itemTarget2;
-//	}
-//
-//	private boolean compareFeatureTargets(FeatureType featureTarget1, FeatureType featureTarget2)
-//	{
-//		if (featureTarget1 == null && featureTarget2 != null)
-//			return false;
-//		if (featureTarget1 != null && featureTarget2 == null)
-//			return false;
-//		if (featureTarget1 == FeatureType.ANY_FEATURE || featureTarget2 == FeatureType.ANY_FEATURE)
-//			return true;
-//		
-//		return featureTarget1 == featureTarget2;
-//	}
-//
-//	private boolean compareTileTargets(TileType tileTarget1, TileType tileTarget2)
-//	{
-//		if (tileTarget1 == null && tileTarget2 != null)
-//			return false;
-//		if (tileTarget1 != null && tileTarget2 == null)
-//			return false;
-//		if (tileTarget1 == TileType.ANY_TILE || tileTarget2 == TileType.ANY_TILE)
-//			return true;
-//		
-//		return tileTarget1 == tileTarget2;
-//	}
 }

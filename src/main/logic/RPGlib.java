@@ -175,4 +175,9 @@ public class RPGlib
 		
 		return list;
 	}
+
+	public static Point addPoints(Point origin, Point coordChange)
+	{
+		return new Point(origin.x + coordChange.x, origin.y + coordChange.y);
+	}
 }

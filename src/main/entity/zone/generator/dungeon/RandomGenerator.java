@@ -10,6 +10,7 @@ import main.entity.tile.TileType;
 import main.entity.zone.Zone;
 import main.entity.zone.ZoneKey;
 import main.entity.zone.ZoneType;
+import main.presentation.Logger;
 
 public abstract class RandomGenerator
 {
@@ -25,6 +26,8 @@ public abstract class RandomGenerator
 			{
 				Tile newTile = TileFactory.generateNewTile(TileType.FLOOR);
 
+				try {
+				
 				switch (mapTiles[i][j])
 				{
 				case '#':
@@ -41,6 +44,11 @@ public abstract class RandomGenerator
 				}
 
 				zone.setTile(i, j, newTile);
+				
+				} catch (NullPointerException npe)
+				{
+					Logger.error("null pointer thrown in dungeon generation");
+				}
 			}
 		}
 		

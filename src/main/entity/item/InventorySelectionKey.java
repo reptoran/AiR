@@ -5,6 +5,11 @@ public class InventorySelectionKey
 	private final ItemSource itemSource;
 	private final int itemIndex;
 	
+	public InventorySelectionKey(ItemSource itemSource)
+	{
+		this(itemSource, -1);
+	}
+	
 	public InventorySelectionKey(ItemSource itemSource, int itemIndex)
 	{
 		this.itemSource = itemSource;
@@ -32,5 +37,11 @@ public class InventorySelectionKey
 	public String toString()
 	{
 		return itemSource.charValue() + String.valueOf(itemIndex);
+	}
+	
+	@Override
+	public InventorySelectionKey clone()
+	{
+		return new InventorySelectionKey(itemSource, itemIndex);
 	}
 }

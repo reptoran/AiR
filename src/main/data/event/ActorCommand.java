@@ -51,6 +51,12 @@ public class ActorCommand
 		return new ActorCommand(type, argument);
 	}
 	
+	@Override
+	public String toString()
+	{
+		return type.name() + "[" + argument1 + "," + argument2 + "]";
+	}
+	
 	public static ActorCommand save()
 	{
 		return new ActorCommand(ActorCommandType.SAVE);
@@ -103,6 +109,6 @@ public class ActorCommand
 
 	public static ActorCommand use(InventorySelectionKey inventorySlot, Direction direction)
 	{
-		return new ActorCommand(ActorCommandType.EQUIP, RPGlib.stringValue(inventorySlot), RPGlib.stringValue(direction));
+		return new ActorCommand(ActorCommandType.USE, RPGlib.stringValue(inventorySlot), RPGlib.stringValue(direction));
 	}
 }

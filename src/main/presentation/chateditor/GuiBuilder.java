@@ -357,6 +357,7 @@ public class GuiBuilder
 		panel.add(triggerModifier);
 		
 		triggerValue.setActionCommand(ChatEditorPanel.CHANGE_TRIGMOD);
+		triggerValue.setEditable(true);
 		triggerValue.setSize(elementWidth, ChatEditorPanel.BUTTON_HEIGHT);
 		triggerValue.setLocation(triggerModifier.getLocation().x, triggerModifier.getLocation().y + triggerModifier.getHeight() + ChatEditorPanel.BUTTON_PAD);
 		triggerValue.addActionListener(panel);

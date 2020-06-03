@@ -3,7 +3,7 @@ package main.data.event.environment;
 import java.util.ArrayList;
 import java.util.List;
 
-import main.data.ObjectIndexTranslator;
+import main.data.DataAccessor;
 import main.data.event.InternalEvent;
 import main.entity.actor.Actor;
 import main.entity.item.ItemSource;
@@ -27,8 +27,8 @@ public class GiveItemEvent extends AbstractEnvironmentEvent
 		if (actor == null || secondaryActor == null)
 			return eventList;
 		
-		int giverActorIndex = ObjectIndexTranslator.getInstance().getIndexOfActor(actor);
-		int receiverActorIndex = ObjectIndexTranslator.getInstance().getIndexOfActor(secondaryActor);
+		int giverActorIndex = DataAccessor.getInstance().getIndexOfActor(actor);
+		int receiverActorIndex = DataAccessor.getInstance().getIndexOfActor(secondaryActor);
 		
 		
 		ItemSource itemSource = ItemSource.fromInt(value);

@@ -5,7 +5,7 @@ import javax.swing.JOptionPane;
 import org.apache.commons.lang3.StringUtils;
 
 import main.data.Data;
-import main.data.ObjectIndexTranslator;
+import main.data.DataAccessor;
 import main.logic.Engine;
 import main.presentation.GuiState;
 import main.presentation.Logger;
@@ -34,7 +34,7 @@ public class GameRunner
 		dataLayer = new Data();
 		logicLayer = new Engine(dataLayer);
 		
-		ObjectIndexTranslator.getInstance().setData(dataLayer);
+		DataAccessor.getInstance().setData(dataLayer);
 		CursesGui gui = new CursesGui(logicLayer);
 		UiManager.getInstance().setGui(gui);
 

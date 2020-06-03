@@ -37,6 +37,8 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 	public final int PANEL_HEIGHT;
 	public final int PANEL_WIDTH;
 	
+	private static final int MAX_RESPONSE_LENGTH = 61;
+	
 	public static final int BORDER_PAD = 10;
 	public static final int BUTTON_PAD = 5;
 	
@@ -106,7 +108,7 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 	
 	private JTextArea chatText = new JTextArea();
 	private JCheckBox entryCheck = new JCheckBox("Entry Chat?");
-	private JTextField responseText = new JTextField();
+	private JTextField responseText = new JTextField();				//TODO: make this whatever class can enforce a character limit
 	private JTextField responseFlowTo = new JTextField();
 
 	public ChatEditorPanel(int heightArg, int widthArg)
@@ -285,7 +287,11 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 		if (currentResponse == null)
 			return;
 		
-		currentResponse.setText(responseText.getText());
+		String newText = responseText.getText();
+		if (newText.length() > MAX_RESPONSE_LENGTH)
+			newText = newText.substring(0, MAX_RESPONSE_LENGTH);
+		
+		currentResponse.setText(newText);
 		saveCurrentChat();
 		
 		ResponseListModel model = (ResponseListModel)responseList.getModel();
@@ -365,7 +371,8 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 			return;
 		
 		TriggerType type = TriggerType.fromString(triggerType.getSelectedItem().toString());
-		currentTrigger.setType(type);
+		currentTrigger.setType(type);		//a side effect of this is that the other fields might not have sensible values, but it's probably better to let the user just update them rather than wiping them
+//		currentTrigger = new Trigger(type);
 	}
 	
 	//TODO: this might not work if the reference somehow isn't maintained in the response's trigger list
@@ -602,6 +609,9 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 		
 		if (text == null)
 			return;
+		
+		if (text.length() > MAX_RESPONSE_LENGTH)
+			text = text.substring(0, MAX_RESPONSE_LENGTH);
 		
 		ChatResponse newResponse = new ChatResponse();
 		newResponse.setText(text);

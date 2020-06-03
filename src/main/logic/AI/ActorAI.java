@@ -2,6 +2,7 @@ package main.logic.AI;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import main.data.event.ActorCommand;
@@ -72,10 +73,14 @@ public abstract class ActorAI
 	
 	protected ActorCommand getRandomLegalMoveCommand(Zone zone, Actor actor)
 	{
-		//TODO: check for walls
-		String moveTo[] = {"DIRNW", "DIRN", "DIRNE", "DIRW", "DIRE", "DIRSW", "DIRS", "DIRSE"};
-	    Direction direction = Direction.fromString(moveTo[RPGlib.randInt(0, 7)]);
+		List<Direction> moveTo = getValidRandomMoveDirections(zone, actor);
+	    Direction direction = moveTo.get(RPGlib.randInt(0, moveTo.size() - 1));
 	    return ActorCommand.move(direction);
+	}
+	
+	protected List<Direction> getValidRandomMoveDirections(Zone zone, Actor actor)
+	{
+		return new ArrayList<Direction>(Arrays.asList(Direction.values()));
 	}
 	
 	protected List<AiType> generateAiList(AiType... types)

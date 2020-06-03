@@ -46,11 +46,18 @@ public abstract class AbstractFieldPopulator
 	{
 		values.setEnabled(true);
 	}
+
+	protected void addFreeformValues()
+	{
+		values.removeAllItems();
+		values.setEditable(true);
+	}
 	
 	protected void disableValues()
 	{
 		values.removeAllItems();
 		values.setEnabled(false);
+		values.setEditable(false);
 	}
 
 	protected void addItemValues()
@@ -61,6 +68,23 @@ public abstract class AbstractFieldPopulator
 		{
 			values.addItem(item.name());
 		}
+		
+		values.setSelectedItem(ItemType.NO_TYPE);
+	}
+	
+	protected void enableComparisons()
+	{
+		operators.removeAllItems();
+		operators.setEnabled(true);
+		comparison.setEnabled(true);
+	}
+	
+	protected void disableComparisons()
+	{
+		operators.removeAllItems();
+		operators.setEnabled(false);
+		comparison.removeAllItems();
+		comparison.setEnabled(false);
 	}
 	
 	protected void clearComparisons()
@@ -76,6 +100,8 @@ public abstract class AbstractFieldPopulator
 		{
 			comparison.addItem(actor.name());
 		}
+		
+		values.setSelectedItem(ActorType.NO_TYPE);
 	}
 
 	protected void addIntOperators()

@@ -29,7 +29,7 @@ import main.entity.item.Item;
 import main.entity.item.ItemFactory;
 import main.entity.item.ItemSource;
 import main.entity.item.ItemType;
-import main.entity.item.ItemUsageMap;
+import main.entity.item.ItemUsageEventGenerator;
 import main.entity.item.equipment.Equipment;
 import main.entity.item.equipment.EquipmentSlot;
 import main.entity.tile.Tile;
@@ -67,7 +67,7 @@ public class Data implements EventObserver
 
 	public Data()
 	{
-		ItemUsageMap.getInstance();									//populates item usage map
+		ItemUsageEventGenerator.getInstance();									//populates item usage map
 		RequirementValidator.getInstance().setData(this);
 		ChatManager.getInstance().setData(this);
 		EventTriggerExecutor.getInstance().setData(this);
@@ -376,7 +376,6 @@ public class Data implements EventObserver
 		Logger.debug("Data - Internal event came through with an actor index of " + internalEvent.getFlag(0));
 		
 		Actor actor = getActor(internalEvent.getFlag(0));
-//		actor.increaseTicksLeftBeforeActing(internalEvent.getActionCost());		//TODO: done in engine now; remove line once this is verified to be working
 
 		switch (internalEvent.getInternalEventType())
 		{
@@ -388,7 +387,6 @@ public class Data implements EventObserver
 			
 		case LOCAL_MOVE:
 			updateActorLocalCoords(actor, internalEvent.getFlag(1), internalEvent.getFlag(2));
-			Logger.debug("Actor " + actor.getName() + " has hit points of " + actor.getCurHp());
 			break;
 
 		case WORLD_MOVE:
@@ -497,17 +495,23 @@ public class Data implements EventObserver
 	
 	private void deleteItem(Actor actor, InternalEvent internalEvent)
 	{
-		Item item;
 		int flag1 = internalEvent.getFlag(1);
 		int flag2 = internalEvent.getFlag(2);
 		int amountToDelete = internalEvent.getFlag(3);
 		
+		Item item;
+		ItemSource itemSource = null;
+		int itemIndex = flag2;
+		
 		if (actor == null)
+		{
 			item = currentZone.getTile(flag1, flag2).getItemHere();
-		else if (flag1 != -1)
-			item = actor.getEquipment().getItem(flag1);
+		}
 		else
-			item = actor.getStoredItems().get(flag1);
+		{
+			itemSource = ItemSource.fromInt(flag1);
+			item = getItemFromActor(actor, itemSource, itemIndex);
+		}
 		
 		int currentAmount = item.getAmount();
 		
@@ -520,11 +524,11 @@ public class Data implements EventObserver
 		//otherwise remove it entirely
 		if (actor == null)
 			currentZone.getTile(flag1, flag2).setItemHere(null);
-		else if (flag1 != -1)
-			actor.getEquipment().removeItem(flag1);
-		else
-			actor.getStoredItems().remove(flag1);
+		else 
+			removeItemFromActor(actor, itemSource, itemIndex);
 	}
+	
+	
 
 	private void createItem(Actor actor, InternalEvent internalEvent)
 	{
@@ -561,19 +565,25 @@ public class Data implements EventObserver
 		}
 		else
 		{
-			item = removeItemFromActor(actor, flag2, ItemSource.fromInt(flag1));
+			item = removeItemFromActor(actor, ItemSource.fromInt(flag1), flag2);
 		}
 		
 		if (item != null)
 			dropItem(destination, item);
 	}
 
-	//TODO: generify this for unequipping from spots other than just equipment (magic, readied)
 	private void unequipItem(Actor actor, InternalEvent event)
 	{
+		ItemSource equipmentZone = ItemSource.fromInt(event.getFlag(1));
 		int slotIndex = event.getFlag(2);
 		
-		EquipmentSlot slot = actor.getEquipment().getEquipmentSlots().get(slotIndex);
+		//TODO: for now, all unequipping goes to the pack, so these are unnecessary
+		//	ItemSource targetZone = ItemSource.fromInt(event.getFlag(3));
+		//	int itemIndex = event.getFlag(4);
+		
+		
+		Equipment equipment = getEquipmentForEquipmentZone(actor, equipmentZone);
+		EquipmentSlot slot = equipment.getEquipmentSlots().get(slotIndex);
 		Inventory inventory = actor.getStoredItems();
 		
 		inventory.add(slot.removeItem());
@@ -586,25 +596,7 @@ public class Data implements EventObserver
 		ItemSource equipmentZone = ItemSource.fromInt(event.getFlag(3));
 		int slotIndex = event.getFlag(4);
 		
-		Equipment equipment;
-		
-		switch (equipmentZone)
-		{
-		case EQUIPMENT:
-			equipment = actor.getEquipment();
-			break;
-		case MAGIC:
-			equipment = actor.getMagicItems();
-			break;
-		case READY:
-			equipment = actor.getReadiedItems();
-			break;
-		//$CASES-OMITTED$
-		default:
-			throw new IllegalArgumentException("Items cannot be equipped to zone " + equipmentZone);
-		
-		}
-		
+		Equipment equipment = getEquipmentForEquipmentZone(actor, equipmentZone);
 		EquipmentSlot slot = equipment.getEquipmentSlots().get(slotIndex);
 		Item itemToEquip = null;
 		
@@ -628,11 +620,27 @@ public class Data implements EventObserver
 		
 		slot.setItem(itemToEquip);
 	}
+	
+	private Equipment getEquipmentForEquipmentZone(Actor actor, ItemSource equipmentZone)
+	{
+		switch (equipmentZone)
+		{
+		case EQUIPMENT:
+			return actor.getEquipment();
+		case MAGIC:
+			return actor.getMagicItems();
+		case READY:
+			return actor.getReadiedItems();
+		//$CASES-OMITTED$
+		default:
+			throw new IllegalArgumentException("Action is not valid for equipment zone " + equipmentZone);
+		}
+	}
 
 	private void dropItem(Actor actor, int itemSourceInt, int itemIndex)
 	{
 		ItemSource itemSource = ItemSource.fromInt(itemSourceInt);
-		Item itemToDrop = removeItemFromActor(actor, itemIndex, itemSource);
+		Item itemToDrop = removeItemFromActor(actor, itemSource, itemIndex);
 		
 		Point coordsToDropItem = getClosestOpenTileCoords(currentZone.getCoordsOfActor(actor));
 		currentZone.getTile(coordsToDropItem).setItemHere(itemToDrop);
@@ -642,12 +650,12 @@ public class Data implements EventObserver
 	{
 		ItemSource itemSource = ItemSource.fromInt(internalEvent.getFlag(1));
 		int itemIndex = internalEvent.getFlag(2);
-		Item itemToGive = removeItemFromActor(giver, itemIndex, itemSource);
+		Item itemToGive = removeItemFromActor(giver, itemSource, itemIndex);
 		Actor receiver = getActor(internalEvent.getFlag(3));
 		receiver.receiveItem(itemToGive);
 	}
 	
-	private Item removeItemFromActor(Actor actor, int itemIndex, ItemSource itemSource)
+	private Item removeItemFromActor(Actor actor, ItemSource itemSource, int itemIndex)
 	{
 		switch (itemSource)
 		{
@@ -661,6 +669,23 @@ public class Data implements EventObserver
 			return actor.getMagicItems().removeItem(itemIndex);
 		default:
 			throw new IllegalArgumentException("No drop behavior defined for item source " + itemSource);
+		}
+	}
+	
+	private Item getItemFromActor(Actor actor, ItemSource itemSource, int itemIndex)
+	{
+		switch (itemSource)
+		{
+		case PACK:
+			return actor.getStoredItems().get(itemIndex);
+		case MATERIAL:
+			return actor.getMaterials().get(itemIndex);
+		case EQUIPMENT:
+			return actor.getEquipment().getItem(itemIndex);
+		case MAGIC:
+			return actor.getMagicItems().getItem(itemIndex);
+		default:
+			throw new IllegalArgumentException("Can not retrieve item from item source " + itemSource);
 		}
 	}
 
@@ -723,7 +748,7 @@ public class Data implements EventObserver
 
 	private void updateActorLocalCoords(Actor actor, int x, int y)
 	{
-		Logger.debug("Data - Moving actor " + actor.getName() + " to (" + x + ", " + y + ").");
+		Logger.info("Data - Moving actor " + actor.getName() + " to (" + x + ", " + y + ").");
 		currentZone.updateActorCoords(actor, new Point(x, y));
 	}
 

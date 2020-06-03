@@ -350,6 +350,11 @@ public class Zone extends SaveableEntity
 		return canEnterWorld;
 	}
 	
+	public Set<ZoneKey> getAllZoneKeys()
+	{
+		return new HashSet<ZoneKey>(zoneEntryKeys.values());
+	}
+	
 	public ZoneKey getZoneKey(Point point)
 	{
 		return zoneEntryKeys.get(point);

@@ -25,9 +25,19 @@ public abstract class AbstractLogicalEvaluation
 		return modifier;
 	}
 
+	public int getModifierInt()
+	{
+		return getIntValueOfString(modifier);
+	}
+
 	public String getValue()
 	{
 		return value;
+	}
+	
+	public int getValueInt()
+	{
+		return getIntValueOfString(value);
 	}
 
 	public CompareOperator getOperator()
@@ -38,6 +48,11 @@ public abstract class AbstractLogicalEvaluation
 	public String getComparison()
 	{
 		return comparison;
+	}
+	
+	public int getComparisonInt()
+	{
+		return getIntValueOfString(comparison);
 	}
 
 	public void setDetails(String modifier, String value, CompareOperator operator, String comparison)
@@ -65,7 +80,6 @@ public abstract class AbstractLogicalEvaluation
 	protected void parseJsonDetailsString()
 	{
 		int modifierIndex = details.indexOf(":");
-		String operatorString = "";
 		int operatorIndex = -1;
 
 		for (CompareOperator co : CompareOperator.values())
@@ -73,37 +87,54 @@ public abstract class AbstractLogicalEvaluation
 			int index = details.indexOf(co.getSymbol());
 			if (index != -1)
 			{
-				operatorString = " " + co.getSymbol() + " ";
 				operatorIndex = index;
 				operator = co;
 				break;
 			}
 		}
-
-		String detailString = ": " + details;
 		
 		if (modifierIndex != -1)
-		{
 			modifier = details.substring(0, modifierIndex);
-			detailString = modifier + ":" + detailString;
-		}
 		
 		if (operatorIndex != -1)
 		{
 			value = details.substring(modifierIndex + 1, operatorIndex);
 			comparison = details.substring(operatorIndex + 1);
-
-			if (StringUtils.isEmpty(value))
-				detailString = operatorString + comparison;
-			else if (StringUtils.isEmpty(modifier))
-				detailString = ": " + value + operatorString + comparison;
-			else
-				detailString = ": " + modifier + ":" + value + operatorString + comparison;
 		}
-
-		stringRepresentation = getTypeName() + detailString;
+		else
+		{
+			value = details.substring(modifierIndex + 1);
+			operator = null;
+			comparison = null;
+		}
+		
+		stringRepresentation = generateStringRepresentation();
 	}
 	
+	private String generateStringRepresentation()
+	{
+		String detailString = value;
+		
+		if (!StringUtils.isEmpty(modifier))
+			detailString = modifier + ":" + detailString;
+		
+		if (operator != null)
+			detailString = detailString + " " + operator.getSymbol() + " " + comparison;
+		
+		return getTypeName() + ": " + detailString;
+	}
+	
+	private int getIntValueOfString(String value)
+	{
+		try
+		{
+			return Integer.parseInt(value);
+		} catch (NumberFormatException nfe)
+		{
+			return 0;
+		}
+	}
+
 	protected abstract void setTypeAndDetailsFromMap();
 	protected abstract void putDetailsInMap();
 	protected abstract String getTypeName();

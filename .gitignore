@@ -7,3 +7,4 @@
 /air-entities/target/classes/main/entity/item/*.class
 /air-entities/target/test-classes/main/entity/event/*.class
 target
+*.class

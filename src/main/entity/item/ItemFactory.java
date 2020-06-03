@@ -16,6 +16,12 @@ public class ItemFactory
 	{
 		switch (itemType)
 		{
+		case DEBUG_GEM_DOWN:
+			return ItemBuilder.generateItem(itemType).setName("gem of descent").setPlural("gems of descent")
+					.setSlot(EquipmentSlotType.MAGIC).setIcon('*').setColor(CursesGuiUtil.COLOR_LIGHT_CYAN).build();
+		case DEBUG_GEM_UP:
+			return ItemBuilder.generateItem(itemType).setName("gem of ascent").setPlural("gems of ascent")
+					.setSlot(EquipmentSlotType.MAGIC).setIcon('*').setColor(CursesGuiUtil.COLOR_LIGHT_MAGENTA).build();
 		case THICK_SHIRT:
 			return ItemBuilder.generateItem(itemType).setNames("thick shirt").setSlot(EquipmentSlotType.ARMOR).setIcon('[').setColor(10)
 					.setAR(1).setCR(80).setDR(0).setHP(10).build();

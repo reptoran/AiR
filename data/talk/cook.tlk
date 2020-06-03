@@ -1,0 +1,37 @@
+[
+   {
+      "tag":"COOK_GREETING",
+      "text":"Why, hello! What brings you to the cookhouse?",
+      "entry":true,
+      "response":[
+         {
+            "text":"Any idea how to destroy reanimated skeletons?",
+            "flowTo":"COOK_SKELETON"
+         }
+      ]
+   },
+   {
+      "tag":"COOK_SKELETON",
+      "text":"Reanimated skeletons, you say? Like ones that move? Wouldn't that be something! I ain't much of a fighter these days, but when I'm fixing up stew for the men, you'd better believe I crack open a whole mess of bones with my handy mallet here.  Bone marrow - that's what gives the stew that extra something, you know? Flavor, texture, nutrients...",
+      "entry":false,
+      "response":[
+         {
+            "text":"Yes, yes.  So you think I should use that against undead?",
+            "flowTo":"COOK_MALLET"
+         },
+         {
+            "text":"A mallet, eh? Hmm...I bet someone here can help with that..."
+         }
+      ]
+   },
+   {
+      "tag":"COOK_MALLET",
+      "text":"Not this one, absolutely not! Besides, a fine warrior you'd look swinging a cook's tenderizer, wouldn't you say? Why don't you see if the weaponsmith can offer you something heavier?",
+      "entry":false,
+      "response":[
+         {
+            "text":"Of course, the weaponsmith! Thanks for the tip."
+         }
+      ]
+   }
+]

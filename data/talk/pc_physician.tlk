@@ -39,7 +39,7 @@
             ],
             "triggers":[
                {
-                  "CHANGE_HP":"=10000"
+                  "CHANGE_HP_OF_ACTOR":"PLAYER:10000"
                }
             ]
          },

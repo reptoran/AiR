@@ -169,6 +169,7 @@ public class CursesGuiDisplay extends CursesGuiUtil
 		terminal.print(0, 24, "Depth: " + localMap.getDepth(), PLAYER_INFO_COLOR);
 		
 		displayEquipmentCondition(player);
+		displayMagicItems(player);
 		displayTargetHitpoints();
 	}
 	
@@ -227,6 +228,29 @@ public class CursesGuiDisplay extends CursesGuiUtil
 			terminal.print(nameColumn, 24, slotName + ":", PLAYER_INFO_COLOR);
 			terminal.print(conditionColumn, 24, getItemConditionString(slot.getItem()), getItemConditionColor(slot.getItem()));
 		}
+	}
+	
+	private void displayMagicItems(Actor player)
+	{
+		List<EquipmentSlot> slots = player.getMagicItems().getEquipmentSlots();
+		
+//		terminal.print(54, 24, "Magic: ", BORDER_COLOR);
+		
+		for (int i = 0; i < slots.size(); i++)
+		{
+			EquipmentSlot slot = slots.get(i);
+			Item item = slot.getItem();
+			int col = 65 + (5 * i);
+			
+//			terminal.print(col, 24, "[F" + (i + 1) + "]", BORDER_COLOR);
+			terminal.print(col, 24, "F" + (i + 1) + ":", BORDER_COLOR);
+			
+			if (item != null)
+				terminal.print(col + 3, 24, "" + item.getIcon(), item.getColor());
+		}
+		
+		terminal.print(64, 24, "[", BORDER_COLOR);
+		terminal.print(79, 24, "]", BORDER_COLOR);
 	}
 
 	private String getItemConditionString(Item item)

@@ -20,12 +20,18 @@ public class FormattedMessageBuilder
 	
 	public FormattedMessageBuilder setSource(Actor source)
 	{
+		if (source == null)
+			return this;
+		
 		this.source = source.clone();	//just so that nothing fishy happens to the actor between building this and formatting the message
 		return this;
 	}
 	
 	public FormattedMessageBuilder setTarget(Actor target)
 	{
+		if (target == null)
+			return this;
+		
 		this.target = target.clone();	//as above
 		return this;
 	}
@@ -69,7 +75,12 @@ public class FormattedMessageBuilder
 		if (target != null)
 		{
 			formattedMessage = formattedMessage.replace("@2thes", formatPossessive(target));
-			formattedMessage = formattedMessage.replace("@2the", formatThe(target));
+			
+			if (target.equals(source))
+				formattedMessage = formattedMessage.replace("@2the", formatSelf(target));
+			else
+				formattedMessage = formattedMessage.replace("@2the", formatThe(target));
+			
 			formattedMessage = formattedMessage.replace("@2he", formatHe(target));
 			formattedMessage = formattedMessage.replace("@2him", formatHim(target));
 			formattedMessage = formattedMessage.replace("@2his", formatHis(target));
@@ -80,18 +91,19 @@ public class FormattedMessageBuilder
 		formattedMessage = formatLetters(formattedMessage);
 		return capitalizeFirstCharacter(formattedMessage);
 	}
-	
+
 	private String formatLetters(String text)
 	{
+		String formattedText = text;
 		int startIndex = 0;
 		
 		while (true)
 		{
-			startIndex = text.indexOf('%', startIndex);
+			startIndex = formattedText.indexOf('%', startIndex);
 			if (startIndex == -1)
 				break;
 			
-			String textToReplace = text.substring(startIndex, startIndex + 3);
+			String textToReplace = formattedText.substring(startIndex, startIndex + 3);
 			char letter = textToReplace.charAt(2);
 			char actor = textToReplace.charAt(1);
 			String formattedLetter = "";
@@ -103,10 +115,10 @@ public class FormattedMessageBuilder
 			else
 				break;
 			
-			text = text.replace(textToReplace, formattedLetter);
+			formattedText = formattedText.replace(textToReplace, formattedLetter);
 		}
 		
-		return text;
+		return formattedText;
 	}
 	
 	private String formatLetter(char letter, Actor actor)
@@ -137,6 +149,23 @@ public class FormattedMessageBuilder
 			return actor.getName();
 		
 		return "the " + actor.getName();
+	}
+	
+	private CharSequence formatSelf(Actor actor)
+	{
+		switch (actor.getGender())
+		{
+		case FEMALE:
+			return "herself";
+		case MALE:
+			return "himself";
+		case NONE:
+			return "itself";
+		case PLAYER:
+			return "yourself";
+		default:
+			throw new IllegalStateException("Gender not recognized: " + actor.getGender());
+		}
 	}
 	
 	private String formatHe(Actor actor)

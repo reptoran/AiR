@@ -4,8 +4,11 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import main.data.event.ActorCommand;
 import main.entity.actor.Actor;
+import main.entity.item.InventorySelectionKey;
 import main.entity.item.Item;
+import main.entity.item.ItemSource;
 import main.entity.item.equipment.EquipmentSlotType;
 import main.logic.Engine;
 import main.presentation.GuiState;
@@ -88,11 +91,14 @@ public class CursesGuiInventory extends AbstractCursesGuiListInput
 		
 		if (state == InventoryState.DROP)
 		{
-			engine.receiveCommand("DROP" + itemIndex);
+			InventorySelectionKey key = new InventorySelectionKey(ItemSource.PACK, itemIndex);
+			engine.receiveCommand(ActorCommand.drop(key));
 			parentGui.setCurrentState(GuiState.NONE);
 		} else if (state == InventoryState.EQUIP && equipSlotIndex >= 0)
 		{
-			engine.receiveCommand("EQUIP" + equipSlotIndex + itemIndex);
+			InventorySelectionKey originKey = new InventorySelectionKey(ItemSource.PACK, itemIndex);
+			InventorySelectionKey targetKey = new InventorySelectionKey(ItemSource.EQUIPMENT, equipSlotIndex);
+			engine.receiveCommand(ActorCommand.equip(originKey, targetKey));
 			parentGui.setCurrentState(GuiState.EQUIPMENT);
 			equipSlotIndex = -1;
 		}

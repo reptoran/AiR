@@ -1,0 +1,115 @@
+Quest categories: http://roguebasin.roguelikedevelopment.org/index.php?title=World_of_Rogue#Quests_and_NPC_Interaction
+
+--
+
+I really want to take quest inspiration from Runescape and Fallout, where quests are skill-based and involve multiple stages of performing some narrative action.  A quest should never be a single objective (though perhaps random "tasks" could do that); a quest should be predefined and crafted with narrative intent.  This does have a couple of implications, however.
+
+1) A conversation system must be in place.  Multi-option (Gearhead) is ideal, but not required (ADOM).
+2) NPCs and locations must be static, if not entirely predefined.  The dwarven elder can't tell you to free Griff if the dwarven graveyard, Griff, and Nonnak aren't things.
+3) A skill system must exist, or at the very least, the player must be able to perform a variety of non-combat actions (most importantly, the ability to "use" an item on an actor, terrain feature, or other item).
+
+The first thing I've implemented before and have no real concerns about (beyond perhaps determining how the interface would work, but I've got fairly flexible system that should be able to handle it).  The second bears a little more thought.  The simplest option is have quests emerge only from existing game elements.  That is, the town elder might have potential quests for the ogre caves, the catacombs, and the sunken temple, but none of them are available until the levels are revealed.  In a game where only the sunken temple appears in the dungeon, for example, only that quest is offered, and only once the player has already been there.  This could be "good enough," though it does mean there are no "discover this location" quests.  On the other hand, that's a little more realistic, because instead of blindly chasing rumors (which wouldn't really exist anyway due to the dungeon's origin), the player can report back ("Hey, I've found this city filled with ogres...any thoughts?") and the NPCs can react and assign quests accordingly, since now there's something concrete to go off of.  In fact, when doing coding for conversation, perhaps consider a conversation element to involve an automatic check for existence of that NPC, rather than having an explicit requirement.  This matters even for "guaranteed" NPCs like the village elder, because who knows, maybe she died.
+
+The next option for NPCs/locations is to define the dungeon at the start of the game, or at least which levels are random and which levels contain special maps (as well as what those maps are).  This allows for quests that refer to yet unknown places and people, which could be nice.  I don't quite care for the idea, but depending on the quests I come up with, I might find it necessary.  It will also be necessary, no matter what, to store a list of (living) unique NPCs and unique places that have been generated, since they're not recorded anywhere in the game after the player leaves the level (everything is offloaded).  These can probably be assigned to a QuestManager or something as they come up, rather than in the Data class itself.
+
+No matter which method I choose, the kind of quests I'm considering here are likely going to require lots of back-and-forth walking, exploring, etc.  This is fine in Runescape with teleportation and Fallout with quick travel, but in a roguelike, it may not work out so well.  That's why we see "quests" in ADOM which are single objectives - go to this level, kill that enemy, etc.  Gearhead is fairly similar, though some of its missions may be more nuanced.  The way to solve this might be large maps where quests can be done on just the one map (solving a mystery, for example, by talking to one person, then another, then another, then finding an item, and so on), or special levels with multiple transition points to other linked special levels (like Snake Lake with the main city, park, corporate, and waterfront zones, though I think I'd rather just implicitly divide a special level into "districts" and serve the same purpose).  Another option might be some sort of item or ability that lets you teleport to a particular special level, perhaps given as a quest reward.  Finally, I could have "rifts" appear as the player descends - these would be at the edge of a room or hall, and be a permanant portal to another random rift 5-15 levels up (which only appears after the player enters the lower one).
+
+At any rate, quests should be used not just as one-off things to distract the player from the monster-killing grind.  They should work to connect places and develop lore within the game.  Why are these ruins here? What do people know of the wizard? How do different tribes, factions, and races interact with each other? The main story can be found on Roguebasin, and I'll likely base my current plans off of that.  For starters (enders), the final boss is the Wizard, and the whole labyrinth was created by the energies of his awakening tearing through the earth until it reached the surface.  Near the top, the energy mutated existing fauna (bears, wolves, bats, cave creatures) and energized the dead with unholy energy, while lower, it was intense enough to bring otherwise unliving elements to life (golems, elementals, etc.).  Some subterranean races were corrupted by the energy (burvaks, among others); others were resistant and fought back (dwarves, among others).  In the deeper depths of the labyrinth, ancient primordeal entities long since forgotten were released as caverns opened, and the ruins of long-dead civilizations were revealed for the first time in millenia.  And at the very bottom, the wizard established his realm, dominating and controlling these horrors to build and carve out the earth into a great fortress of shadow.  There he waits, surrounded by his strongest servants.
+
+The game can still be rich and interesting without quests as long as there are a wealth of special levels; besides, the quests form the interactions that join the special levels together, and will be designed to make use of the world that already exists (see "simplest option" take on Point 2 above).  However, before there can be special levels, there needs to be enemies to populate them.  So let's nail down some specifics.
+
+This first list will divide monsters into broad categories, and rank them within those categories.  Right now, the ranking is solely dependent on basic melee combat and assumed equipment, so if, for example, a snake is poisonous and therefore more deadly than a bear, this will not take that into account.  Similarly, monsters that can't reasonably (or even unreasonably) be defeated by physical means should also be avoided.  They can be included in the lists, but it should be noted that they'd require alternate means to defeat (like a fire elemental).  This could work with those "tiers" I reference - at some point, a sword and shield isn't going to get you any further, and you need something else (ego-weapon, magic, etc.)
+-Basically, the essence of life comes from magical energy, no matter the form.  Powerful enough magic can maintain animation even after a body is destroyed (undead), or bind a spirit to the world instead of releasing it to an afterlife.  So, just because shadow energy is what brings undead to life, that doesn't mean it's the only magic the drives life, or that only shadow energy can dispel it (though shadow is an accumulation and, in some ways, an overflowing, of elemental magic).
+
+Natural
+-------
+Rat
+Bat
+Snake
+Wolf
+Bear
+
+Sentient
+--------
+Rogue
+Wildman - likely no weapons/armor; these would be people who live in the caves (for whatever reason) or villagers who went exploring and became insane
+Watchman
+Scout
+Guard
+Captain - this and the three previous are the pseudo-military force that have established an outpost in the labyrinth; captain is probably coaligned, while the others are neutral (or whatever doesn't attack the player but can be attacked)
+Dwarf or "dwarf-likes" - a race that lives underground, perhaps more like morlocks than dwarves, though that then implies non-good alignment
+Ogre - high strength; would likely be dangerous to new players because of stunning attacks
+Gnomes - rare and incredibly old and magical
+
+Mutated
+-------
+Lizardman
+Cave Slime
+Fungal Mound
+MORE
+
+Undead
+------
+Skeleton - the weakest form of undead; literally long-dead bones held together by shadow energy, and possibly not even complete
+Zombie - one step up from skeleton; this is just a skeleton that still has flesh connecting it together.  no increase in intelligence, just harder to kill
+Wight - a zombie with purpose.  whereas a zombie is raised up almost incidentally, a wight is close enough to its death (or life, if you will) that it's nearly whole, and actually has purpose and independence (though that may not be reflected in the game yet, but it might be manifested by picking up/equipping items or something like that)
+Revenant - a wight with authority.  well-equipped, likely a fallen champion, prince, or other grand figure
+Lich - a revenant restored by his own powers; magic user and very powerful (perhaps requires magical undoing to kill, rather than sheer physical force)
+Ghost, Wraith, Spectre, etc. - varying forms of incorporeal undead; cannot be killed (or defended against) through physical means; likely invisible (perhaps different categories of invisibility? like magical invisibility that clouds perceptions, versus ethereal invisibility that comes from literally occupying a different dimension)
+ Note that there could be a difference between "undead" (something that had died and has been brought back to life) and "reanimated" (something that remains dead and is controlled by an external power).
+
+Construct
+---------
+
+
+Elemental
+---------
+
+
+Ancients
+--------
+perhaps so few of them that they're all unique?
+
+
+Shadow
+------
+
+
+----
+
+General XP could come from entering special dungeon levels, using skills, completing quests, and killing monsters.  Basically, you'll get stronger as you experience the game, no matter how you do it.  XP may not be granted simply for entering the special levels, but for leaving them the first time ("charting a path"), or simply by doing quests on that level.  After all, that's the whole point of the special level, to offer additional content to experience, so why not award EXPERIENCE based on EXPERIENCE? Then perhaps the player could be given generic skill points with each level, and can improve skills as they like - though high tiers of skills may be barred until the player has used the skill enough.
+
+Each skill should have five levels - UNSKILLED, NOVICE, ADEPT, EXPERT, MASTER.  Each level of advancement (for item creation skills, anyway) should come with a list of recipes that are automatically granted to the player upon achieving that level.  Additional recipes can be learned from NPCs or perhaps found, but the important thing is that a recipe can be learned at every level, even if it can't be used at any level.  ("Brew Advanced Cure Potion - 1x Water Vial, 3x Herbs, 1x Spice, ADEPT Level").  Consider using generic ingredients, like the crafting systems in Horizon: Zero Dawn, The Last of Us, and This War of Mine.  Perhaps there could be a mix of generic and specific components, similar to HZD? The player would still be limited to 10 distinct components being carried, so they would need to manage their resources and what they want/need for a given section of the dungeon.  But this management is good, because otherwise you run into HZD or ADOM gameplay, where you just carry 100 of everything so you'll always be prepared.  Why plan when you can hoard?
+
+A really good mechanic of TLoU is a surplus of materials, but a limit of both materials and finished items you can carry.  That way there are obvious areas and times to restock, but you still need resource management for the rest of the game.  I also like that there's no failure chance in any of the games mentioned above.  It may not be very RPG-like, but it's a pain and useless when the player has no need to grind skills anyway.  No grinding! And to enforce no grinding, skills can NOT be rewarded based on usage.
+
+When creating items, they should go in the most relevant spot for them - armaments in the first available ready slot, potions in the first available magic slot (and then either in the pack if there's no "ready" room).  Additionally, if each creation is distinct (that is, you can't say "make 5 potions"), then a message can be displayed when the item is created, which has interesting tie-ins to skilled NPCs.  For example, the physician in the town might have AI that extends COALIGNED, with the additional stipulation that the main action is creating healing potions if he has the available materials.  Then, conversation could be "please make me potions" with the result of that selection being that herbs are transferred from the player to the physician, the physician says "give me a minute," then for the next couple of turns you see "The physician creates a healing potion." until he's all out.  If the physician has any potions in his inventory, then there's a conversation option to collect the potions, in which case all of the potions that the player has room for are transferred back.
+
+--
+
+One thing I really don't like about the Kourend house favor system in Runescape is how grindy it is.  It would be better as a quest series with preset requirements - "we need you to heal these patients, so you need an Herblore level of at least X" - than just tasks to be done to gain favor.  On the other hand, it's possible the only reason it's grindy is because I'm such low level, since the favor system does reward different tasks if you're capable of doing them (no need to mine sulfur if you have high enough mining to collect lovakite instead).
+
+Perhaps "town" special levels could have favor? Again, don't fall into the trap, but it might be a decent non-monetary award (like bringing corpses to the cook at the outpost, or weapons to the blacksmith).  Alternatively, the favor could be hidden, and the more you bring, the better stuff they give you in return (like a weaponsmith giving really nice items if you bring him lots of scrap).
+
+--
+
+Something that could be cool is a very obscure treasure-hunt kind of quest line.  Maybe in a hidden corner of a small room in a special level, there could be some remains of some character, with a coded message or other clue.  This could start out very simple (a=1, b=2, etc.), and soon ramp up until it's a true mystery for players of the game.  Maybe there could be a special symbol associated with the quest line so the player knows he's onto something, and perhaps certain NPCs could have that symbol in their description, and it would bring up an extra dialogue option (maybe a buried one) if the player has done the prerequisite steps.
+
+Also, if using Runescape as inspiration, keep in mind that many of its early quests are "collect items, talk to people, get money and quest points as a reward."  This works because Runescape has many "flavor" items, like pink skirts and cabbages, that don't really serve much purpose besides the quests they're used in.  Since LoR only contains combat items right now, doing this right could be trickier.  Also remember that even though you have to gather items in RS quests, they don't really feel like fetch quests.  The quests aren't "kill 10 rats" or "bring me 4 swords;" you do have to kill creatures and collect items, but it feels more incidental rather than the point.  Things like making a wig out of yellow dye is a really good reuse of other items like rope and onions.
+
+Should "magic" involve little components (like in Nathan's game), and those components can also be used in quests? I risk overloading players with "what do all of these things do, and how many do I need to keep" (kind of like RS seeds, I suppose), but since they're common items anyway, they should be easy to obtain if you know where to go, and therefore not necessary to carry everywhere unless you have a plan for them.  With the new inventory interface, the components could be the same as materials, used in either magic or crafting.
+
+--
+
+The first quest might be to learn more about the gnomes, an ancient and largely mythical culture, where people in Reptoran view them largely how we do in the world today - something made up that's nifty but doesn't actually exist.  It turns out they do exist, and they're not tiny little bearded guys, but rather powerful wielders of magic and artifice that are almost extinct.  They worked directly with the gods in ancient times to forge the Shadow Crystal.  All magic is inherently chaotic and require control and direction to be harnessed for good, but shadow magic, the fusion of all elements (or perhaps, the essence of raw magic before being distilled into the various elements), is several orders of magnitude greater in that regard.  The Shadow Crystal acted as a focus for this chaotic energy, literally containing and nullifying the harmful energies of shadow magic, and acting as almost a purifier.
+
+I'll consider the gnomes' involvement later, but for now, the important thing is that they're nearly extinct and all but unheard of from a historical perspective, yet they were unwittingly instrumental in the events that led to Reptoran's fall and the Wizard's rise, and anything "gnomish" is extremely powerful and likely beyond comprehension.  They're probably the technomages, fusing technology and magic to produce wonderous creations, and "gnomish magic" is probably the equivalent of Runescape's ancient magic - hard to come by, very unique in its application, and incredibly powerful (basically the "good" or at least "non-evil" version of shadow magic).
+
+So, Quest #1! The first real traces that gnomes truly did exist are found in a cavern that ogres have taken over and made their lair.  There's evidence of fine architecture and ancient, unknown scripts that bear further investigation.
+ Quest Start: The player encounters a named adventurer/scholar/archeologist (find the best term for her), who has been caught by ogres and is soon to be eaten.  (Design the level such that she can't actually die prior to the player finding her.)  She's bound, and the player needs to 'u'se a bladed weapon on her to free her.  Talk with her to learn the situation and go to Step 1.
+ Step 1: Kill any remaining ogres to make the area safe.  If the player has already done this, instead of "okay, i'll do that," the response is "i've already done that."
+ Step 2: She thanks you and says she'll stay here, since there's so much research to be done.  She mentions having visited the elder on the way to the Labyrinth, and asks if you can talk with her (the elder) and find out what she knows about the ancient script/race.
+ Step 3: The elder is amazed to learn the scholar is still alive, and at first says she doesn't know anything about any ancient race.  She hesitates, then adds that it's probably just a story, but there are fairy tales she heard from her grandmother as a young girl about underground critters called gnomes.  It's very unlikely to help, but it's all she's got.
+ Step 4: Upon returning to the scholar with the information, she thanks you, completing the quest.
+ Reward: Probably none at first, but maybe XP, healing potions, or some item that the scholar would logically have but also no longer logically needs?
+	Further quests might have the player gathering samples of gnomish script, or reacting to additional discoveries the scholar has made.

@@ -21,7 +21,7 @@ public class ActorBuilder
 			this.attributes[i] = 0;
 		}
 		
-		actor = new Actor(actorType, "unbuilt actor", '%', 8, attributes);
+		actor = new Actor(actorType, actorType.name() + " (unbuilt)", '%', 8, attributes);
 	}
 	
 	public static ActorBuilder generateActor(ActorType actorType)
@@ -106,6 +106,12 @@ public class ActorBuilder
 	{
 		actor.setMaxHp(hp);
 		actor.setCurHp(hp);
+		return this;
+	}
+	
+	public ActorBuilder setCurHP(int curHp)
+	{
+		actor.setCurHp(curHp);
 		return this;
 	}
 	

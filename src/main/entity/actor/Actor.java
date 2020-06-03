@@ -241,6 +241,11 @@ public class Actor extends SaveableEntity
 	{
 		return unique;
 	}
+	
+	public boolean isPlayer()
+	{
+		return gender == GenderType.PLAYER;
+	}
 
 	public ActorType getType()
 	{
@@ -434,10 +439,15 @@ public class Actor extends SaveableEntity
 	{
 		return equipment.getShields();
 	}
-
+	
 	public int getIndexOfEquippedItem(Item item)
 	{
 		return equipment.getIndexOfItem(item);
+	}
+	
+	public int getIndexOfMagicItem(Item item)
+	{
+		return magicItems.getIndexOfItem(item);
 	}
 	
 	public int getIndexOfMaterial(Item item)

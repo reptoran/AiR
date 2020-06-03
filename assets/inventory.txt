@@ -113,6 +113,7 @@ Flow:
 
 Tricky things:
  You basically always have to keep one "readied" slot open to swap weapons, since you need to remove the weapon first and therefore need a free spot to put it.
+	Similarly, it's impossible to replace armor unless you have an empty pack.  You can't pick up the one on the ground, and you can't drop the one you're wearing.  Maybe auto-drop when removing items you have no room in your pack for?
  "Magic" placement is difficult, because it probably should be together as in the first mockup, but doesn't really interact with anything else.  Also, such items should be droppable, but if I leave that out, the rest only requires 26 selectors (10 equip + 4 ready + 12 stored), which is perfect for letters.  Maybe F1-F5 for magic items?
  You should be able to use any item regardless of where it is (ready or not), but even if that's prompted by pressing 'u' instead of 'i', there aren't enough selectors unless equipped items are ignored.
  I can't immediately decide how best to represent an object's bulk, or why a bulky item that can't fit into the pack isn't allowed to be selected.  Perhaps color-code items?

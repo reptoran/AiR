@@ -72,16 +72,6 @@ public class InternalEvent
 		return internalEvent;
 	}
 	
-	//fields as above
-	private static InternalEvent deleteItemInternalEvent(int actorIndex, int flag1, int flag2, int amountToRemove)
-	{
-		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.DELETE_ITEM, actorIndex);
-		internalEvent.flags[1] = flag1;
-		internalEvent.flags[2] = flag2;
-		internalEvent.flags[3] = amountToRemove;
-		return internalEvent;
-	}
-	
 	//if flag 0 (actor index) is -1, then flags 1 and 2 are the coordinates of the item
 	//otherwise, the item is held by an actor
 	// flag 1 is the item source as an int
@@ -93,6 +83,16 @@ public class InternalEvent
 		internalEvent.flags[2] = flag2;
 		internalEvent.flags[3] = target.x;
 		internalEvent.flags[4] = target.y;
+		return internalEvent;
+	}
+	
+	//fields as above
+	private static InternalEvent deleteItemInternalEvent(int actorIndex, int flag1, int flag2, int amountToRemove)
+	{
+		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.DELETE_ITEM, actorIndex);
+		internalEvent.flags[1] = flag1;
+		internalEvent.flags[2] = flag2;
+		internalEvent.flags[3] = amountToRemove;
 		return internalEvent;
 	}
 	
@@ -192,17 +192,22 @@ public class InternalEvent
 		return changeItemHpInternalEvent(-1, coords.x, coords.y, changeAmount);
 	}
 	
-	public static InternalEvent deleteHeldItemHpInternalEvent(int actorIndex, int slotIndex, int amountToRemove)
+	public static InternalEvent deleteHeldItemInternalEvent(int actorIndex, int slotIndex, int amountToRemove)
 	{
-		return deleteItemInternalEvent(actorIndex, slotIndex, -1, amountToRemove);
+		return deleteItemInternalEvent(actorIndex, ItemSource.EQUIPMENT.intValue(), slotIndex, amountToRemove);
 	}
 	
-	public static InternalEvent deleteInventoryItemHpInternalEvent(int actorIndex, int itemIndex, int amountToRemove)
+	public static InternalEvent deleteStoredItemInternalEvent(int actorIndex, int itemIndex, int amountToRemove)
 	{
-		return deleteItemInternalEvent(actorIndex, 1, itemIndex, amountToRemove);
+		return deleteItemInternalEvent(actorIndex, ItemSource.PACK.intValue(), itemIndex, amountToRemove);
 	}
 	
-	public static InternalEvent deleteGroundItemHpInternalEvent(Point coords, int amountToRemove)
+	public static InternalEvent deleteInventoryItemInternalEvent(int actorIndex, ItemSource itemSource, int itemIndex, int amountToRemove)
+	{
+		return deleteItemInternalEvent(actorIndex, itemSource.intValue(), itemIndex, amountToRemove);
+	}
+	
+	public static InternalEvent deleteGroundItemInternalEvent(Point coords, int amountToRemove)
 	{
 		return deleteItemInternalEvent(-1, coords.x, coords.y, amountToRemove);
 	}

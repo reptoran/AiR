@@ -3,7 +3,7 @@ package main.data.event.environment;
 import java.util.ArrayList;
 import java.util.List;
 
-import main.data.ObjectIndexTranslator;
+import main.data.DataAccessor;
 import main.data.event.InternalEvent;
 import main.entity.actor.Actor;
 
@@ -32,11 +32,11 @@ public class HitpointChangeEvent extends AbstractEnvironmentEvent
 			correctedAmount = actor.getMaxHp() - curHp;
 		//no check for below zero because it's fun to see how badly you were smacked by an attack, so negative HP is okay
 		
-		InternalEvent event = InternalEvent.changeHpInternalEvent(ObjectIndexTranslator.getInstance().getIndexOfActor(actor), correctedAmount);
+		InternalEvent event = InternalEvent.changeHpInternalEvent(DataAccessor.getInstance().getIndexOfActor(actor), correctedAmount);
 		eventList.add(event);
 		
 		if (curHp + value <= 0)
-			eventList.add((InternalEvent.deathInternalEvent(ObjectIndexTranslator.getInstance().getIndexOfActor(actor))));
+			eventList.add((InternalEvent.deathInternalEvent(DataAccessor.getInstance().getIndexOfActor(actor))));
 		
 		return eventList;
 	}

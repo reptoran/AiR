@@ -6,5 +6,6 @@ public enum EnvironmentEventType
 	HP_REGEN,
 	HP_CHANGE,
 	CONSUME_ITEM,
-	GIVE_ITEM;
+	GIVE_ITEM,
+	ZONE_TRANSITION;
 }

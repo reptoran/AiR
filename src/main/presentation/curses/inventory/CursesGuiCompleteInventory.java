@@ -5,11 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import main.data.event.ActorCommand;
-import main.data.event.ActorCommandType;
 import main.entity.actor.Actor;
 import main.entity.item.Inventory;
-import main.entity.item.Item;
 import main.entity.item.InventorySelectionKey;
+import main.entity.item.Item;
 import main.entity.item.ItemSource;
 import main.entity.item.equipment.Equipment;
 import main.entity.item.equipment.EquipmentSlot;
@@ -28,6 +27,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 	private static final String EMPTY_LABEL = "(empty)";
 	private static final int GROUND_KEY_INDEX = -52;
 	private static final int ZERO_KEY_INDEX = -49;
+	private static final int FUNCTION_KEY_MASK = 1000;
 
 	private CursesGui parentGui;
 	private Engine engine;
@@ -39,8 +39,8 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 	private List<InventorySelectionKey> slotSelectionMapping = new ArrayList<InventorySelectionKey>();
 	private int materialSlotCount = 0;
 	private boolean groundIsSelectable = false;
-	private int selectedEquipmentIndex = -1;
 	
+	private InventorySelectionKey selectedEquipment = null;	
 	private InventorySelectionKey itemToUse = null;
 
 	private static final int BACKPACK_SIZE = 12; // probably should be defined and constraint in Inventory, but this is good for now
@@ -67,6 +67,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		{
 		case VIEW:
 			labelEquipment();
+			labelMagic();
 			break;
 		case EQUIP:
 			labelAvailableItemsForSelectedSlot();
@@ -74,6 +75,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		case DROP:
 		case USE:
 			labelEquipment();
+			labelAvailableItemsForSelectedSlot();
 			labelMaterials();
 			labelMagic();
 			break;
@@ -110,7 +112,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 				state = InventoryState.VIEW;
 			}
 			
-			selectedEquipmentIndex = -1;
+			selectedEquipment = null;
 			previousState = null;
 			
 			return;
@@ -129,8 +131,12 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			state = InventoryState.DROP;
 			return;
 		}
-
+		
 		int selectionIndex = getSelectedIndex(keyChar);
+		
+		if (isFunctionKey(code))
+			selectionIndex = FUNCTION_KEY_MASK + code;
+		
 
 		if (!selectionIndexIsValid(selectionIndex))
 			return;
@@ -143,6 +149,10 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		} else if (selectionIndexSpecifiesNumber(selectionIndex))
 		{
 			selection = getMaterialSelection(selectionIndex);
+		} else if (selectionIndexSpecifiesValidFunctionKey(selectionIndex))
+		{
+			selection = getMagicSelection(selectionIndex);
+			//TODO: work on this - it's correctly sending an equip event, i think, but the inventory screen assumes those all come from the actual equipment section
 		} else
 		{
 			selection = slotSelectionMapping.get(selectionIndex);
@@ -153,8 +163,8 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		switch (state)
 		{
 		case VIEW:
-			Equipment equipment = player.getEquipment();
-			EquipmentSlot slot = equipment.getEquipmentSlots().get(selectionSlotIndex);
+			Equipment equipment = getEquipmentForSelection(player, selection);
+			EquipmentSlot slot = equipment.getEquipmentSlots().get(selection.getItemIndex());
 
 			if (slot.getItem() != null)
 			{
@@ -163,14 +173,14 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			{
 				state = InventoryState.EQUIP;
 				filter = slot.getType();
-				selectedEquipmentIndex = selectionSlotIndex;
+				selectedEquipment = selection.clone();
 			}
 
 			break;
 		case EQUIP:
-			engine.receiveCommand(ActorCommand.equip(selection, new InventorySelectionKey(ItemSource.EQUIPMENT, selectedEquipmentIndex)));
+			engine.receiveCommand(ActorCommand.equip(selection, selectedEquipment));
 			state = InventoryState.VIEW;
-			selectedEquipmentIndex = -1;
+			selectedEquipment = null;
 			break;
 		case DROP:
 			engine.receiveCommand(ActorCommand.drop(selection));
@@ -184,7 +194,32 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			break;
 		}
 	}
-	
+
+	private Equipment getEquipmentForSelection(Actor player, InventorySelectionKey selection)
+	{
+		switch (selection.getItemSource())
+		{
+		case EQUIPMENT:
+			return player.getEquipment();
+		case MAGIC:
+			return player.getMagicItems();
+		case READY:
+			return player.getReadiedItems();
+		//$CASES-OMITTED$
+		default:
+			Logger.error("getEquipmentForSelection() called for ItemSource " + selection.getItemSource() + "; returning null");
+			return null;
+		}
+	}
+
+	private boolean isFunctionKey(int code)
+	{
+		if (code >= KeyEvent.VK_F1 && code <= KeyEvent.VK_F12)
+			return true;
+		
+		return false;
+	}
+
 	public InventorySelectionKey getAndClearItemToUse()
 	{
 		InventorySelectionKey returnVal = itemToUse;
@@ -198,7 +233,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 
 		if (inventory.hasSpaceForItem(item))
 		{
-			engine.receiveCommand(ActorCommand.unqeuip(selection, new InventorySelectionKey(ItemSource.PACK, -1)));
+			engine.receiveCommand(ActorCommand.unqeuip(selection, new InventorySelectionKey(ItemSource.PACK)));
 			refresh();
 			return;
 		}
@@ -227,11 +262,35 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		if (selectionIndexSpecifiesNumber(selectionIndex) && convertMaterialSelectionToIndex(selectionIndex) < materialSlotCount)	//TODO: this might not handle 0 well
 			return true;
 
-		// TODO: add whatever keys magic items map to once that's a thing
+		if (selectionIndexSpecifiesValidFunctionKey(selectionIndex))
+			return true;
 
 		return false;
 	}
 	
+	private boolean selectionIndexSpecifiesValidFunctionKey(int selectionIndex)
+	{
+		int slotIndex = getSlotIndexFromFunctionKeySelectionIndex(selectionIndex);
+		
+		if (slotIndex == -1)
+			return false;
+		
+		Actor player = engine.getData().getPlayer();
+		int maxMagicItems = player.getMagicItems().getEquipmentSlots().size();
+		
+		return slotIndex < maxMagicItems;
+	}
+	
+	private int getSlotIndexFromFunctionKeySelectionIndex(int selectionIndex)
+	{
+		int unmaskedCode = selectionIndex - FUNCTION_KEY_MASK;
+		
+		if (!isFunctionKey(unmaskedCode))
+			return -1;
+		
+		return unmaskedCode - KeyEvent.VK_F1;	//so F1 is 0, F2 is 1, etc.
+	}
+
 	private boolean selectionIndexSpecifiesNumber(int selectionIndex)
 	{
 		if (selectionIndex >= ZERO_KEY_INDEX && selectionIndex <= ZERO_KEY_INDEX + 9)
@@ -253,6 +312,12 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 	private InventorySelectionKey getMaterialSelection(int selectionIndex)
 	{
 		return new InventorySelectionKey(ItemSource.MATERIAL, convertMaterialSelectionToIndex(selectionIndex));
+	}
+	
+	private InventorySelectionKey getMagicSelection(int selectionIndex)
+	{
+		int magicIndex = getSlotIndexFromFunctionKeySelectionIndex(selectionIndex);
+		return new InventorySelectionKey(ItemSource.MAGIC, magicIndex);
 	}
 
 	private void drawBorders()
@@ -517,8 +582,23 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 
 	private void labelAvailableItemsForSelectedSlot()
 	{
-		if (selectedEquipmentIndex != -1)
-			terminal.print(1, 1 + selectedEquipmentIndex, ">", getHighlightColor());
+		if (selectedEquipment != null)
+		{
+			int selectedEquipmentIndex = selectedEquipment.getItemIndex();
+			
+			switch (selectedEquipment.getItemSource())
+			{
+			case EQUIPMENT:
+				terminal.print(1, 1 + selectedEquipmentIndex, ">", getHighlightColor());
+				break;
+			case MAGIC:
+				terminal.print(45, 19 + selectedEquipmentIndex, "->", getHighlightColor());
+				break;
+				//$CASES-OMITTED$
+			default:
+				break;
+			}
+		}
 
 		Inventory inventory = engine.getData().getPlayer().getStoredItems();
 		List<Item> itemsInInventory = inventory.getItemsForSlot(null);

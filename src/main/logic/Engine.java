@@ -25,13 +25,14 @@ import main.entity.feature.Feature;
 import main.entity.item.InventorySelectionKey;
 import main.entity.item.Item;
 import main.entity.item.ItemSource;
-import main.entity.item.ItemUsageMap;
+import main.entity.item.ItemUsageEventGenerator;
 import main.entity.item.equipment.EquipmentSlotType;
 import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.zone.Zone;
 import main.logic.AI.ActorAI;
 import main.logic.AI.AiType;
+import main.logic.AI.CoalignedAI;
 import main.logic.AI.MeleeAI;
 import main.logic.AI.MoveRandomAI;
 import main.logic.AI.ZombieAI;
@@ -39,13 +40,14 @@ import main.presentation.Logger;
 import main.presentation.UiManager;
 import main.presentation.message.FormattedMessageBuilder;
 import main.presentation.message.MessageBuffer;
+import main.presentation.message.MessageGenerator;
 
 public class Engine
 {
 	public static final int ACTOR_SIGHT_RADIUS = 12;
 	
 	private Data gameData; // remember that the presentation layer can't see this; it can only see what the logic layer provides
-	private Set<EventObserver> eventObservers;
+	private List<EventObserver> eventObservers;
 
 	private Map<AiType, ActorAI> gameAIs;
 
@@ -60,8 +62,10 @@ public class Engine
 		
 		turnIndex = 0;
 		gameData = data;
+		MessageGenerator.getInstance().setEngine(this);
 		
-		eventObservers = new HashSet<EventObserver>();
+		eventObservers = new ArrayList<EventObserver>();
+		eventObservers.add(MessageGenerator.getInstance());		//this MUST be before data, so it can act on the current state before Data changes it (for example, with item pickups)
 		eventObservers.add(data);
 	}
 	
@@ -74,7 +78,7 @@ public class Engine
 	{
 		gameAIs = new HashMap<AiType, ActorAI>();
 		gameAIs.put(AiType.RAND_MOVE, new MoveRandomAI());
-		gameAIs.put(AiType.COALIGNED, new MoveRandomAI());	//TODO: make a proper coaligned AI
+		gameAIs.put(AiType.COALIGNED, new CoalignedAI());
 		gameAIs.put(AiType.ZOMBIE, new ZombieAI());
 		gameAIs.put(AiType.MELEE, new MeleeAI());
 	}
@@ -222,7 +226,7 @@ public class Engine
 		UiManager.getInstance().refreshInterface();
 	}
 	
-	private boolean canPlayerSeeActor(Actor actor)
+	public boolean canPlayerSeeActor(Actor actor)
 	{
 		if (actor == gameData.getPlayer())
 			return true;
@@ -364,7 +368,9 @@ public class Engine
 		//TODO: different messages for equipping, readying, storing based on equipment state
 		
 		InternalEvent event = InternalEvent.pickupInternalEvent(actorIndex);
-		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the pick%1s up " + item.getNameOnGround() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		
+		//TODO: remove the message here once I've verified it works consistently
+//		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the pick%1s up " + item.getNameOnGround() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
 		return event;
 	}
 	
@@ -378,6 +384,8 @@ public class Engine
 			return actor.getMaterials().get(itemIndex);
 		case EQUIPMENT:
 			return actor.getEquipment().getItem(itemIndex);
+		case MAGIC:
+			return actor.getMagicItems().getItem(itemIndex);
 		case GROUND:
 		case READY:
 		default:
@@ -409,7 +417,8 @@ public class Engine
 		
 		useItemOnTile(actor, itemToUse, gameData.getCurrentZone().getTile(destination));
 		
-		return InternalEvent.waitInternalEvent(actorIndex, actor.getMovementCost());	//effects of using should be instantaneous, but actor still needs to wait until his next turn afterward
+		return InternalEvent.waitInternalEvent(gameData.getActorIndex(actor), actor.getMovementCost());	//effects of using should be instantaneous, but actor still needs to wait until his next turn afterward
+																										//actor index is refreshed because it may have been updated after using the item
 	}
 	
 	private void useItemOnTile(Actor actor, Item itemToUse, Tile targetTile)
@@ -417,19 +426,43 @@ public class Engine
 		Item targetItem = targetTile.getItemHere();
 		Feature targetFeature = targetTile.getFeatureHere();
 		Actor targetActor = targetTile.getActorHere();
+		String targetString = "";
 		
 		List<EnvironmentEvent> eventsToTrigger = new ArrayList<EnvironmentEvent>();
 		
 		if (targetActor != null)
-			eventsToTrigger = ItemUsageMap.getInstance().useItem(actor, itemToUse, targetActor);
+		{
+			eventsToTrigger = ItemUsageEventGenerator.getInstance().useItem(actor, itemToUse, targetActor);
+			targetString = "@2the";
+		}
 		else if (targetItem != null)
-			eventsToTrigger = ItemUsageMap.getInstance().useItem(actor, itemToUse, targetItem);
+		{
+			eventsToTrigger = ItemUsageEventGenerator.getInstance().useItem(actor, itemToUse, targetItem);
+			targetString = targetItem.getNameOnGround();
+		}
 		else if (targetFeature != null)
-			eventsToTrigger = ItemUsageMap.getInstance().useItem(actor, itemToUse, targetFeature);
+		{
+			eventsToTrigger = ItemUsageEventGenerator.getInstance().useItem(actor, itemToUse, targetFeature);
+			targetString = "the " + targetFeature.getName();
+		}
 		else
-			eventsToTrigger = ItemUsageMap.getInstance().useItem(actor, itemToUse, targetTile);
+		{
+			eventsToTrigger = ItemUsageEventGenerator.getInstance().useItem(actor, itemToUse, targetTile);
+			targetString = "the " + targetTile.getName();
+		}
 		
-		//TODO: trigger those events
+		if (eventsToTrigger.isEmpty())
+			MessageBuffer.addMessageIfHuman("You don't know how to use that item that way.", actor.getAI());
+		else
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the use%1s " + itemToUse.getName() + " on " + targetString + ".").setSource(actor).setTarget(targetActor).format());	//TODO: set visibility
+		
+		for (EnvironmentEvent event : eventsToTrigger)
+		{
+			for (InternalEvent iEvent : event.trigger())
+			{
+				sendEventToObservers(iEvent);
+			}
+		}
 	}
 	
 	private InternalEvent equipItem(int actorIndex, InventorySelectionKey originalInventorySlot, InventorySelectionKey targetInventorySlot)
@@ -507,6 +540,12 @@ public class Engine
 			origin = gameData.getOverworld().getPlayerCoords();
 		else
 			origin = gameData.getCurrentZone().getCoordsOfActor(actor);
+		
+		if (origin == null)
+		{
+			Logger.error("handleMove: No origin found for actor! Actor[" + actor + "]");
+			return null;
+		}
 
 		Point coordChange = RPGlib.convertDirectionToCoordChange(direction);
 		
@@ -543,13 +582,13 @@ public class Engine
 		{
 			if (targetActor == actor)
 				return InternalEvent.waitInternalEvent(actorIndex, actor.getMovementCost());
-			else if (targetActor.getAI().equals(AiType.COALIGNED))
+			else if (actor.isPlayer() && targetActor.getAI().equals(AiType.COALIGNED))
 				return chatWithActor(actorIndex, direction);
 			
 			return InternalEvent.attackInternalEvent(actorIndex, gameData.getActorIndex(targetActor), -1, actor.getMovementCost());
 		}
 		
-		if (destinationTile.obstructsMotion() || (actor.getAI().equals(AiType.COALIGNED) && destinationTile.obstructsCoaligned()))
+		if (destinationTile.obstructsMotion())
 		{
 			// we never care if an AI actor runs into an obstruction (well, unless it's confused?)
 			MessageBuffer.addMessageIfHuman(destinationTile.getBlockedMessage(), actor.getAI());
@@ -638,7 +677,8 @@ public class Engine
 		
 		if (defender.getCurHp() <= 0)	//valid check because the data layer has already received and applied the damage
 		{
-			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the is killed!").setSource(defender).setSourceVisibility(canSeeSource).format());
+			if (canSeeTarget)
+				MessageBuffer.addMessage(new FormattedMessageBuilder("@1the is killed!").setSource(defender).setSourceVisibility(canSeeTarget).format());
 			gameData.receiveInternalEvent(InternalEvent.deathInternalEvent(gameData.getActorIndex(defender)));
 		}
 	}
@@ -732,7 +772,7 @@ public class Engine
 			boolean armorDestroyed = (armor.getCurHp() <= 0 ? true : false);
 			
 			if (armorDestroyed)
-				sendEventToObservers(InternalEvent.deleteHeldItemHpInternalEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), 1));
+				sendEventToObservers(InternalEvent.deleteHeldItemInternalEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), 1));
 			
 			String effect = getDescriptionOfCondition(armorDestroyed, armor.getConditionModifer(), armorConditionBeforeAttack);
 			
@@ -748,7 +788,7 @@ public class Engine
 			boolean weaponDestroyed = (weapon.getCurHp() <= 0 ? true : false);
 			
 			if (weaponDestroyed)
-				sendEventToObservers(InternalEvent.deleteHeldItemHpInternalEvent(gameData.getActorIndex(attacker), attacker.getIndexOfEquippedItem(weapon), 1));
+				sendEventToObservers(InternalEvent.deleteHeldItemInternalEvent(gameData.getActorIndex(attacker), attacker.getIndexOfEquippedItem(weapon), 1));
 			
 			String effect = getDescriptionOfCondition(weaponDestroyed, weapon.getConditionModifer(), weaponConditionBeforeAttack);
 			
