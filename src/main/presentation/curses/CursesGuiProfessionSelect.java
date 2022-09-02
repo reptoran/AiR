@@ -1,5 +1,6 @@
 package main.presentation.curses;
 
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,26 +9,29 @@ import main.data.Data;
 import main.data.event.InternalEvent;
 import main.presentation.GuiState;
 import main.presentation.Logger;
-import main.presentation.curses.terminal.CursesTerminal;
+import main.presentation.message.MessageBuffer;
 
 public class CursesGuiProfessionSelect extends AbstractCursesGuiListInput
 {
 	private CursesGui parentGui;
 	private Data gameData;
 	
-	protected CursesGuiProfessionSelect(CursesGui parentGui, Data gameData, CursesTerminal terminal)
+	private boolean professionChosen = false;
+	
+	protected CursesGuiProfessionSelect(CursesGui parentGui, Data gameData)
 	{
-		super(terminal, ColorScheme.monochromeScheme());
+		super(ColorScheme.monochromeScheme());
 		
 		this.parentGui = parentGui;
 		this.gameData = gameData;
+		this.messageHandler = new CursesGuiMessages(parentGui, new Rectangle(0, 0, 80, 25));
 	}
 
 	@Override
 	public void refresh()
 	{
-		terminal.clear();
-		terminal.print(0, 0, "Choose a profession for your character:", COLOR_LIGHT_GREY);
+		characterMap.clear();
+		addText(0, 0, "Choose a profession for your character:", getTextColor());
 		
 		List<String> formattedProfessions = new ArrayList<String>();
 		
@@ -38,14 +42,19 @@ public class CursesGuiProfessionSelect extends AbstractCursesGuiListInput
 	}
 
 	@Override
-	public void handleKeyEvent(KeyEvent ke)
+	protected void handleKey(int code, char keyChar)
 	{
-		int code = ke.getKeyCode();
+		if (professionChosen)
+		{
+			advanceToNextScreen();
+			return;
+		}
 		
+		Logger.debug("Key event received in CursesGuiProfessionSelect");
 		if (code == KeyEvent.VK_ESCAPE)
 			gameData.receiveInternalEvent(InternalEvent.exitInternalEvent());
 		
-		int professionIndex = getSelectedIndex(ke.getKeyChar());
+		int professionIndex = getSelectedIndex(keyChar);
 		
 		if (professionIndex < 0 || professionIndex > (getElementCount() - 1))
 			return;
@@ -53,7 +62,17 @@ public class CursesGuiProfessionSelect extends AbstractCursesGuiListInput
 		Logger.debug("Profession selected, index is " + professionIndex);
 		
 		gameData.setPlayerProfession(professionIndex);
+		professionChosen = true;
+		
+		if (!MessageBuffer.hasMessages())
+			advanceToNextScreen();
+		
+		parentGui.refreshInterface();
+	}
+	
+	private void advanceToNextScreen()
+	{
 		parentGui.initializeNewGame();
-		parentGui.setCurrentState(GuiState.PROFESSION_DESCRIPTION);
+		parentGui.setSingleLayer(GuiState.GAME_START);
 	}
 }

@@ -1,7 +1,9 @@
 package main.entity.save;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class SaveToken
@@ -21,23 +23,22 @@ public class SaveToken
 	//takes the arguments in the form of TAG, {"1", "2", "3", "4", "5"}
 	public SaveToken(SaveTokenTag tag, List<String> contents)
 	{
-		if (contents.isEmpty())
+		createTokenFromList(tag, contents);
+	}
+	
+	//takes the arguments in the form of TAG, {"KEY1:VAL1", "KEY2:VAL2"}
+	public SaveToken(SaveTokenTag tag, Map<String, String> contentMap)
+	{
+		List<String> contentList = new ArrayList<String>();
+		
+		for (String key : contentMap.keySet())
 		{
-			this.contents = "";
-			this.tag = null;
-			return;
+			String value = contentMap.get(key);
+			
+			contentList.add(key + ":" + value);
 		}
 		
-		String compiledContents = "";
-		
-		for (String s : contents)
-		{
-			compiledContents = compiledContents + s + ",";
-		}
-		
-		//trim the last comma
-		this.contents = compiledContents.substring(0, compiledContents.length() - 1);
-		this.tag = tag;
+		createTokenFromList(tag, contentList);
 	}
 	
 	//takes the argument in the form of "[TAG]content"
@@ -47,6 +48,27 @@ public class SaveToken
 		contents = token.substring(TAG_LENGTH + 2);
 		
 		tag = SaveTokenTag.valueOf(tempTag.toUpperCase());
+	}
+	
+	private void createTokenFromList(SaveTokenTag stt, List<String> contentList)
+	{
+		if (contentList.isEmpty())
+		{
+			this.contents = "";
+			this.tag = null;
+			return;
+		}
+		
+		String compiledContents = "";
+		
+		for (String s : contentList)
+		{
+			compiledContents = compiledContents + s + ",";
+		}
+		
+		//trim the last comma
+		this.contents = compiledContents.substring(0, compiledContents.length() - 1);
+		this.tag = stt;
 	}
 	
 	@Override
@@ -69,7 +91,8 @@ public class SaveToken
 	{
 		List<String> toRet = new ArrayList<String>();
 		
-		Scanner s = new Scanner(contents).useDelimiter(",");	//confirm this line
+		@SuppressWarnings("resource")
+		Scanner s = new Scanner(contents).useDelimiter(",");
 		
 		while (s.hasNext())
 		{
@@ -77,5 +100,29 @@ public class SaveToken
 		}
 		
 		return toRet;
+	}
+	
+	public Map<String, String> getContentMap()
+	{
+		List<String> contentList = new ArrayList<String>();
+		Map<String, String> contentMap = new HashMap<String, String>();
+		
+		@SuppressWarnings("resource")
+		Scanner s = new Scanner(contents).useDelimiter(",");
+		
+		while (s.hasNext())
+		{
+			contentList.add(s.next());
+		}
+		
+		for (String entry : contentList)
+		{
+			int delimiterIndex = entry.indexOf(':');
+			String key = entry.substring(0, delimiterIndex);
+			String value = entry.substring(delimiterIndex + 1);
+			contentMap.put(key, value);
+		}
+		
+		return contentMap;
 	}
 }

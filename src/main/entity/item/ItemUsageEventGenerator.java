@@ -5,9 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import main.data.event.environment.ConsumeInventoryItemEvent;
 import main.data.event.environment.EnvironmentEvent;
-import main.data.event.environment.EnvironmentEventFactory;
-import main.data.event.environment.EnvironmentEventType;
+import main.data.event.environment.HitpointChangeEvent;
+import main.data.event.environment.UpgradeWeaponEvent;
 import main.data.event.environment.ZoneTransitionEvent;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorType;
@@ -61,9 +62,11 @@ public class ItemUsageEventGenerator
 		case CHANGE_HP_OF_ACTOR:
 			if (!ActorType.TARGET_ACTOR.equals(trigger.getModifierActor()))
 				break;	//no clue what to do if it specifies an actor other than the target, but this is better than assuming, I suppose
-			return EnvironmentEventFactory.generateNewEvent(null, EnvironmentEventType.HP_CHANGE, actor, trigger.getValueInt());
+			return new HitpointChangeEvent(actor, trigger.getValueInt(), null);
 		case CONSUME_ITEM:
 			return consumeItem(itemUser, usedItem, trigger, item);
+		case UPGRADE_ITEM:
+			return upgradeItem(itemUser, usedItem, trigger, item);
 		case GET_ITEM_FROM:
 			break;
 		case GIVE_ITEM_TO:
@@ -91,7 +94,24 @@ public class ItemUsageEventGenerator
 		else
 			return null;	//as above
 		
-		return EnvironmentEventFactory.generateNewEvent(null, EnvironmentEventType.CONSUME_ITEM, itemUser, itemToConsume, trigger.getComparisonInt());
+		return new ConsumeInventoryItemEvent(itemUser, itemToConsume, trigger.getComparisonInt(), null);
+	}
+
+	private EnvironmentEvent upgradeItem(Actor itemUser, Item usedItem, Trigger trigger, Item targetItem)
+	{
+		if (!ActorType.SOURCE_ACTOR.equals(trigger.getModifierActor()))
+			return null;	//not sure what else to do here
+		
+		Item itemToUpgrade = null;
+		
+		if (ItemType.SOURCE_ITEM.equals(trigger.getValueItem()))
+			itemToUpgrade = usedItem;
+		else if (ItemType.TARGET_ITEM.equals(trigger.getValueItem()))
+			itemToUpgrade = targetItem;
+		else
+			return null;	//as above
+		
+		return new UpgradeWeaponEvent(itemUser, itemToUpgrade, null);
 	}
 	
 	private EnvironmentEvent transitionZone(Trigger trigger, Actor actor)
@@ -161,5 +181,14 @@ public class ItemUsageEventGenerator
 		triggers.add(TriggerFactory.changeActorHp(ActorType.TARGET_ACTOR, 10));
 		triggers.add(TriggerFactory.consumeItem(ActorType.SOURCE_ACTOR, ItemType.SOURCE_ITEM, 1));
 		usageMap.put(new ItemUsageKey(ItemType.HEALING_SALVE, ActorType.ANY_ACTOR), triggers);
+		
+		triggers = new ArrayList<>();
+		triggers.add(TriggerFactory.upgradeWeapon(ActorType.SOURCE_ACTOR, ItemType.TARGET_ITEM));
+		triggers.add(TriggerFactory.consumeItem(ActorType.SOURCE_ACTOR, ItemType.SOURCE_ITEM, 1));
+		usageMap.put(new ItemUsageKey(ItemType.METAL_SHARD, ItemGroup.weapons()), triggers);
+		
+		triggers = new ArrayList<>();
+		//TODO: add trigger to transform one actor into another using Actor.convertToType() - in this case, bound_archeo to archeologist
+		usageMap.put(new ItemUsageKey(ItemGroup.bladedWeapons(), ActorType.BOUND_ARCHEO), triggers);
 	}
 }

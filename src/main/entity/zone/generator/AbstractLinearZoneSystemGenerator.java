@@ -8,8 +8,11 @@ import main.entity.zone.ZoneType;
 
 public abstract class AbstractLinearZoneSystemGenerator extends AbstractGenerator
 {
-	protected static final int HEIGHT = 40;
-	protected static final int WIDTH = 80;
+//	protected static final int HEIGHT = 40;
+//	protected static final int WIDTH = 80;
+	
+	protected static final int HEIGHT = 30;
+	protected static final int WIDTH = 60;
 
 	protected ZoneKey zoneKey;
 	protected boolean descendedIntoLevel;

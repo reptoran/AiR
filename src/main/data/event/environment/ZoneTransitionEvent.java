@@ -18,7 +18,7 @@ public class ZoneTransitionEvent extends AbstractEnvironmentEvent
 	public ZoneTransitionEvent(Actor actor, boolean descending, EnvironmentEventQueue eventQueue)
 	{
 		this.actor = actor;
-		this.value = (descending ? 1 : 0);
+		this.values[0] = (descending ? 1 : 0);
 		this.eventQueue = eventQueue;
 	}
 	
@@ -32,6 +32,7 @@ public class ZoneTransitionEvent extends AbstractEnvironmentEvent
 		
 		Point stairCoords = null;
 		
+		//this only checks the first stairs, so if there are multiple down stairs (like after revealing the town hall basement), it won't always go where you want
 		for (ZoneKey zoneKey : zoneKeys)
 		{
 			Point coords = zone.getLocationOfZoneKey(zoneKey);
@@ -65,7 +66,7 @@ public class ZoneTransitionEvent extends AbstractEnvironmentEvent
 	
 	private boolean isDescending()
 	{
-		return (value == 1);
+		return (values[0] == 1);
 	}
 
 	@Override

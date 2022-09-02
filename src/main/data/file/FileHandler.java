@@ -22,6 +22,9 @@ import main.presentation.Logger;
 
 public abstract class FileHandler
 {
+	private static final int BUFFER_SIZE = 65536;
+//	private static final int BUFFER_SIZE = 1024;
+	
 	protected static final String ROOT_PATH = System.getProperty("user.dir") + File.separator;
 	protected abstract String getExtension();
 	protected abstract String getDataPath();
@@ -90,10 +93,14 @@ public abstract class FileHandler
 
 	public void zipDirectory(String directory, String extension) throws IOException
 	{
-		byte[] buffer = new byte[1024];
+		Logger.output("Zipping directory: " + directory);
+		Long start = System.currentTimeMillis();
+		
+		byte[] buffer = new byte[BUFFER_SIZE];
 
 		FileOutputStream fos = new FileOutputStream(directory + extension);
 		ZipOutputStream zos = new ZipOutputStream(fos);
+		zos.setLevel(0);
 
 		File folder = new File(directory);
 
@@ -119,14 +126,20 @@ public abstract class FileHandler
 
 		zos.closeEntry();
 		zos.close();
+		
+		Logger.output("\tDone in " + (System.currentTimeMillis() - start) + "ms.");
 	}
 
 	public void unzipSaveDir(String zipFileName, String extension) throws IOException
 	{
-		byte[] buffer = new byte[1024];
+		Logger.output("Unzipping file: " + zipFileName);
+		Long start = System.currentTimeMillis();
+		
+		byte[] buffer = new byte[BUFFER_SIZE];
 
 		// get the zip file content
 		ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFileName + extension));
+		
 		// get the zipped file list entry
 		ZipEntry ze = zis.getNextEntry();
 
@@ -154,6 +167,8 @@ public abstract class FileHandler
 
 		zis.closeEntry();
 		zis.close();
+		
+		Logger.output("\tDone in " + (System.currentTimeMillis() - start) + "ms.");
 	}
 
 	protected boolean writeLine(String path, String line)

@@ -15,6 +15,7 @@ import main.entity.feature.Feature;
 import main.entity.feature.FeatureFactory;
 import main.entity.item.Item;
 import main.entity.item.ItemFactory;
+import main.entity.quest.QuestManager;
 import main.entity.save.EntityMap;
 import main.entity.save.SaveHandler;
 import main.entity.tile.Tile;
@@ -29,7 +30,7 @@ import main.presentation.Logger;
 
 public class DataSaveUtils
 {
-	public static final String VERSION = "0.6.4";
+	public static final String VERSION = "0.8.1";
 	private static final String NULL_STRING = "null";
 	
 	private SaveHandler saveHandler;
@@ -233,7 +234,7 @@ public class DataSaveUtils
 
 		EntityMap.clearMappings();
 		List<String> keys;
-
+		
 		// save world
 		saveHandler.saveOverworld(overworld);
 
@@ -245,7 +246,8 @@ public class DataSaveUtils
 			WorldTile tile = EntityMap.getWorldTile(key);
 			saveHandler.saveWorldTile(tile);
 		}
-
+		
+		// save current zone
 		String currentZoneName = null;
 		String currentZoneId = null;
 		
@@ -259,6 +261,9 @@ public class DataSaveUtils
 		{
 			saveHandler.saveActor(player);	//required because the player is not in the actor list of any zone, since he's in overworld travel
 		}
+		
+		//save active quests
+		saveHandler.saveActiveQuests(QuestManager.getInstance().getActiveQuests());
 
 		// save game information
 		saveHandler.saveGameDataElement(VERSION);
@@ -268,8 +273,9 @@ public class DataSaveUtils
 		saveHandler.saveGameDataElement(currentZoneName); // current zone name
 		saveHandler.saveGameDataElement(currentZoneId); // current zone ID
 		saveHandler.saveGameDataElement(String.valueOf(ZoneFactory.getGeneratedMapCount())); //determines the number of the next zone to be generated
-		saveHandler.saveGameDataElement(LabyrinthGenerator.saveState());
+		saveHandler.saveGameDataElement(LabyrinthGenerator.getInstance().saveState());
 		saveHandler.saveGameDataElement(SpecialLevelManager.getInstance().saveState());
+		saveHandler.saveGameDataElement(QuestManager.getInstance().saveState());
 		//TODO: consider saving the current random seed (and loading it later in the appropriate method)
 
 		saveHandler.zipSaveDir();	// zip the individual files into a single save file
@@ -315,14 +321,15 @@ public class DataSaveUtils
 		String currentZoneName = entityLines.get(4);
 		String currentZoneId = entityLines.get(5);
 		ZoneFactory.setGeneratedMapCount(Integer.parseInt(entityLines.get(6)));
-		LabyrinthGenerator.loadState(entityLines.get(7));
+		LabyrinthGenerator.getInstance().loadState(entityLines.get(7));
 		SpecialLevelManager.getInstance().loadState(entityLines.get(8));
+		QuestManager.getInstance().loadState(entityLines.get(9));
 
 		data.setWorldTravel(Boolean.valueOf(worldTravel));
 		data.setCurrentZone(null);
 		
-		SpecialLevelManager.getInstance().populateSpecialZonesForLevels(data.getPredefinedZones());
 		ChatManager.getInstance().populateChats(data.getChatEntries());		//TODO: load this from the save file if I make Talk elements modifiable in-game
+		QuestManager.getInstance().setActiveQuests(saveHandler.loadActiveQuests());
 		
 		EntityMap.clearMappings();
 

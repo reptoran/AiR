@@ -1,9 +1,16 @@
 package main.presentation.curses;
 
 import java.awt.Point;
-import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.swing.Timer;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -13,380 +20,187 @@ import main.data.event.EventObserver;
 import main.data.event.InternalEvent;
 import main.data.event.InternalEventType;
 import main.entity.actor.Actor;
-import main.entity.item.InventorySelectionKey;
-import main.entity.item.equipment.Equipment;
-import main.logic.Direction;
 import main.logic.Engine;
-import main.logic.RPGlib;
 import main.presentation.AbstractGui;
 import main.presentation.GuiState;
 import main.presentation.Logger;
 import main.presentation.curses.inventory.CursesGuiCompleteInventory;
-import main.presentation.curses.inventory.InventoryState;
 import main.presentation.curses.terminal.CursesTerminal;
 import main.presentation.curses.terminal.CursesTerminalAsciiPanelImpl;
 import main.presentation.message.MessageBuffer;
 
-public class CursesGui extends AbstractGui implements KeyListener, EventObserver
-{
+public class CursesGui extends AbstractGui implements KeyListener, EventObserver, ActionListener
+{	
+	private Map<GuiState, CursesGuiScreen> guiScreens;
+	private List<CursesGuiScreen> layers;	//layers at the end are on top, layers at the beginning are in the back
+
 	private CursesTerminal terminal;
 
-	private GuiState currentState = GuiState.SELECT_PROFESSION; // default assumes new game
-
-	private CursesGuiProfessionSelect professionSelectUtil;
-	private CursesGuiMessages professionDescriptionUtil;
-	private CursesGuiMessages messageUtil;
-	private CursesGuiUtil displayUtil;
-	private CursesGuiChat chatUtil;
-//	private CursesGuiInventory inventoryUtil;
-//	private CursesGuiUtil equipmentUtil;
-	private CursesGuiCompleteInventory completeInventory;
+	public static final int SCREEN_HEIGHT = 25;
+	public static final int SCREEN_WIDTH = 80;
+	
+	private DisplayTile[][] screenMap;
 	
 	private ActorCommand pendingCommand = null;
+	private GuiState topLayer = null;
+	
+	private Animation currentAnimation = null;
+	private Map<Point, DisplayTile> animationMask = new HashMap<Point, DisplayTile>();
 
-	public CursesGui(Engine engine)
+	public CursesGui(Engine engine, GuiState initialScreen)
 	{
 		super(engine);
+
 		engine.addEventObserver(this);
 
-		// terminal = new CursesTerminalLibjcsiImpl("Adventures in Reptoran");
 		terminal = new CursesTerminalAsciiPanelImpl("Adventures in Reptoran v" + DataSaveUtils.VERSION);
 		terminal.addKeyListener(this);
 
-		professionSelectUtil = new CursesGuiProfessionSelect(this, engine.getData(), terminal);
-		professionDescriptionUtil = new CursesGuiMessages(this, new Rectangle(0, 0, 80, 25), terminal, GuiState.PROFESSION_DESCRIPTION,
-				GuiState.GAME_START); // for now, this transitions right to the game, but that may change in the future (talent selection or whatever)
-		messageUtil = new CursesGuiMessages(this, new Rectangle(0, 0, 80, 2), terminal, GuiState.MESSAGE, GuiState.NONE);
-		displayUtil = new CursesGuiDisplay(engine, terminal);
-		chatUtil = new CursesGuiChat(this, terminal);
-//		inventoryUtil = new CursesGuiInventory(this, engine, terminal);
-//		equipmentUtil = new CursesGuiEquipment(this, inventoryUtil, engine, terminal);
-		completeInventory = new CursesGuiCompleteInventory(this, engine, terminal, ColorScheme.woodenScheme());
+		guiScreens = new HashMap<GuiState, CursesGuiScreen>();
+		layers = new CopyOnWriteArrayList<CursesGuiScreen>();
 
+		defineScreens();
+
+		setSingleLayer(initialScreen);
 		refreshInterface();
 	}
 
-	@Override
-	public void refreshInterface()
+	private void defineScreens()
 	{
-		Logger.debug("Refreshing interface; currentState is " + currentState);
-
-		switch (currentState)
-		{
-		case GAME_START:
-			beginGame();
-			break;
-		case SELECT_PROFESSION:
-			displayProfessionSelection();
-			break;
-		case PROFESSION_DESCRIPTION:
-			displayProfessionDescription();
-			break;
-		case INVENTORY:
-//			displayPackContents();
-//			break;
-//		case EQUIPMENT:
-//			displayEquipment();
-			displayCompleteInventory();
-			break;
-		case CHAT:
-			displayChat();
-			break;
-		case MESSAGE: // fall through
-		case NONE: // fall through
-		//$CASES-OMITTED$
-		default:
-			displayMainGameScreen();
-			break;
-		}
-	}
-
-	private void displayProfessionSelection()
-	{
-		professionSelectUtil.refresh();
-	}
-
-	private void displayProfessionDescription()
-	{
-		professionDescriptionUtil.refresh();
-	}
-	
-	private void displayChat()
-	{
-		chatUtil.refresh();
-	}
-
-//	private void displayPackContents()
-//	{
-//		inventoryUtil.refresh();
-//	}
-//
-//	private void displayEquipment()
-//	{
-//		equipmentUtil.refresh();
-//	}
-	
-	private void displayCompleteInventory()
-	{
-		completeInventory.refresh();
-	}
-
-	private void displayMainGameScreen()
-	{
-		displayUtil.refresh();
-		messageUtil.refresh();
-	}
-
-	public GuiState getCurrentState()
-	{
-		return currentState;
-	}
-
-	public void setCurrentState(GuiState currentState)
-	{
-		this.currentState = currentState;
-		Logger.debug("Changing GuiState to " + currentState);
-	}
-
-	@Override
-	public void keyPressed(KeyEvent ke)
-	{
-		if (currentState == GuiState.SELECT_PROFESSION)
-		{
-			professionSelectUtil.handleKeyEvent(ke);
-			refreshInterface();
-			return;
-		}
-
-		if (currentState == GuiState.PROFESSION_DESCRIPTION)
-		{
-			professionDescriptionUtil.handleKeyEvent(ke);
-			refreshInterface();
-			return;
-		}
-
-		if (currentState == GuiState.MESSAGE)
-		{
-			messageUtil.handleKeyEvent(ke);
-			return;
-		}
-
-		if (currentState == GuiState.INVENTORY)
-		{
-			completeInventory.handleKeyEvent(ke);
-			refreshInterface();
-			attemptToUseItem();
-			return;
-		}
+		ColorScheme defaultColorScheme = ColorScheme.woodenScheme();
+//		ColorScheme defaultColorScheme = ColorScheme.monochromeScheme();
 		
-		if (currentState == GuiState.CHAT)
-		{
-			chatUtil.handleKeyEvent(ke);
-			refreshInterface();
-			return;
-		}
+		CursesGuiProfessionSelect professionSelectUtil = new CursesGuiProfessionSelect(this, engine.getData());
+		CursesGuiCompleteInventory completeInventory = new CursesGuiCompleteInventory(this, engine, defaultColorScheme);
+		CursesGuiScreen mainGameUtil = new CursesGuiMainGameDisplay(this, completeInventory, engine);
+		CursesGuiScreen gameStartHelper = new GameStartHelper(this, engine);
+		CursesGuiChat chatUtil = new CursesGuiChat(this, defaultColorScheme);
+		CursesGuiRecipeSelect recipeUtil = new CursesGuiRecipeSelect(this, engine);
+		CursesGuiQuestDisplay questUtil = new CursesGuiQuestDisplay(this, defaultColorScheme);
 
-		if (currentState == GuiState.GAME_START)
-		{
-			refreshInterface();
-			return;
-		}
-
-		int code = ke.getKeyCode();
-		char keyChar = ke.getKeyChar();
-
-		Logger.info("GUI - Key press detected, code is: " + code);
-		Logger.info("GUI - Key press detected, char is: " + keyChar);
-
-		if (code == KeyEvent.VK_ESCAPE)
-		{
-			currentState = GuiState.NONE;
-			pendingCommand = null;
-			refreshInterface();
-		} else if (code == KeyEvent.VK_NUMPAD1 || code == KeyEvent.VK_END)
-		{
-			handleDirection(Direction.DIRSW);
-		} else if (code == KeyEvent.VK_NUMPAD2 || code == KeyEvent.VK_KP_DOWN || code == KeyEvent.VK_DOWN)
-		{
-			handleDirection(Direction.DIRS);
-		} else if (code == KeyEvent.VK_NUMPAD3 || code == KeyEvent.VK_PAGE_DOWN)
-		{
-			handleDirection(Direction.DIRSE);
-		} else if (code == KeyEvent.VK_NUMPAD4 || code == KeyEvent.VK_KP_LEFT || code == KeyEvent.VK_LEFT)
-		{
-			handleDirection(Direction.DIRW);
-		} else if (code == KeyEvent.VK_NUMPAD5 || code == KeyEvent.VK_CLEAR)
-		{
-			handleDirection(Direction.DIRNONE);
-		} else if (code == KeyEvent.VK_NUMPAD6 || code == KeyEvent.VK_KP_RIGHT || code == KeyEvent.VK_RIGHT)
-		{
-			handleDirection(Direction.DIRE);
-		} else if (code == KeyEvent.VK_NUMPAD7 || code == KeyEvent.VK_HOME)
-		{
-			handleDirection(Direction.DIRNW);
-		} else if (code == KeyEvent.VK_NUMPAD8 || code == KeyEvent.VK_KP_UP|| code == KeyEvent.VK_UP)
-		{
-			handleDirection(Direction.DIRN);
-		} else if (code == KeyEvent.VK_NUMPAD9 || code == KeyEvent.VK_PAGE_UP)
-		{
-			handleDirection(Direction.DIRNE);
-		} else if (code == KeyEvent.VK_F1 || code == KeyEvent.VK_F2 || code == KeyEvent.VK_F3)
-		{
-			handleFunctionKey(ke);
-		} else if (keyChar == '>')
-		{
-			engine.receiveCommand(ActorCommand.changeZoneDown());
-		} else if (keyChar == '<')
-		{
-			engine.receiveCommand(ActorCommand.changeZoneUp());
-		} else if (keyChar == 'i')
-		{
-//			currentState = GuiState.EQUIPMENT;
-			currentState = GuiState.INVENTORY;
-			refreshInterface();
-		} else if (keyChar == 'd')
-		{
-			handleDrop();
-		} else if (keyChar == 'u')
-		{
-			handleUse();
-		} else if (keyChar == 'g')
-		{
-			engine.receiveCommand(ActorCommand.pickUp());
-		} else if (keyChar == 'C')
-		{
-			handleChatInput();
-		}
-		if (keyChar == 'S')
-
-		{
-			engine.receiveCommand(ActorCommand.save());
-			engine.receiveCommand(ActorCommand.exit());
-			terminal.close();
-		} else if (keyChar == 'Q')
-		{
-			engine.receiveCommand(ActorCommand.exit());
-			terminal.close();
-		}
-	}
-
-	private void handleFunctionKey(KeyEvent keyEvent)
-	{
-		if (currentState != GuiState.NONE)
-			return;
-		
-		completeInventory.setState(InventoryState.USE);
-		completeInventory.handleKeyEvent(keyEvent);
-		attemptToUseItem();
-	}
-
-	private void handleChatInput()
-	{
-		ActorCommand command = ActorCommand.chat(null);
-		Direction direction = engine.determineDirectionOfCommand(command.getType());
-		if (direction == Direction.DIRNONE)
-			promptForDirection(command);
-		else
-			engine.receiveCommand(ActorCommand.chat(direction));
-	}
-	
-	private void promptForDirection(ActorCommand command)
-	{
-		pendingCommand = command;
-		currentState = GuiState.PENDING_DIRECTION;
-		String message = engine.getPromptForCommandType(pendingCommand.getType());
-		if (StringUtils.isNotEmpty(message))
-		{
-			MessageBuffer.addMessage(message);
-			refreshInterface();
-		}
+		guiScreens.put(GuiState.SELECT_PROFESSION, professionSelectUtil);
+		guiScreens.put(GuiState.MAIN_GAME, mainGameUtil);
+		guiScreens.put(GuiState.GAME_START, gameStartHelper);
+		guiScreens.put(GuiState.CHAT, chatUtil);
+		guiScreens.put(GuiState.RECIPE, recipeUtil);
+		guiScreens.put(GuiState.INVENTORY, completeInventory);
+		guiScreens.put(GuiState.QUEST, questUtil);
 	}
 
 	public void initializeNewGame()
 	{
 		engine.getData().initializeNewGame();
 	}
-
-	public void beginGame()
+	
+	public void endGame()
 	{
-		currentState = GuiState.NONE;
-		engine.beginGame();
-		refreshInterface();
-	}
-
-	private void handleDrop()
-	{
-		Actor player = engine.getData().getPlayer();
-
-		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty() && player.getMaterials().isEmpty() && player.getReadiedItems().isEmpty() && player.getMagicItems().isEmpty())
-		{
-			MessageBuffer.addMessage("You aren't carrying anything!");
-			currentState = GuiState.MESSAGE;
-			refreshInterface();
-			return;
-		}
-
-		completeInventory.setState(InventoryState.DROP);
-		currentState = GuiState.INVENTORY;
-		refreshInterface();
-	}
-
-	private void handleUse()
-	{
-		Actor player = engine.getData().getPlayer();
-
-		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty() && player.getMaterials().isEmpty() && player.getReadiedItems().isEmpty() && player.getMagicItems().isEmpty())
-		{
-			MessageBuffer.addMessage("You have no items to use!");
-			currentState = GuiState.MESSAGE;
-			refreshInterface();
-			return;
-		}
-
-		completeInventory.setState(InventoryState.USE);
-		currentState = GuiState.INVENTORY;
-		refreshInterface();
-	}
-
-	private void attemptToUseItem()
-	{
-		InventorySelectionKey itemToUse = completeInventory.getAndClearItemToUse();
-		
-		if (itemToUse == null)
-			return;
-		
-		Equipment magicItems = engine.getData().getPlayer().getMagicItems();
-		
-		if (magicItems.getItem(itemToUse.getItemIndex()) != null)
-		{
-			promptForDirection(ActorCommand.use(itemToUse, null));
-			return;
-		}
-		
-		MessageBuffer.addMessage("That slot is empty.");
-		currentState = GuiState.MESSAGE;
-		refreshInterface();
-		return;
+		terminal.close();
 	}
 	
-	private void handleDirection(Direction direction)
+	public void runAnimation(Animation animation)
 	{
-		Point coordChange = direction.getCoordChange();
-		handleDirection(coordChange.x, coordChange.y);
-	}
-
-	private void handleDirection(int rowChange, int colChange)
-	{
-		if (currentState != GuiState.NONE && currentState != GuiState.PENDING_DIRECTION)
+		if (currentAnimation != null)
 			return;
 		
-		if (pendingCommand == null)
-			pendingCommand = ActorCommand.move(null);	//default to move if there's nothing we're prompting a direction for
+		Timer animationTimer = animation.getTimer();
+		animationTimer.addActionListener(this);
+		currentAnimation = animation;
+		animation.start();
+	}
 
-		String directionString = RPGlib.convertCoordChangeToDirection(rowChange, colChange).name();
-		ActorCommand command = pendingCommand.addArgument(directionString);
-		pendingCommand = null;
-		engine.receiveCommand(command);
+	@Override
+	public void refreshInterface()
+	{
+		if (currentAnimation != null)
+			return;
+		
+		screenMap = new DisplayTile[SCREEN_HEIGHT][SCREEN_WIDTH];
+		
+		for (CursesGuiScreen layer : layers)
+		{
+			layer.refresh();
+		}
+		
+		for (int i = 0; i < SCREEN_HEIGHT; i++)
+		{
+			for (int j = 0; j < SCREEN_WIDTH; j++)
+			{
+				DisplayTile tile = getTileAtLocation(i, j);
+				screenMap[i][j] = tile;
+				
+				if (tile == null)
+					continue;
+				
+				terminal.print(j, i, "" + tile.getIcon(), tile.getForegroundColor(), tile.getBackgroundColor());
+			}
+		}
+		
+		terminal.refresh();
+	}
+
+	private DisplayTile getTileAtLocation(int row, int col)
+	{
+		Point point = new Point(row, col);
+		
+		for (int i = layers.size() - 1; i >= 0; i--)
+		{
+			DisplayTile currentTile = layers.get(i).getCharacter(point);
+			if (currentTile != null)
+				return currentTile;
+		}
+		
+		return new DisplayTile(' ');
+	}
+	
+	public void setSingleLayer(GuiState guiState)
+	{
+		setSingleLayer(guiState, true);
+	}
+
+	public void setSingleLayer(GuiState guiState, boolean shouldRefresh)
+	{
+		layers.clear();
+		addLayer(guiState, shouldRefresh);
+	}
+
+	public void addLayer(GuiState guiState, boolean shouldRefresh)
+	{
+		CursesGuiScreen newLayer = guiScreens.get(guiState);
+		
+		if (newLayer == null)
+			throw new IllegalArgumentException("No GUI screen mapped for GuiState [" + guiState + "]");
+		
+		layers.add(newLayer);
+		topLayer = guiState;	//message overlays aren't considered the "top layer"
+		
+		CursesGuiScreen messageOverlay = newLayer.getMessageHandler();
+		
+		if (messageOverlay != null)
+			layers.add(messageOverlay);
+		
+		if (shouldRefresh)
+			refreshInterface();
+	}
+
+	public CursesGuiScreen clearTopLayer()
+	{
+		if (layers.isEmpty())
+			return null;
+
+		return layers.remove(layers.size() - 1);
+	}
+	
+	public CursesGuiScreen getTopLayer()
+	{
+		if (layers.isEmpty())
+			return null;
+
+		return layers.get(layers.size() - 1);
+	}
+	
+	public GuiState getTopLayerType()
+	{
+		return topLayer;
 	}
 
 	@Override
@@ -399,24 +213,118 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 		
 		if (InternalEventType.CHAT.equals(internalEvent.getInternalEventType()) && internalEvent.getFlag(1) != -1)
 		{
+			CursesGuiChat chatUtil = (CursesGuiChat)guiScreens.get(GuiState.CHAT);
 			Actor chatTarget = engine.getData().getActor(internalEvent.getFlag(1));
 			chatUtil.setChatTarget(chatTarget);
-			setCurrentState(GuiState.CHAT);
-			messageUtil.clearMessageArea();
+			addLayer(GuiState.CHAT, true);
 		}
+		else if (InternalEventType.INTERRUPTION.equals(internalEvent.getInternalEventType()) && topLayer == GuiState.INVENTORY)
+		{
+			setSingleLayer(GuiState.MAIN_GAME, false);	//the refresh happens when the player's FOV updates
+		}
+	}
+
+	@Override
+	public void keyPressed(KeyEvent ke)
+	{
+		if (currentAnimation != null)
+			return;
+		
+		CursesGuiScreen activeScreen = getTopLayer();
+		if (activeScreen == null)
+			return;
+		
+		for (int i = layers.size() - 1; i >= 0; i--)
+		{
+			CursesGuiScreen currentLayer = layers.get(i);
+			
+			if (currentLayer.delegatesKeyEventsToNextLayer())
+				continue;
+			
+			currentLayer.handleKeyEvent(ke);
+			return;
+		}
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e)	//triggered only by the animation timer
+	{
+		//restore the screen where the last frame was displayed (animationMask should be empty the first time this is called)
+		for (Point point : animationMask.keySet())
+		{
+			DisplayTile tile = animationMask.get(point);
+			terminal.print(point.y, point.x, "" + tile.getIcon(), tile.getForegroundColor(), tile.getBackgroundColor());
+		}
+		
+		//wipe out the mask (and everything else if the animation is finished)
+		animationMask.clear();
+		if (currentAnimation.isFinished())
+		{
+			currentAnimation.getTimer().removeActionListener(this);
+			currentAnimation = null;
+			terminal.refresh();
+			return;
+		}
+		
+		//get the mask for the current frame, then print out the current frame
+		Map<Point, DisplayTile> currentFrame = currentAnimation.getCurrentFrame();
+		for (Point point : currentFrame.keySet())
+		{
+			DisplayTile frameTile = currentFrame.get(point);
+			DisplayTile maskTile = null;
+			
+			try
+			{
+				maskTile = screenMap[point.x][point.y];
+			} catch (ArrayIndexOutOfBoundsException exc)
+			{
+				continue;
+			}
+			
+			if (maskTile == null)
+				maskTile = new DisplayTile(' ', 0);
+			
+			animationMask.put(point, maskTile);
+			terminal.print(point.y, point.x, "" + frameTile.getIcon(), frameTile.getForegroundColor(), frameTile.getBackgroundColor());
+		}
+		
+		terminal.refresh();
+	}
+	
+	public void promptForDirectionAndSetPendingCommand(ActorCommand command)
+	{
+		pendingCommand = command;
+		String message = engine.getPromptForCommandType(pendingCommand.getType());
+		if (StringUtils.isNotEmpty(message))
+		{
+			MessageBuffer.addMessage(message);
+			refreshInterface();
+		}
+	}
+	
+	public ActorCommand getPendingCommand()
+	{
+		return pendingCommand;
+	}
+	
+	public void setPendingCommand(ActorCommand command)
+	{
+		pendingCommand = command;
 	}
 
 	// unused implemented methods below //
 
 	@Override
-	public void keyReleased(KeyEvent arg0)
+	public void keyTyped(KeyEvent e)
 	{
-		// nothing to do here
-	}
+		// TODO Auto-generated method stub
 
+	}
+	
 	@Override
-	public void keyTyped(KeyEvent arg0)
+	public void keyReleased(KeyEvent e)
 	{
-		// nothing to do here
+		// TODO Auto-generated method stub
+
 	}
 }

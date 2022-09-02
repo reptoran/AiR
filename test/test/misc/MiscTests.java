@@ -1,12 +1,14 @@
 package test.misc;
 
-import java.awt.Point;
 import java.util.Scanner;
 
 import org.junit.Test;
 
 import main.data.Data;
+import main.entity.actor.ActorFactory;
+import main.entity.actor.ActorType;
 import main.logic.RPGlib;
+import main.presentation.message.FormattedMessageBuilder;
 
 public class MiscTests
 {
@@ -53,5 +55,12 @@ public class MiscTests
 		RPGlib.roll("3D12+14");
 		RPGlib.roll("2D4");
 		RPGlib.roll("4D3-10");
+	}
+	
+	@Test
+	public void test_message_format_sequence_replace()
+	{
+		System.out.println(new FormattedMessageBuilder("test returns %1[hello|goodbye]").setSource(ActorFactory.generateNewActor(ActorType.PLAYER)).format());
+		System.out.println(new FormattedMessageBuilder("test returns %1[hello|goodbye]").setSource(ActorFactory.generateNewActor(ActorType.BANDIT)).format());
 	}
 }

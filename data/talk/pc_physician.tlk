@@ -15,14 +15,58 @@
       "entry":false,
       "response":[
          {
-            "text":"Actually, never mind.  I'll come back when you're less busy."
+            "text":"Actually, never mind.  I'll be back when you're less busy."
          }
       ]
    },
    {
-      "tag":"PHYS_GIVE_SALVE",
-      "text":"I suppose so.  Here's a jar of salve.",
-      "entry":false
+      "tag":"PHYS_SALVE_HOWMANY",
+      "text":"Certainly.  How many pieces of medicinal fungus do you have?",
+      "entry":false,
+      "response":[
+         {
+            "text":"Just two.  Please make me a single jar of salve.",
+            "flowTo":"PHYS_GIVE_FUNGUS",
+            "reqs":[
+               {
+                  "ACTOR_HAS_ITEM":"PLAYER:MEDICINAL_FUNGUS>1"
+               }
+            ],
+            "triggers":[
+               {
+                  "GIVE_ITEM_TO":"PC_PHYSICIAN:MEDICINAL_FUNGUS=2"
+               }
+            ]
+         },
+         {
+            "text":"I've got four.  Here you go.",
+            "flowTo":"PHYS_GIVE_FUNGUS",
+            "reqs":[
+               {
+                  "ACTOR_HAS_ITEM":"PLAYER:MEDICINAL_FUNGUS>3"
+               }
+            ],
+            "triggers":[
+               {
+                  "GIVE_ITEM_TO":"PC_PHYSICIAN:MEDICINAL_FUNGUS=4"
+               }
+            ]
+         },
+         {
+            "text":"Quite a bit.  You can have it all.",
+            "flowTo":"PHYS_GIVE_FUNGUS",
+            "reqs":[
+               {
+                  "ACTOR_HAS_ITEM":"PLAYER:MEDICINAL_FUNGUS>5"
+               }
+            ],
+            "triggers":[
+               {
+                  "GIVE_ITEM_TO":"PC_PHYSICIAN:MEDICINAL_FUNGUS=100"
+               }
+            ]
+         }
+      ]
    },
    {
       "tag":"PHYS_DEFAULT",
@@ -54,7 +98,7 @@
          },
          {
             "text":"Will you please make me some salve from this fungus?",
-            "flowTo":"PHYS_SALVE_PROMPT",
+            "flowTo":"PHYS_SALVE_HOWMANY",
             "reqs":[
                {
                   "ACTOR_HAS_ITEM":"PLAYER:MEDICINAL_FUNGUS>1"
@@ -65,7 +109,7 @@
             "text":"Just wanted to drop by."
          },
          {
-            "text":"Can't you just give me some salve?",
+            "text":"Do you have any healing salve for me?",
             "flowTo":"PHYS_GIVE_SALVE",
             "reqs":[
                {
@@ -74,10 +118,20 @@
             ],
             "triggers":[
                {
-                  "GET_ITEM_FROM":"PC_PHYSICIAN:HEALING_SALVE=1"
+                  "GET_ITEM_FROM":"PC_PHYSICIAN:HEALING_SALVE=100"
                }
             ]
          }
       ]
+   },
+   {
+      "tag":"PHYS_GIVE_FUNGUS",
+      "text":"Very good.  Come back in a little bit, and I'll have your salve for you.",
+      "entry":false
+   },
+   {
+      "tag":"PHYS_GIVE_SALVE",
+      "text":"I do.  Here's a jar.",
+      "entry":false
    }
 ]

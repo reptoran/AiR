@@ -19,6 +19,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	public static final String ZERO_DAMAGE = "1d1-1";
 	
 	private ItemType type;
+	private ItemType upgradedBy;
 	
 	private String name = "";
 	private String plural = "";
@@ -36,6 +37,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	private int CR = 0;
 	private int AR = 0;
 	private int DR = 0;
+	
+	private boolean isUpgraded = false;
 	
 	@Override
 	public Item clone()
@@ -55,6 +58,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		toRet.AR = AR;
 		toRet.CR = CR;
 		toRet.DR = DR;
+		toRet.isUpgraded = isUpgraded;
+		toRet.upgradedBy = upgradedBy;
 		
 		return toRet;
 	}
@@ -76,9 +81,6 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	
 	private void convertToType(ItemType itemType)
 	{
-		if (type == itemType)
-			return;
-		
 		Item baseItem = ItemFactory.generateNewItem(itemType);
 		
 		this.type = baseItem.type;
@@ -95,6 +97,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		this.AR = baseItem.AR;
 		this.CR = baseItem.CR;
 		this.DR = baseItem.DR;
+		this.isUpgraded = baseItem.isUpgraded;
+		this.upgradedBy = baseItem.upgradedBy;
 	}
 	
 	public Item(ItemType type)
@@ -113,7 +117,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	public String getNameInPack()
 	{
 		if (amount == 1)
-			return "a " + getName() + getNameSuffix();
+			return getName() + getNameSuffix();
 		
 		return amount + " " + getPlural() + getNameSuffix();
 	}
@@ -144,8 +148,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		
 		if (inventorySlot == EquipmentSlotType.MATERIAL || inventorySlot == EquipmentSlotType.MAGIC)
 			return suffix;
-		else if (!damage.equals(ZERO_DAMAGE))
-			suffix = " (" + damage + ")";
+		else if (!getDamage().equals(ZERO_DAMAGE))
+			suffix = " (" + getDamage() + ")";
 		else if (isShield())
 			suffix = " (" + CR + ")";
 		else if (isArmor())
@@ -191,7 +195,17 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	
 	public String getDamage()
 	{
-		return damage;
+		if (!isWeapon())
+			return damage;
+		
+		String conditionDamageModifier = "";
+		
+		if (getCondition().equals(ItemCondition.POOR))
+			conditionDamageModifier = "-2";
+		else if (getCondition().equals(ItemCondition.FAIR))
+			conditionDamageModifier = "-1";
+		
+		return damage + conditionDamageModifier;
 	}
 	
 	public void setDamage(String damage)
@@ -210,9 +224,10 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		{
 			case MATERIAL:
 				return 5;
+			//$CASES-OMITTED$
+		default:
+				return 1;
 		}
-		
-		return 1;
 	}
 	
 	public int getSize()
@@ -294,17 +309,12 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	public String getConditionString()
 	{
 		double conditionModifier = getConditionModifer();
-		
-		if (conditionModifier > .75)
-			return "Great";
-		
-		if (conditionModifier > .5)
-			return "Good";
-		
-		if (conditionModifier > .25)
-			return "Fair";
-		
-		return "Poor";
+		return ItemCondition.getLabel(conditionModifier);
+	}
+	
+	public ItemCondition getCondition()
+	{
+		return ItemCondition.getCondition(getConditionModifer());
 	}
 	
 	public void setCurHp(int curHp)
@@ -314,7 +324,13 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	
 	public void changeCurHp(int changeAmount)
 	{
-		this.curHp += changeAmount;
+		curHp += changeAmount;
+		
+		if (curHp > maxHp)
+			curHp = maxHp;
+			
+		if (curHp < 0)
+			curHp = 0;
 	}
 
 	public int getCR()
@@ -351,6 +367,51 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	{
 		return type;
 	}
+	
+	public boolean isUpgraded()
+	{
+		return isUpgraded;
+	}
+	
+	public boolean upgrade()
+	{
+		if (isUpgraded)
+			return false;
+		
+		if (isWeapon())
+		{
+			int dIndex = damage.toUpperCase().indexOf("D");
+			int dice = Integer.parseInt(damage.substring(0, dIndex));
+			String remainingDamage = damage.substring(dIndex); 
+			damage = String.valueOf(dice + 1) + remainingDamage;
+		}
+		
+		name = name + " [U]";
+		plural = plural + " [U]";
+		isUpgraded = true;
+		
+		return isUpgraded;
+	}
+	
+	public boolean downgrade()
+	{
+		if (!isUpgraded)
+			return false;
+		
+		convertToType(type);
+		isUpgraded = false;
+		return true;
+	}
+	
+	public void setUpgradedBy(ItemType itemType)
+	{
+		upgradedBy = itemType;
+	}
+	
+	public ItemType getUpgradedBy()
+	{
+		return upgradedBy;
+	}
 
 	@Override
 	public String saveAsText()
@@ -383,6 +444,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		if (CR != baseItem.CR) ssb.addToken(new SaveToken(SaveTokenTag.I_CR_, String.valueOf(CR)));
 		if (AR != baseItem.AR) ssb.addToken(new SaveToken(SaveTokenTag.I_AR_, String.valueOf(AR)));
 		if (DR != baseItem.DR) ssb.addToken(new SaveToken(SaveTokenTag.I_DR_, String.valueOf(DR)));
+		if (isUpgraded != baseItem.isUpgraded) ssb.addToken(new SaveToken(SaveTokenTag.I_UPG, String.valueOf(isUpgraded)));
+		if (upgradedBy != baseItem.upgradedBy) ssb.addToken(new SaveToken(SaveTokenTag.I_UPB, type.toString()));
 				
 		return ssb.getSaveString();
 	}
@@ -408,6 +471,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		setMember(ssb, SaveTokenTag.I_CR_);
 		setMember(ssb, SaveTokenTag.I_AR_);
 		setMember(ssb, SaveTokenTag.I_DR_);
+		setMember(ssb, SaveTokenTag.I_UPG);
+		setMember(ssb, SaveTokenTag.I_UPB);
 		
 		return toRet;
 	}
@@ -423,7 +488,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	protected void setMember(SaveStringBuilder ssb, SaveTokenTag saveTokenTag)
 	{
 		String contents = getContentsForTag(ssb, saveTokenTag);
-		SaveToken saveToken = null;
+		int intContents = getIntContentsForTag(ssb, saveTokenTag);
 		
 		if (contents.equals("")) return;
 		
@@ -436,38 +501,31 @@ public class Item extends SaveableEntity implements Comparable<Item>
 				break;
 				
 			case I_NAM:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.name = saveToken.getContents();
+				this.name = contents;
 				break;
 				
 			case I_PLR:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.plural = saveToken.getContents();
+				this.plural = contents;
 				break;
 				
 			case I_ICO:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.icon = saveToken.getContents().charAt(0);
+				this.icon = contents.charAt(0);
 				break;
 			
 			case I_CLR:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.color = Integer.parseInt(saveToken.getContents());
+				this.color = intContents;
 				break;
 				
 			case I_DAM:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.damage = saveToken.getContents();
+				this.damage = contents;
 				break;
 				
 			case I_SIZ:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.size = Integer.parseInt(saveToken.getContents());
+				this.size = intContents;
 				break;
 				
 			case I_AMT:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.amount = Integer.parseInt(saveToken.getContents());
+				this.amount = intContents;
 				break;
 				
 			case I_INV:
@@ -476,28 +534,31 @@ public class Item extends SaveableEntity implements Comparable<Item>
 				break;
 				
 			case I_MHP:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.maxHp = Integer.parseInt(saveToken.getContents());
+				this.maxHp = intContents;
 				break;
 				
 			case I_CHP:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.curHp = Integer.parseInt(saveToken.getContents());
+				this.curHp = intContents;
 				break;
 				
 			case I_CR_:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.CR = Integer.parseInt(saveToken.getContents());
+				this.CR = intContents;
 				break;
 				
 			case I_AR_:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.AR = Integer.parseInt(saveToken.getContents());
+				this.AR = intContents;
 				break;
 				
 			case I_DR_:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.DR = Integer.parseInt(saveToken.getContents());
+				this.DR = intContents;
+				break;
+
+			case I_UPG:
+				this.isUpgraded = Boolean.parseBoolean(contents);
+				break;
+
+			case I_UPB:
+				this.upgradedBy = ItemType.valueOf(contents);
 				break;
 				
 			default:
@@ -522,6 +583,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + size;
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		result = prime * result + (isUpgraded ? 1 : 0);
+		result = prime * result + ((upgradedBy == null) ? 0 : upgradedBy.hashCode());
 		return result;
 	}
 
@@ -567,6 +630,11 @@ public class Item extends SaveableEntity implements Comparable<Item>
 			return false;
 		if (type != other.type)
 			return false;
+		if (isUpgraded != other.isUpgraded)
+			return false;
+		if (upgradedBy != other.upgradedBy)
+			return false;
+		
 		return true;
 	}
 	

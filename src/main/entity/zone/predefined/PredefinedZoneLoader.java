@@ -2,7 +2,9 @@ package main.entity.zone.predefined;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import main.data.file.FileHandler;
@@ -10,6 +12,8 @@ import main.entity.actor.ActorType;
 import main.entity.feature.FeatureType;
 import main.entity.item.ItemType;
 import main.entity.tile.TileType;
+import main.entity.zone.ZoneAttribute;
+import main.presentation.Logger;
 
 public class PredefinedZoneLoader extends FileHandler
 {
@@ -21,12 +25,19 @@ public class PredefinedZoneLoader extends FileHandler
 	
 	private static int loadedZoneCount = 0;
 
+	private Map<String, Integer> zoneBands = new HashMap<String, Integer>();
+	private Map<String, String> zoneFileNames = new HashMap<String, String>();
+	private Map<String, String> zoneCacheNames = new HashMap<String, String>();
+	
 	private ZoneDataState currentState = null;
 	private PredefinedZoneBuilder predefinedZoneBuilder = null;
 	
 	private static PredefinedZoneLoader instance = null;
 	
-	private PredefinedZoneLoader() {}
+	private PredefinedZoneLoader()
+	{
+		scanAllPredefinedZones();
+	}
 	
 	public static PredefinedZoneLoader getInstance()
 	{
@@ -34,6 +45,27 @@ public class PredefinedZoneLoader extends FileHandler
 			instance = new PredefinedZoneLoader();
 		
 		return instance;
+	}
+	
+	public Map<String, Integer> getBandsOfPredefinedZones()
+	{
+		if (zoneBands.isEmpty())
+			scanAllPredefinedZones();
+		
+		return zoneBands;
+	}
+	
+	public String getFileNameOfZone(String zoneName)
+	{
+		if (zoneFileNames.isEmpty())
+			scanAllPredefinedZones();
+		
+		return zoneFileNames.get(zoneName);
+	}
+	
+	public String getCacheNameOfZone(String zoneName)
+	{
+		return zoneCacheNames.get(zoneName);
 	}
 	
 	public List<PredefinedZone> loadAllPredefinedZones()
@@ -54,8 +86,23 @@ public class PredefinedZoneLoader extends FileHandler
 		
 		return loadedZones;
 	}
+	
+	private void scanAllPredefinedZones()
+	{
+		//TODO: unzip a .dat file that's just an archive of everything, then search the created folder
+		
+		File folder = new File(getDataPath());
 
-	private PredefinedZone loadZoneFromDataFile(String zoneName)
+		for (File file : folder.listFiles())
+		{
+			if (!getFileExtension(file).equals(getExtension()))
+				continue;
+			
+			setBandsAndFileNames(file.getName());
+		}
+	}
+
+	public PredefinedZone loadZoneFromDataFile(String zoneName)
 	{
 		String path = getDataPath() + zoneName;
 		List<String> lines = loadFile(path);
@@ -64,7 +111,54 @@ public class PredefinedZoneLoader extends FileHandler
 		PredefinedZone zone = generateZoneFromData(lines);
 		predefinedZoneBuilder = null;
 		
+		zoneCacheNames.put(zone.getAttribute(ZoneAttribute.NAME), "Z" + zone.getName());
+		
 		return zone;
+	}
+	
+	private void setBandsAndFileNames(String fileName)
+	{
+		String path = getDataPath() + fileName;
+		List<String> lines = loadFile(path);
+		
+		String zoneName = "";
+		
+		for (String line : lines)
+		{
+			if (line.isEmpty())
+				continue;
+			
+			if (line.startsWith("["))
+				currentState = null;
+			
+			if (STATE_KEY_ATTRIBUTES.equals(line))
+			{
+				currentState = ZoneDataState.ATTRIBUTES;
+				continue;
+			}
+			
+			List<String> lineElements = tokenizeLine(line);
+			
+			if (currentState == ZoneDataState.ATTRIBUTES)
+			{
+				String key = lineElements.get(0);
+				String value = lineElements.get(1);
+				
+				if (ZoneAttribute.LEVELBAND.toString().equals(key))
+					zoneBands.put(fileName, Integer.parseInt(value));
+				else if (ZoneAttribute.NAME.toString().equals(key))
+				{
+					zoneName = value;
+					zoneFileNames.put(value, fileName);
+				}
+			}
+		}
+		
+		if (zoneBands.get(fileName) == null)
+			Logger.error("No level band defined within " + fileName);
+		
+		if (zoneName == "")
+			Logger.error("No zone name defined within " + fileName);
 	}
 
 	private PredefinedZone generateZoneFromData(List<String> lines)
@@ -184,7 +278,7 @@ public class PredefinedZoneLoader extends FileHandler
 	}
 
 	@Override
-	protected String getExtension()
+	public String getExtension()
 	{
 		return "zon";
 	}

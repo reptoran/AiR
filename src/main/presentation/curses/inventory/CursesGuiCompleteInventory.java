@@ -20,7 +20,7 @@ import main.presentation.Logger;
 import main.presentation.curses.AbstractCursesGuiListInput;
 import main.presentation.curses.ColorScheme;
 import main.presentation.curses.CursesGui;
-import main.presentation.curses.terminal.CursesTerminal;
+import main.presentation.message.MessageBuffer;
 
 public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 {
@@ -41,13 +41,11 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 	private boolean groundIsSelectable = false;
 	
 	private InventorySelectionKey selectedEquipment = null;	
-	private InventorySelectionKey itemToUse = null;
+	private InventorySelectionKey itemToUseOrUpgrade = null;
 
-	private static final int BACKPACK_SIZE = 12; // probably should be defined and constraint in Inventory, but this is good for now
-
-	public CursesGuiCompleteInventory(CursesGui parentGui, Engine engine, CursesTerminal terminal, ColorScheme colorScheme)
+	public CursesGuiCompleteInventory(CursesGui parentGui, Engine engine, ColorScheme colorScheme)
 	{
-		super(terminal, colorScheme);
+		super(colorScheme);
 		this.parentGui = parentGui;
 		this.engine = engine;
 	}
@@ -58,7 +56,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		slotSelectionMapping.clear();
 		groundIsSelectable = false;
 
-		terminal.clear();
+		clearScreen();
 		drawBorders();
 		populateInventory();
 		displayStateMessage();
@@ -66,17 +64,31 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		switch (state)
 		{
 		case VIEW:
-			labelEquipment();
+			labelEquipment(true);
+			labelReadiedItems(true);
 			labelMagic();
 			break;
 		case EQUIP:
-			labelAvailableItemsForSelectedSlot();
+			labelAvailableItemsForSelectedEquippableSlot();
 			break;
-		case DROP:
-		case USE:
-			labelEquipment();
-			labelAvailableItemsForSelectedSlot();
+		case MOVE_READY_ITEM:
+			labelAvailableSlotsToMoveReadyItemTo();
+			break;
+		case UPGRADE_MATERIAL_SELECT:
 			labelMaterials();
+			break;
+		case DROP:		//intentionally falls through
+		case USE:
+			labelEquipment(false);
+			labelReadiedItems(false);
+			labelAllStoredItems();
+			labelMaterials();
+			labelMagic();
+			break;
+		case UPGRADE_BASE_ITEM_SELECT:
+			labelEquipment(false);
+			labelReadiedItems(false);
+			labelAllStoredItems();
 			labelMagic();
 			break;
 		}
@@ -88,12 +100,9 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 	}
 
 	@Override
-	public void handleKeyEvent(KeyEvent ke)
+	public void handleKey(int code, char keyChar)
 	{
 		Actor player = engine.getData().getPlayer();
-
-		int code = ke.getKeyCode();
-		char keyChar = ke.getKeyChar();
 
 		if (code == KeyEvent.VK_ESCAPE)
 		{
@@ -101,27 +110,31 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			{
 			// all of these intentionally fall through
 			case VIEW:
-			case USE:
-			case DROP:
+			case UPGRADE_MATERIAL_SELECT:
+			case UPGRADE_BASE_ITEM_SELECT:	//maybe this can be triggered from outside the inventory screen with 'U' (instead of 'u' for use)
+			case USE:						// also, instead of blindly calling the base item's upgrade method, perhaps check for a recipe first to see
+			case DROP:						// if a completely new item should be created instead
 				if (previousState == null)
-					parentGui.setCurrentState(GuiState.NONE);
+					parentGui.setSingleLayer(GuiState.MAIN_GAME);
 				else
 					state = InventoryState.VIEW;
 			case EQUIP:
+			case MOVE_READY_ITEM:
 				filter = null;
 				state = InventoryState.VIEW;
 			}
 			
 			selectedEquipment = null;
 			previousState = null;
-			
+			parentGui.refreshInterface();
 			return;
 		}
 		
-		if (state == InventoryState.VIEW && keyChar == 'u')
+		if (state == InventoryState.VIEW && keyChar == 'u' && playerHasMaterials())
 		{
 			previousState = state;
-			state = InventoryState.USE;
+			state = InventoryState.UPGRADE_BASE_ITEM_SELECT;
+			parentGui.refreshInterface();
 			return;
 		}
 		
@@ -129,6 +142,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		{
 			previousState = state;
 			state = InventoryState.DROP;
+			parentGui.refreshInterface();
 			return;
 		}
 		
@@ -152,13 +166,10 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		} else if (selectionIndexSpecifiesValidFunctionKey(selectionIndex))
 		{
 			selection = getMagicSelection(selectionIndex);
-			//TODO: work on this - it's correctly sending an equip event, i think, but the inventory screen assumes those all come from the actual equipment section
 		} else
 		{
 			selection = slotSelectionMapping.get(selectionIndex);
 		}
-
-		int selectionSlotIndex = selection.getItemIndex();
 
 		switch (state)
 		{
@@ -166,32 +177,77 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			Equipment equipment = getEquipmentForSelection(player, selection);
 			EquipmentSlot slot = equipment.getEquipmentSlots().get(selection.getItemIndex());
 
-			if (slot.getItem() != null)
+			if (slot.getItem() != null && (selection.getItemSource() == ItemSource.EQUIPMENT || selection.getItemSource() == ItemSource.MAGIC))
 			{
 				unequipItem(slot.getItem(), selection);
+			} else if (slot.getItem() != null && selection.getItemSource() == ItemSource.READY)
+			{
+				state = InventoryState.MOVE_READY_ITEM;
+				selectedEquipment = selection.clone();
+				parentGui.refreshInterface();
 			} else
 			{
 				state = InventoryState.EQUIP;
 				filter = slot.getType();
 				selectedEquipment = selection.clone();
+				parentGui.refreshInterface();
 			}
 
 			break;
 		case EQUIP:
 			engine.receiveCommand(ActorCommand.equip(selection, selectedEquipment));
+			
 			state = InventoryState.VIEW;
 			selectedEquipment = null;
-			break;
+			
+			//TODO: unfortunately, this and the ones in MOVE_READY_ITEM and DROP are required in case the action is interrupted.  not elegant, but good enough
+			if (parentGui.getTopLayerType() == GuiState.INVENTORY)
+				parentGui.refreshInterface();
+			
+			return;
+		case MOVE_READY_ITEM:
+			if (selection.getItemSource() == ItemSource.EQUIPMENT)
+				engine.receiveCommand(ActorCommand.equip(selectedEquipment, selection));
+			else if (selection.getItemSource() == ItemSource.PACK)
+				engine.receiveCommand(ActorCommand.unequip(selectedEquipment, selection));
+			else if (selection.getItemSource() == ItemSource.GROUND)
+				engine.receiveCommand(ActorCommand.drop(selectedEquipment));
+			
+			state = InventoryState.VIEW;
+			selectedEquipment = null;
+			
+			if (parentGui.getTopLayerType() == GuiState.INVENTORY)
+				parentGui.refreshInterface();
+			
+			return;
 		case DROP:
 			engine.receiveCommand(ActorCommand.drop(selection));
 			state = InventoryState.VIEW;
-			parentGui.setCurrentState(GuiState.NONE);
-			break;
+			
+			//TODO: if the player drops from the main screen (with 'd'), it should return there
+			if (parentGui.getTopLayerType() == GuiState.INVENTORY)
+				parentGui.refreshInterface();
+			
+			return;
 		case USE:
-			itemToUse = selection;
+			itemToUseOrUpgrade = selection;
 			state = InventoryState.VIEW;
-			parentGui.setCurrentState(GuiState.NONE);
-			break;
+			attemptToUseItem();
+			return;
+		case UPGRADE_BASE_ITEM_SELECT:
+			itemToUseOrUpgrade = selection;
+			state = InventoryState.UPGRADE_MATERIAL_SELECT;
+			
+			if (parentGui.getTopLayerType() == GuiState.INVENTORY)
+				parentGui.refreshInterface();
+			return;
+		case UPGRADE_MATERIAL_SELECT:
+			state = InventoryState.VIEW;
+			engine.receiveCommand(ActorCommand.upgrade(itemToUseOrUpgrade, selection));
+			
+			if (parentGui.getTopLayerType() == GuiState.INVENTORY)
+				parentGui.refreshInterface();
+			return;
 		}
 	}
 
@@ -222,26 +278,32 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 
 	public InventorySelectionKey getAndClearItemToUse()
 	{
-		InventorySelectionKey returnVal = itemToUse;
-		itemToUse = null;
+		InventorySelectionKey returnVal = itemToUseOrUpgrade;
+		itemToUseOrUpgrade = null;
 		return returnVal;
 	}
 
 	private void unequipItem(Item item, InventorySelectionKey selection)
 	{
 		Inventory inventory = engine.getData().getPlayer().getStoredItems();
+		Equipment readiedItems = engine.getData().getPlayer().getReadiedItems();
 
+		if (item.getInventorySlot() == EquipmentSlotType.ARMAMENT && readiedItems.hasEmptySlotAvailable(EquipmentSlotType.ARMAMENT))
+		{
+			int firstAvailableSlotIndex = readiedItems.getIndexOfFirstSlotAvailable(EquipmentSlotType.ARMAMENT);
+			engine.receiveCommand(ActorCommand.unequip(selection, new InventorySelectionKey(ItemSource.READY, firstAvailableSlotIndex)));
+			return;
+		}
+		
 		if (inventory.hasSpaceForItem(item))
 		{
-			engine.receiveCommand(ActorCommand.unqeuip(selection, new InventorySelectionKey(ItemSource.PACK)));
-			refresh();
+			engine.receiveCommand(ActorCommand.unequip(selection, new InventorySelectionKey(ItemSource.PACK)));
 			return;
 		}
 		
 		if (getItemOnGround() == null)
 		{
 			engine.receiveCommand(ActorCommand.drop(selection)); 
-			refresh();
 			return;
 		}
 		
@@ -278,7 +340,15 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		Actor player = engine.getData().getPlayer();
 		int maxMagicItems = player.getMagicItems().getEquipmentSlots().size();
 		
-		return slotIndex < maxMagicItems;
+		if (slotIndex >= maxMagicItems)
+			return false;
+		
+		Item selectedMagicItem = player.getMagicItems().getItem(slotIndex);
+		
+		if (selectedMagicItem == null && state == InventoryState.UPGRADE_BASE_ITEM_SELECT)
+			return false;
+		
+		return true;
 	}
 	
 	private int getSlotIndexFromFunctionKeySelectionIndex(int selectionIndex)
@@ -324,58 +394,52 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 	{
 		// equipment letter borders
 		for (int i = 1; i <= 10; i++)
-			terminal.print(0, i, "[ ]", getBorderColor());
+			addText(i, 0, "[ ]", getBorderColor());
 
 		// material letter borders
 		for (int i = 12; i <= 21; i++)
-			terminal.print(0, i, "[ ]", getBorderColor());
+			addText(i, 0, "[ ]", getBorderColor());
 
 		// readied letter borders
 		for (int i = 1; i <= 4; i++)
-			terminal.print(43, i, "|[ ]", getBorderColor());
+			addText(i, 43, "|[ ]", getBorderColor());
 
 		// stored letter borders
 		for (int i = 6; i <= 17; i++)
-			terminal.print(43, i, "|[ ]", getBorderColor());
+			addText(i, 43, "|[ ]", getBorderColor());
 
 		// magic letter borders
 		for (int i = 19; i <= 21; i++)
-			terminal.print(43, i, "|[  ]", getBorderColor());
+			addText(i, 43, "|[  ]", getBorderColor());
 
 		// ground letter border
-		terminal.print(43, 23, "|[ ]", getBorderColor());
+		addText(23, 43, "|[ ]", getBorderColor());
 
-		terminal.print(0, 0, "-----------------[", getBorderColor());
-		terminal.print(18, 0, "Equipped", getTitleColor());
-		terminal.print(26, 0, "]----------------+--------------[", getBorderColor());
-		terminal.print(59, 0, "Readied", getTitleColor());
-		terminal.print(66, 0, "]-------------", getBorderColor());
+		addText(0, 0, "-----------------[", getBorderColor());
+		addText(0, 18, "Equipped", getTitleColor());
+		addText(0, 26, "]----------------+--------------[", getBorderColor());
+		addText(0, 59, "Readied", getTitleColor());
+		addText(0, 66, "]-------------", getBorderColor());
 
-		terminal.print(0, 11, "----------------[", getBorderColor());
-		terminal.print(17, 11, "Materials", getTitleColor());
-		terminal.print(26, 11, "]----------------+", getBorderColor());
+		addText(11, 0, "----------------[", getBorderColor());
+		addText(11, 17, "Materials", getTitleColor());
+		addText(11, 26, "]----------------+", getBorderColor());
 
-		/*
-		terminal.print(0, 22, "------------------[", getBorderColor());
-		terminal.print(19, 22, "Ground", getTitleColor());
-//		terminal.print(25, 22, "]-----------------+", getBorderColor());
-		terminal.print(25, 22, "]-----------------+------------------------------------", getBorderColor());
-		*/
-		terminal.print(0, 22, "-------------------------------------------+-------------[", getBorderColor());
-		terminal.print(58, 22, "On Ground", getTitleColor());
-		terminal.print(67, 22, "]------------", getBorderColor());
+		addText(22, 0, "-------------------------------------------+-------------[", getBorderColor());
+		addText(22, 58, "On Ground", getTitleColor());
+		addText(22, 67, "]------------", getBorderColor());
 		
 
-		terminal.print(43, 5, "+----------[", getBorderColor());
-		terminal.print(55, 5, "Stored (  /  )", getTitleColor());
-		terminal.print(69, 5, "]----------", getBorderColor());
-		terminal.print(66, 5, String.valueOf(BACKPACK_SIZE), getHighlightColor());
+		addText(5, 43, "+----------[", getBorderColor());
+		addText(5, 55, "Stored <  /  >", getTitleColor());
+		addText(5, 69, "]----------", getBorderColor());
+		addText(5, 66, String.valueOf(Inventory.MAX_BULK), getHighlightColor());
 
-		terminal.print(43, 18, "+---------------[", getBorderColor());
-		terminal.print(60, 18, "Magic", getTitleColor());
-		terminal.print(65, 18, "]--------------", getBorderColor());
+		addText(18, 43, "+---------------[", getBorderColor());
+		addText(18, 60, "Magic", getTitleColor());
+		addText(18, 65, "]--------------", getBorderColor());
 
-		terminal.print(0, 24, "-------------------------------------------+------------------------------------", getBorderColor());
+		addText(24, 0, "-------------------------------------------+------------------------------------", getBorderColor());
 	}
 	
 	private void displayStateMessage()
@@ -385,20 +449,48 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		switch(state)
 		{
 		case VIEW:
-			message = "[a-j,F1-F3] (Un)Equip, [u] Use, [-] Drop";
+			if (playerHasMaterials())
+				message = "[a-j,F1-F3] Equip, [u] Upgrade, [-] Drop";
+			else
+				message = "[a-j,F1-F3] Equip, [-] Drop, [ESC] Exit";
 			break;
 		case DROP:
 			message = "[a-z] Drop Item, [ESC] Cancel";
 			action = "DROP: ";
 			break;
 		case EQUIP:
+			if (selectedEquipment.getItemSource() == ItemSource.READY)
+			{
+				message = "[a-l] Ready Item, [ESC] Cancel";
+				action = "READY: ";
+				break;
+			}
+			if (selectedEquipment.getItemSource() == ItemSource.MAGIC)
+			{
+				message = "[a-l] Prepare Item, [ESC] Cancel";
+				action = "MAGIC: ";
+				break;
+			}
+			
 			message = "[a-l] Wear/Wield Item, [ESC] Cancel";
 			action = "EQUIP: ";
 			break;
+		case MOVE_READY_ITEM:
+			message = "[a-c] Swap/Store Item, [ESC] Cancel";
+			action = "READY: ";
+			break;
 		case USE:
-//			message = "[0-9] Use Material, [ESC] Cancel";	//TODO: maybe this should be 'c' for "craft" instead?
 			message = "[a-z,0-9] Use Item, [ESC] Cancel";
 			action = "USE: ";
+			break;
+		case UPGRADE_BASE_ITEM_SELECT:
+			message = "[a-z] Pick Base Item, [ESC] Cancel";		//note that magic items can't be upgraded (no "F1-F3"), which is probably fine, at least for now
+			action = "UPGRADE:";
+			break;
+		case UPGRADE_MATERIAL_SELECT:
+			message = "[0-9] Pick Enhancer, [ESC] Cancel";
+			action = "UPGRADE:";
+			break;
 		default:
 			break;
 		}
@@ -406,14 +498,22 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		if (message.length() > 41)
 			message = message.substring(0, 41);
 		
-		terminal.print(1, 23, action, getTitleColor());
-		terminal.print(action.length() + 1, 23, message, getHighlightColor());
+		addText(23, 1, action, getTitleColor());
+		addText(23, action.length() + 1, message, getHighlightColor());
+	}
+	
+	private boolean playerHasMaterials()
+	{
+		Inventory inventory = engine.getData().getPlayer().getMaterials();
+		List<Item> itemsInInventory = inventory.getItemsForSlot(null);
+		return !itemsInInventory.isEmpty();
 	}
 
 	private void populateInventory()
 	{
 		populatePack();
 		populateEquipment();
+		populateReadyItems();
 		populateMaterials();
 		populateMagic();
 		populateGround();
@@ -424,20 +524,25 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		Inventory inventory = engine.getData().getPlayer().getStoredItems();
 		List<Item> itemsInInventory = inventory.getItemsForSlot(null);
 
-		int packSlots = itemsInInventory.size() + (BACKPACK_SIZE - inventory.getBulk());
+		int packSlots = itemsInInventory.size() + (Inventory.MAX_BULK - inventory.getBulk());
 
 		for (int i = 0; i < packSlots; i++)
 		{
 			String label = EMPTY_LABEL;
+			String itemBulk = "";
 
 			if (i < itemsInInventory.size())
+			{
 				label = itemsInInventory.get(i).getNameInPack();
+				itemBulk = "<" + itemsInInventory.get(i).getBulk() + ">";
+			}
 
-			terminal.print(48, 6 + i, label, getTextColor());
+			addText(6 + i, 48, label, getTextColor());
+			addText(6 + i, 80 - itemBulk.length(), itemBulk, getHighlightColor());
 		}
 		
 		String bulkString = String.valueOf(inventory.getBulk());
-		terminal.print(63, 5, RPGlib.padStringLeft(bulkString, 2, '0'), getHighlightColor());
+		addText(5, 63, RPGlib.padStringLeft(bulkString, 2, '0'), getHighlightColor());
 	}
 
 	private void populateEquipment()
@@ -448,7 +553,18 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		{
 			EquipmentSlot slot = slots.get(i);
 			String slotName = RPGlib.padStringRight(slot.getShortName() + ": ", 6, ' ');
-			terminal.print(4, 1 + i, slotName + getItemLabel(slot), getTextColor());
+			addText(1 + i, 4, slotName + getItemLabel(slot), getTextColor());
+		}
+	}
+
+	private void populateReadyItems()
+	{
+		List<EquipmentSlot> slots = engine.getData().getPlayer().getReadiedItems().getEquipmentSlots();
+
+		for (int i = 0; i < slots.size(); i++)
+		{
+			EquipmentSlot slot = slots.get(i);
+			addText(1 + i, 48, getItemLabel(slot), getTextColor());
 		}
 	}
 
@@ -466,7 +582,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			if (i < itemsInInventory.size())
 				label = itemsInInventory.get(i).getNameInPack();
 
-			terminal.print(4, 12 + i, label, getTextColor());
+			addText(12 + i, 4, label, getTextColor());
 		}
 	}
 
@@ -483,7 +599,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			if (i < slots.size())
 				label = getItemLabel(slots.get(i));
 
-			terminal.print(49, 19 + i, label, getTextColor());
+			addText(19 + i, 49, label, getTextColor());
 		}
 	}
 
@@ -495,7 +611,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		if (itemOnGround != null)
 			label = itemOnGround.getNameInPack();
 
-		terminal.print(48, 23, label, getTextColor());
+		addText(23, 48, label, getTextColor());
 	}
 
 	private String getItemLabel(EquipmentSlot slot)
@@ -506,8 +622,10 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		return EMPTY_LABEL;
 	}
 
-	private void labelEquipment()
+	private void labelEquipment(boolean includeEmptySlots)
 	{
+		int existingLabels = slotSelectionMapping.size();
+		
 		List<EquipmentSlot> slots = engine.getData().getPlayer().getEquipment().getEquipmentSlots();
 		for (int i = 0; i < slots.size(); i++)
 		{
@@ -516,19 +634,57 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			EquipmentSlot slot = slots.get(i);
 			Item slotItem = slot.getItem();
 
-			if (slotItem == null && state != InventoryState.DROP && !itemAvailableForSlot(slot.getType())) // empty slots, but nothing can go there
+			if (slotItem == null && !includeEmptySlots)
+				selectable = false;
+			
+			if (slotItem == null && state == InventoryState.DROP)
+				selectable = false;	
+			
+			if (slotItem == null && state != InventoryState.DROP && !itemAvailableForEquipmentSlot(slot.getType())) // empty slot, but nothing can go there
+				selectable = false;		
+
+			if (slotItem != null && state != InventoryState.DROP && !spaceToRemoveEquippedItem(slotItem))	//TODO: basically, if you're removing an item but there's no place to put it.  This is a temporary fix because removing an
+				selectable = false;																			//		item can only put it on the player's tile, but drop can "bubble out" - perhaps make it so removing can't drop the item?
+
+			if (selectable)
+			{
+				addText(1 + i, 1, getLetterForSelectionIndex(existingLabels + i), getTitleColor());
+				slotSelectionMapping.add(new InventorySelectionKey(ItemSource.EQUIPMENT, existingLabels + i));
+			}
+			else
+			{
+				slotSelectionMapping.add(null);
+			}
+		}
+	}
+	
+	private void labelReadiedItems(boolean includeEmptySlots)
+	{
+		int existingLabels = slotSelectionMapping.size();
+		
+		List<EquipmentSlot> slots = engine.getData().getPlayer().getReadiedItems().getEquipmentSlots();
+		for (int i = 0; i < slots.size(); i++)
+		{
+			boolean selectable = true;
+			
+			EquipmentSlot slot = slots.get(i);
+			Item slotItem = slot.getItem();
+			
+			if (slotItem == null && !includeEmptySlots)
 				selectable = false;
 			
 			if (slotItem == null && state == InventoryState.DROP)
 				selectable = false;
-
-			if (slotItem != null && state != InventoryState.DROP && !spaceToRemoveItem(slotItem))	//TODO: temporary fix because removing an item can only put it on the player's tile, but drop can "bubble out" - perhaps make it so removing can't drop the item? 
+			
+			if (slotItem == null && state != InventoryState.DROP && !itemAvailableForReadySlot()) // empty slot, but nothing can go there
 				selectable = false;
-
+			
+			//note that as long as a ready item slot has an item, it will always have a valid target, because it can swap with the equipment
+			
 			if (selectable)
 			{
-				terminal.print(1, 1 + i, getLetterForSelectionIndex(i), getTitleColor());
-				slotSelectionMapping.add(new InventorySelectionKey(ItemSource.EQUIPMENT, i));
+				addText(1 + i, 45, getLetterForSelectionIndex(existingLabels + i), getTitleColor());
+				slotSelectionMapping.add(new InventorySelectionKey(ItemSource.READY, i));
 			}
 			else
 			{
@@ -545,7 +701,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 
 		for (int i = 0; i < itemsInInventory.size(); i++)
 		{
-			terminal.print(1, 12 + i, getNumberForSelectionIndex(i), getTitleColor());
+			addText(12 + i, 1, getNumberForSelectionIndex(i), getTitleColor());
 		}
 	}
 
@@ -559,18 +715,18 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			EquipmentSlot slot = slots.get(i);
 			Item slotItem = slot.getItem();
 
-			if (slotItem == null && state != InventoryState.DROP && !itemAvailableForSlot(slot.getType())) // empty slots, but nothing can go there
+			if (slotItem == null && state != InventoryState.DROP && !itemAvailableForEquipmentSlot(slot.getType())) // empty slots, but nothing can go there
 				selectable = false;
 			
 			if (slotItem == null && state == InventoryState.DROP)
 				selectable = false;
 
-			if (slotItem != null && state != InventoryState.DROP && !spaceToRemoveItem(slotItem))	//TODO: temporary fix because removing an item can only put it on the player's tile, but drop can "bubble out" - perhaps make it so removing can't drop the item? 
+			if (slotItem != null && state != InventoryState.DROP && !spaceToRemoveEquippedItem(slotItem))	//TODO: temporary fix because removing an item can only put it on the player's tile, but drop can "bubble out" - perhaps make it so removing can't drop the item? 
 				selectable = false;
 
 			if (selectable)
 			{
-				terminal.print(45, 19 + i, "F" + (i + 1), getTitleColor());
+				addText(19 + i, 45, "F" + (i + 1), getTitleColor());
 				slotSelectionMapping.add(new InventorySelectionKey(ItemSource.MAGIC, i));
 			}
 			else
@@ -579,9 +735,24 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			}
 		}
 	}
-
-	private void labelAvailableItemsForSelectedSlot()
+	
+	private void labelAllStoredItems()
 	{
+		for (int i = 0; i < engine.getData().getPlayer().getStoredItems().size(); i++)
+		{
+			addText(6 + i, 45, getLetterForSelectionIndex(slotSelectionMapping.size()), getTitleColor());
+			slotSelectionMapping.add(new InventorySelectionKey(ItemSource.PACK, i));
+		}
+	}
+
+	private void labelAvailableItemsForSelectedEquippableSlot()
+	{
+		Actor player = engine.getData().getPlayer();
+		List<EquipmentSlot> equippedItems = player.getEquipment().getEquipmentSlots();
+		List<EquipmentSlot> readiedItems = player.getReadiedItems().getEquipmentSlots();
+		Inventory inventory = player.getStoredItems();
+		List<Item> itemsInInventory = inventory.getItemsForSlot(null);
+		
 		if (selectedEquipment != null)
 		{
 			int selectedEquipmentIndex = selectedEquipment.getItemIndex();
@@ -589,21 +760,46 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			switch (selectedEquipment.getItemSource())
 			{
 			case EQUIPMENT:
-				terminal.print(1, 1 + selectedEquipmentIndex, ">", getHighlightColor());
+				addText(1 + selectedEquipmentIndex, 1, ">", getHighlightColor());
+				break;
+			case READY:
+				addText(1 + selectedEquipmentIndex, 45, ">", getHighlightColor());
 				break;
 			case MAGIC:
-				terminal.print(45, 19 + selectedEquipmentIndex, "->", getHighlightColor());
+				addText(19 + selectedEquipmentIndex, 45, "->", getHighlightColor());
 				break;
 				//$CASES-OMITTED$
 			default:
 				break;
 			}
 		}
-
-		Inventory inventory = engine.getData().getPlayer().getStoredItems();
-		List<Item> itemsInInventory = inventory.getItemsForSlot(null);
-
-		// TODO: include readied items
+		
+		if (selectedEquipment.getItemSource() == ItemSource.READY)
+		{
+			for (int i = 0; i < equippedItems.size(); i++)
+			{
+				if (equippedItems.get(i).getItem() == null)
+					continue;
+				
+				if (equippedItems.get(i).getType() != EquipmentSlotType.ARMAMENT)
+					continue;
+				
+				addText(1 + i, 1, getLetterForSelectionIndex(slotSelectionMapping.size()), getTitleColor());
+				slotSelectionMapping.add(new InventorySelectionKey(ItemSource.EQUIPMENT, i));
+			}
+		}
+		
+		if (filter == EquipmentSlotType.ARMAMENT && selectedEquipment.getItemSource() != ItemSource.READY)
+		{
+			for (int i = 0; i < readiedItems.size(); i++)
+			{
+				if (readiedItems.get(i).getItem() == null)
+					continue;
+				
+				addText(1 + i, 45, getLetterForSelectionIndex(slotSelectionMapping.size()), getTitleColor());
+				slotSelectionMapping.add(new InventorySelectionKey(ItemSource.READY, i));
+			}
+		}
 
 		for (int i = 0; i < itemsInInventory.size(); i++)
 		{
@@ -612,15 +808,53 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			if (state != InventoryState.DROP && inventoryItem.getInventorySlot() != filter)
 				continue;
 
-			terminal.print(45, 6 + i, getLetterForSelectionIndex(slotSelectionMapping.size()), getTitleColor());
+			addText(6 + i, 45, getLetterForSelectionIndex(slotSelectionMapping.size()), getTitleColor());
 			slotSelectionMapping.add(new InventorySelectionKey(ItemSource.PACK, i));
 		}
 
 		Item groundItem = getItemOnGround();
 		if (state != InventoryState.DROP && groundItem != null && groundItem.getInventorySlot() == filter)
 		{
-			terminal.print(45, 23, "-", getTitleColor());
+			addText(23, 45, "-", getTitleColor());
 			groundIsSelectable = true;
+		}
+	}
+	
+	private void labelAvailableSlotsToMoveReadyItemTo()
+	{
+		Actor player = engine.getData().getPlayer();
+		List<EquipmentSlot> equipment = player.getEquipment().getEquipmentSlots();
+		
+		for (int i = 0; i < equipment.size(); i++)
+		{
+			if (equipment.get(i).getType() == EquipmentSlotType.ARMAMENT)
+			{
+				addText(1 + i, 1, getLetterForSelectionIndex(slotSelectionMapping.size()), getTitleColor());
+				slotSelectionMapping.add(new InventorySelectionKey(ItemSource.EQUIPMENT, i));
+			}
+		}
+		
+		int selectedReadyItemIndex = selectedEquipment.getItemIndex();
+		Item selectedReadyItem = player.getReadiedItems().getItem(selectedReadyItemIndex);
+		
+		labelFirstAvailablePackSlot(selectedReadyItem);
+
+		if (getItemOnGround() == null)
+		{
+			addText(23, 45, "-", getTitleColor());
+			groundIsSelectable = true;
+		}
+	}
+	
+	private void labelFirstAvailablePackSlot(Item itemToStore)
+	{
+		Inventory inventory = engine.getData().getPlayer().getStoredItems();
+		
+		if (inventory.hasSpaceForItem(itemToStore))
+		{
+			int indexInPack = inventory.size();
+			addText(6 + indexInPack, 45, getLetterForSelectionIndex(slotSelectionMapping.size()), getTitleColor());
+			slotSelectionMapping.add(new InventorySelectionKey(ItemSource.PACK, indexInPack));
 		}
 	}
 
@@ -650,9 +884,11 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		return items;
 	}
 
-	private boolean itemAvailableForSlot(EquipmentSlotType type)
+	private boolean itemAvailableForEquipmentSlot(EquipmentSlotType type)
 	{
-		// TODO: include Readied Items in the check
+		if (type == EquipmentSlotType.ARMAMENT && !engine.getData().getPlayer().getReadiedItems().isEmpty())
+			return true;
+		
 		if (!getStoredItemsOfType(type).isEmpty())
 			return true;
 
@@ -664,10 +900,39 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		return groundItem.getInventorySlot() == type;
 	}
 
-	private boolean spaceToRemoveItem(Item item)
+	private boolean itemAvailableForReadySlot()
 	{
+		List<EquipmentSlot> equipmentSlots = engine.getData().getPlayer().getEquipment().getEquipmentSlots();
+		int totalEquippedArmaments = 0;
+		
+		for (EquipmentSlot slot : equipmentSlots)
+		{
+			if (slot.getType() == EquipmentSlotType.ARMAMENT && slot.getItem() != null)
+				totalEquippedArmaments++;
+		}
+		
+		if (totalEquippedArmaments > 0)
+			return true;
+		
+		if (!getStoredItemsOfType(EquipmentSlotType.ARMAMENT).isEmpty())
+			return true;
+
+		Item groundItem = getItemOnGround();
+
+		if (groundItem == null)
+			return false; // if the was something eligible in the pack, we wouldn't have gotten here
+
+		return groundItem.getInventorySlot() == EquipmentSlotType.ARMAMENT;
+	}
+
+	private boolean spaceToRemoveEquippedItem(Item item)
+	{
+		Equipment readiedItems = engine.getData().getPlayer().getReadiedItems();
 		Inventory inventory = engine.getData().getPlayer().getStoredItems();
 
+		if (readiedItems.hasEmptySlotAvailable(EquipmentSlotType.ARMAMENT))
+			return true;
+		
 		if (inventory.hasSpaceForItem(item))
 			return true;
 
@@ -675,5 +940,43 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			return true;
 
 		return false;
+	}
+	
+	public void attemptToUseItem()
+	{
+		InventorySelectionKey pendingItemToUseSelectionKey = getAndClearItemToUse();
+		if (pendingItemToUseSelectionKey == null)
+			return;
+		
+		Actor player = engine.getData().getPlayer();
+		int itemIndex = pendingItemToUseSelectionKey.getItemIndex();
+		Item pendingItemToUse = null;
+		
+		if (pendingItemToUseSelectionKey.getItemSource() == ItemSource.MATERIAL)
+		{
+			Inventory materials = player.getMaterials();
+			pendingItemToUse = materials.get(itemIndex);
+		}
+		else if (pendingItemToUseSelectionKey.getItemSource() == ItemSource.PACK)
+		{
+			Inventory storedItems = player.getStoredItems();
+			pendingItemToUse = storedItems.get(itemIndex);
+		}
+		else
+		{
+			Equipment equipment = getEquipmentForSelection(player, pendingItemToUseSelectionKey);
+			pendingItemToUse = equipment.getItem(itemIndex);
+		}
+		
+		if (pendingItemToUse != null)
+		{
+			parentGui.setSingleLayer(GuiState.MAIN_GAME);
+			parentGui.promptForDirectionAndSetPendingCommand(ActorCommand.use(pendingItemToUseSelectionKey, null));
+			return;
+		}
+		
+		MessageBuffer.addMessage("You can't use anything in that slot.");
+		parentGui.setSingleLayer(GuiState.MAIN_GAME);
+		return;
 	}
 }

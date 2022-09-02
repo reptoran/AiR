@@ -19,6 +19,7 @@ public enum SaveTokenTag
 	A_RDY,	//actor readied items
 	A_MAG,	//actor magic items
 	A_TRT,	//actor traits
+	A_SKL,	//actor skills
 	A_DAM,	//actor default damage
 	A_DAR,	//actor default armor
 	A_TLK,	//actor default talk response
@@ -44,6 +45,7 @@ public enum SaveTokenTag
 	T_FHR,	//tile feature here
 	T_IHR,	//tile item here
 	T_OCA,	//tile obstructs coaligned
+	T_OEN,	//tile obstructs enemy
 	T_RIC,	//tile remembered icon
 	T_RCL,	//tile remembered color
 	T_FIC,	//tile fog icon
@@ -63,6 +65,8 @@ public enum SaveTokenTag
 	I_CR_,	//item cover rating
 	I_AR_,	//item armor rating
 	I_DR_,	//item damage reduction
+	I_UPG,	//item upgraded status
+	I_UPB,	//item upgraded by
 	
 	Z_UID,	//zone unique identifier
 	Z_TYP,	//zone type
@@ -96,7 +100,5 @@ public enum SaveTokenTag
 	E_ACT,	//event actor
 	E_AC2,	//event secondary actor
 	E_ITM,	//event item
-	E_VAL,	//event value
-	E_VA2,	//event secondary value
-	E_VA3	//event tertiary value
+	E_VAL,	//event values
 }

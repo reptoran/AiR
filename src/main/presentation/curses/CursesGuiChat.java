@@ -12,13 +12,13 @@ import main.entity.chat.ChatResponse;
 import main.logic.RPGlib;
 import main.presentation.GuiState;
 import main.presentation.Logger;
-import main.presentation.curses.terminal.CursesTerminal;
 import main.presentation.message.FormattedMessageBuilder;
 import main.presentation.message.MessageBuffer;
 
 public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 {
-	private static final int CHAT_WIDTH = 62;
+	private static final int CHAT_WIDTH = 61;
+	private static final int CHAT_PAD = 1;
 	private static final int CHAT_HEIGHT = 13;
 	
 	private CursesGui parentGui;
@@ -28,9 +28,9 @@ public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 	private int selectedResponse;
 	private int totalResponses;
 	
-	public CursesGuiChat(CursesGui parentGui, CursesTerminal terminal)
+	public CursesGuiChat(CursesGui parentGui, ColorScheme colorScheme)
 	{
-		super(terminal, ColorScheme.woodenScheme());
+		super(colorScheme);
 		
 		this.parentGui = parentGui;
 		reset();	//sets all fields to default values
@@ -42,7 +42,6 @@ public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 		drawConversationWindow();
 		drawText();
 		drawResponses();
-		terminal.refresh();
 	}
 	
 	public void reset()
@@ -76,13 +75,13 @@ public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 	public void endChat()
 	{
 		reset();
-		parentGui.setCurrentState(GuiState.NONE);
+		parentGui.setSingleLayer(GuiState.MAIN_GAME);
 	}
 
 	private void drawConversationWindow()
 	{
-		int start = (80 - CHAT_WIDTH) / 2 - 1;
-		int end = start + CHAT_WIDTH + 1;
+		int start = (80 - CHAT_WIDTH) / 2;
+		int end = start + CHAT_WIDTH + 2;
 		
 		for (int i = start; i < end; i++)
 	    {
@@ -93,11 +92,11 @@ public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 	            if (i == start || i == end - 1 || j == 1 || j == 22 || j == 3 || j == 17)
 	                icon = "#";
 
-	            terminal.print(i, j, icon, getBorderColor());
+	            addText(j, i, icon, getBorderColor());
 	        }
 	    }
 		
-		terminal.print(start + 1, 2, chatTitle, getTitleColor());
+		addText(2, start + 1, chatTitle, getTitleColor());
 	}
 
 	private void drawText()
@@ -112,7 +111,7 @@ public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 			if (!messageLines.isEmpty())
 			{
 				String messageLine = messageLines.remove(0);
-				terminal.print(9, i, messageLine, getTextColor());
+				addText(i, 11, messageLine, getTextColor());
 			}
 		}
 	}
@@ -124,23 +123,22 @@ public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 		for (int i = 0; i < totalResponses; i++)
 		{
 			String text = responses.get(i).getText();
+			int chatWidth = CHAT_WIDTH - 2 * CHAT_PAD;
 			
-			if (text.length() > 61)
-				Logger.error("Response text is too long by " + (text.length() - 61) + " characters; string is \n[" + text + "]");
+			if (text.length() > chatWidth)
+				Logger.error("Response text is too long by " + (text.length() - chatWidth) + " characters; string is \n[" + text + "]");
 			
 			int color = getTextColor();
 			if (i == selectedResponse)
 				color = getHighlightColor();
 			
-			terminal.print(9, 18 + i, text, color);
+			addText(18 + i, 11, text, color);
 		}
 	}
 
 	@Override
-	public void handleKeyEvent(KeyEvent ke)
+	protected void handleKey(int code, char keyChar)
 	{	
-		int code = ke.getKeyCode();
-		
 		if (code == KeyEvent.VK_ESCAPE || (currentChatNode != null && currentChatNode.getResponse().isEmpty()))
 		{
 			endChat();
@@ -157,6 +155,8 @@ public class CursesGuiChat extends ColorSchemeCursesGuiUtil
 		{
 			selectResponse();
 		}
+		
+		parentGui.refreshInterface();
 	}
 
 	private void selectResponse()

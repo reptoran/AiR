@@ -1,5 +1,6 @@
 package main.entity.zone.generator.dungeon.classic;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,24 +27,24 @@ public class DungeonElementFactory
 		return instance;
 	}
 	
-	public DungeonElement generateHorizontalHall(int length, int width)
+	public DungeonElement generateHorizontalHall(Point origin, int length, Direction direction)
 	{
-		return null;
+		return new HorizontalHall(origin, length, direction);
 	}
 	
-	public DungeonElement generateVerticalHall(int length, int width)
+	public DungeonElement generateVerticalHall(Point origin, int length, Direction direction)
 	{
-		return null;
+		return new VerticalHall(origin, length, direction);
 	}
 	
-	public DungeonElement generateRoom(int height, int width)
+	public DungeonElement generateRoom(Point origin, int height, int width)
 	{
 		DungeonElementType type = RPGlib.getRandomListEntry(rooms);
 		
 		switch (type)
 		{
 		case NORMAL_ROOM:
-			return new NormalRoom(height, width);
+			return new NormalRoom(origin, height, width);
 		}
 		
 		return null;

@@ -15,6 +15,7 @@ import main.entity.zone.generator.LabyrinthGenerator;
 import main.entity.zone.generator.OceanGenerator;
 import main.entity.zone.generator.PersistentCaveGenerator;
 import main.entity.zone.generator.PlainsGenerator;
+import main.entity.zone.generator.PredefinedZoneGenerator;
 import main.entity.zone.generator.ZoneItemGenerator;
 import main.entity.zone.generator.ZonePopulationGenerator;
 import main.logic.RPGlib;
@@ -69,7 +70,10 @@ public class ZoneFactory
 	public Zone generateNewZone(ZoneKey zoneKey, boolean goingDown, Zone oldZone)
 	{
 		setGenerator(zoneKey.getType());
-		zoneKey.setId(generatedMaps++);
+		
+		if (zoneKey.getType() != ZoneType.PERMANENT)
+			zoneKey.generateId(generatedMaps++);
+		
 		Zone zone = zoneGenerator.generateZone(zoneKey, goingDown, oldZone);
 		
 		//TODO: perhaps put this somewhere else
@@ -118,6 +122,17 @@ public class ZoneFactory
 			Tile tile = zone.getTile(x, y);
 			boolean valid = true;
 			
+			//don't put an item on an up or down staircase
+			for (ZoneKey zoneKey : zone.getAllZoneKeys())
+			{
+				Point zoneKeyCoords = zone.getLocationOfZoneKey(zoneKey);
+				if (zoneKeyCoords.x == x && zoneKeyCoords.y == y)
+				{
+					valid = false;
+					break;
+				}
+			}
+			
 			if (tile.obstructsMotion())
 				valid = false;
 			
@@ -154,10 +169,11 @@ public class ZoneFactory
 				zoneGenerator = new PersistentCaveGenerator();
 				break;
 			case LABYRINTH:
-				zoneGenerator = new LabyrinthGenerator();
+				zoneGenerator = LabyrinthGenerator.getInstance();
 				break;
 			case PERMANENT:
-				throw new IllegalArgumentException("Zone has already been generated.");
+				zoneGenerator = PredefinedZoneGenerator.getInstance();
+				break;
 			case TRANSIENT:	//falls through
 			default:
 				throw new IllegalArgumentException("Unrecognized Zone Type: " + zoneType);

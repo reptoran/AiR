@@ -33,8 +33,7 @@ public class TriggerFieldPopulator extends AbstractFieldPopulator
 			enableValues();
 			addFreeformValues();
 			addExactOperator();
-			enableComparisons();
-			clearComparisons();
+			disableComparisons();
 			break;
 		case CHANGE_HP_OF_ACTOR:
 			enableModifiers();
@@ -54,6 +53,20 @@ public class TriggerFieldPopulator extends AbstractFieldPopulator
 			enableComparisons();
 			clearComparisons();
 			break;
+		case ACTIVATE_QUEST: //falls through
+		case DISCOVER_QUEST: //falls through
+		case COMPLETE_QUEST:
+			disableModifiers();
+			addQuestTagValues();
+			disableComparisons();
+			break;
+		case SET_QUEST_NODE_STATUS:
+			enableModifiers();
+			addQuestNodeTagModifiers();
+			addQuestNodeStatusValues();
+			disableComparisons();
+			break;
+			
 		default:
 			break;
 		}

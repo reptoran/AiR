@@ -2,8 +2,6 @@ package main.entity;
 
 import org.apache.commons.lang3.StringUtils;
 
-import main.entity.chat.CompareOperator;
-
 public abstract class AbstractLogicalEvaluation
 {
 	protected String details;
@@ -75,6 +73,17 @@ public abstract class AbstractLogicalEvaluation
 
 		putDetailsInMap();
 		parseJsonDetailsString();
+		removeRedundantEquals();
+	}
+	
+	protected void removeRedundantEquals()
+	{
+		if (StringUtils.isEmpty(details) || details.charAt(0) != '=')
+			return;
+		
+		details = details.substring(1);
+		operator = null;
+		putDetailsInMap();
 	}
 
 	protected void parseJsonDetailsString()

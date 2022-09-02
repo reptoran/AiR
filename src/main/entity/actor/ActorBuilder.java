@@ -126,4 +126,10 @@ public class ActorBuilder
 		actor.addTrait(trait);
 		return this;
 	}
+	
+	public ActorBuilder setSkill(SkillType skill, int level)
+	{
+		actor.setSkill(skill, level);
+		return this;
+	}
 }

@@ -9,6 +9,7 @@ public interface Equipment
 {
 	public Item getItem(int slotIndex);
 	public Item removeItem(int slotIndex);
+	public EquipmentSlotType getTypeOfSlot(int slotIndex);
 	public void equipItem(Item item, int slotIndex);
 	public int getIndexOfItem(Item item);
 	
@@ -24,6 +25,7 @@ public interface Equipment
 	public List<Item> getArmor();
 	
 	public List<EquipmentSlot> getEquipmentSlots();
+	public EquipmentSlot getEquipmentSlot(int slotIndex);
 	
 	public Equipment clone();
 }

@@ -1,0 +1,1 @@
+[{"tag":"HOW_DENSE_ARE_YOU","text":"How dense are you? Use something sharp on the ropes and cut me loose!","entry":false},{"tag":"BOUND_ARCHEO_INTRO","text":"I'd love to talk, but I'm a little tied up at the moment.  Care to give me a hand?","entry":true,"response":[{"text":"Right, give me a moment."},{"text":"What do you need me to do?","flowTo":"HOW_DENSE_ARE_YOU"}]}]

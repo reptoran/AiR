@@ -19,6 +19,30 @@ public enum Direction
 		return Direction.valueOf(string.toUpperCase());
 	}
 	
+	public static Direction fromCoords(Point coords)
+	{
+		return fromCoords(coords.x, coords.y);
+	}
+	
+	public static Direction fromCoords(int rowChange, int colChange)
+	{
+		if (rowChange == 0 && colChange == 0)
+			return Direction.DIRNONE;
+		
+		String directionString = "DIR";
+		
+		if (rowChange == -1)
+			directionString = directionString + "N";
+		if (rowChange == 1)
+			directionString = directionString + "S";
+		if (colChange == -1)
+			directionString = directionString + "W";
+		if (colChange == 1)
+			directionString = directionString + "E";
+		
+		return fromString(directionString);
+	}
+	
 	public Point getCoordChange()
 	{
 		Direction direction = Direction.fromString(this.name());		//holy cow this is clunky

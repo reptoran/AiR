@@ -12,7 +12,7 @@ public class HitpointChangeEvent extends AbstractEnvironmentEvent
 	public HitpointChangeEvent(Actor actor, int value, EnvironmentEventQueue eventQueue)
 	{
 		this.actor = actor;
-		this.value = value;
+		this.values[0] = value;
 		this.eventQueue = eventQueue;
 	}
 	
@@ -21,21 +21,21 @@ public class HitpointChangeEvent extends AbstractEnvironmentEvent
 	{
 		List<InternalEvent> eventList = new ArrayList<InternalEvent>();
 		
-		if (value == 0)
+		if (values[0] == 0)
 			return eventList;
 		
 		
 		int curHp = actor.getCurHp();
-		int correctedAmount = value;
+		int correctedAmount = values[0];
 		
-		if (curHp + value > actor.getMaxHp())
+		if (curHp + values[0] > actor.getMaxHp())
 			correctedAmount = actor.getMaxHp() - curHp;
 		//no check for below zero because it's fun to see how badly you were smacked by an attack, so negative HP is okay
 		
 		InternalEvent event = InternalEvent.changeHpInternalEvent(DataAccessor.getInstance().getIndexOfActor(actor), correctedAmount);
 		eventList.add(event);
 		
-		if (curHp + value <= 0)
+		if (curHp + values[0] <= 0)
 			eventList.add((InternalEvent.deathInternalEvent(DataAccessor.getInstance().getIndexOfActor(actor))));
 		
 		return eventList;

@@ -48,7 +48,7 @@ public class ZonePopulationGenerator
 					actorsForLevels.get(i).add(actorType);
 				} catch (ArrayIndexOutOfBoundsException aioobe) 
 				{
-					Logger.warn("Actor type " + actorType + " could not be included to be generated on level " + i + ".");
+					Logger.debug("Actor type " + actorType + " could not be included to be generated on level " + i + ".");
 					break;
 				}
 			}

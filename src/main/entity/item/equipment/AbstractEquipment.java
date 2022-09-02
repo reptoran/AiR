@@ -31,6 +31,12 @@ public abstract class AbstractEquipment implements Equipment
 		equipmentSlots[slotIndex].setItem(null);
 		return item;
 	}
+	
+	@Override
+	public EquipmentSlotType getTypeOfSlot(int slotIndex)
+	{
+		return equipmentSlots[slotIndex].getType();
+	}
 
 	@Override
 	public void equipItem(Item item, int slotIndex)
@@ -64,6 +70,12 @@ public abstract class AbstractEquipment implements Equipment
 			slots.add(equipmentSlots[i]);
 		
 		return slots;
+	}
+
+	@Override
+	public EquipmentSlot getEquipmentSlot(int slotIndex)
+	{
+		return equipmentSlots[slotIndex];
 	}
 
 	@Override

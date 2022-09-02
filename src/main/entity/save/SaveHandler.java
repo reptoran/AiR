@@ -9,6 +9,8 @@ import main.data.file.FileHandler;
 import main.entity.actor.Actor;
 import main.entity.feature.Feature;
 import main.entity.item.Item;
+import main.entity.quest.Quest;
+import main.entity.quest.QuestJsonFileUtils;
 import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.world.WorldTile;
@@ -28,6 +30,7 @@ public class SaveHandler extends FileHandler
 	private static final String ACTOR_PATH = "actors.dat";
 	private static final String EVENT_PATH = "events.dat";
 	private static final String GAMEDATA_PATH = "game.dat";
+	private static final String QUEST_PATH = "active_quests.dat";
 
 	private String savePath = getDataPath();
 	private String cachePath = savePath + CACHE_DIR_NAME;
@@ -190,6 +193,12 @@ public class SaveHandler extends FileHandler
 	{
 		return loadFile(playerPath + File.separator + OVERWORLD_PATH);
 	}
+	
+	public List<Quest> loadActiveQuests()
+	{
+		File questSaveFile = new File(playerPath + File.separator + QUEST_PATH);
+		return QuestJsonFileUtils.getInstance().loadFromFile(questSaveFile);
+	}
 
 	public boolean saveGameDataElement(String element)
 	{
@@ -215,6 +224,12 @@ public class SaveHandler extends FileHandler
 		if (EntityMap.getOverworld(overworld.getUniqueId()) == null)
 			EntityMap.put(overworld.getUniqueId(), overworld);
 		return writeLine(playerPath + File.separator + OVERWORLD_PATH, overworld.saveAsText());
+	}
+	
+	public boolean saveActiveQuests(List<Quest> quests)
+	{
+		File questSaveFile = new File(playerPath + File.separator + QUEST_PATH);
+		return QuestJsonFileUtils.getInstance().saveToFile(quests, questSaveFile);
 	}
 
 	public boolean cacheZone(Zone zone, String zoneId)

@@ -49,7 +49,7 @@ public class ZoneItemGenerator
 						itemsForLevels.get(i).add(itemType);
 				} catch (ArrayIndexOutOfBoundsException aioobe) 
 				{
-					Logger.warn("Item type " + itemType + " could not be included to be generated on level " + i + ".");
+					Logger.debug("Item type " + itemType + " could not be included to be generated on level " + i + ".");
 					break;
 				}
 			}

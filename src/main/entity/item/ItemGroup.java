@@ -12,6 +12,11 @@ public class ItemGroup
 	{
 		this.name = name;
 	}
+	
+	private void addItem(ItemType itemType)
+	{
+		itemsInGroup.add(itemType);
+	}
 
 	public String getName()
 	{
@@ -20,6 +25,9 @@ public class ItemGroup
 
 	public static ItemGroup singleItemGroup(ItemType itemType)
 	{
+		if (itemType == null)
+			return null;
+		
 		ItemGroup group = new ItemGroup(itemType.name());
 		group.itemsInGroup.add(itemType);
 		return group;
@@ -74,5 +82,57 @@ public class ItemGroup
 		}
 		
 		return true;
+	}
+	
+	public static ItemGroup bladedWeapons()
+	{
+		ItemGroup group = new ItemGroup("bladed weapons");
+		
+		group.addItem(ItemType.KNIFE);
+		group.addItem(ItemType.AXE);
+		group.addItem(ItemType.SWORD);
+		
+		return group;
+	}
+	
+	public static ItemGroup weapons()
+	{
+		ItemGroup group = new ItemGroup("weapons");
+		
+		for (ItemType type : ItemType.values())
+		{
+			
+			try
+			{
+				Item itemToCheck = ItemFactory.generateNewItem(type);
+				if (itemToCheck.isWeapon())
+					group.addItem(type);
+			} catch (IllegalArgumentException iae)
+			{
+				continue;
+			}
+		}
+		
+		return group;
+	}
+	
+	public static ItemGroup shields()
+	{
+		ItemGroup group = new ItemGroup("shields");
+		
+		for (ItemType type : ItemType.values())
+		{
+			try
+			{
+				Item itemToCheck = ItemFactory.generateNewItem(type);
+				if (itemToCheck.isShield())
+					group.addItem(type);
+			} catch (IllegalArgumentException iae)
+			{
+				continue;
+			}
+		}
+		
+		return group;
 	}
 }

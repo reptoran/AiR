@@ -43,9 +43,14 @@ public class ZoneKey
 		return id;
 	}
 
-	public void setId(int id)
+	public void generateId(int idSuffix)
 	{
-		this.id = type.getIdPrefix() + String.valueOf(id);
+		this.id = type.getIdPrefix() + String.valueOf(idSuffix);
+	}
+
+	public void setId(String id)
+	{
+		this.id = id;
 	}
 
 	public void updateToPermanent(String newId)

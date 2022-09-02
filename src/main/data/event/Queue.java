@@ -3,7 +3,9 @@ package main.data.event;
 import java.util.ArrayList;
 import java.util.List;
 
+import main.data.event.environment.InterruptionEvent;
 import main.entity.Queueable;
+import main.presentation.Logger;
 
 public class Queue
 {
@@ -36,6 +38,14 @@ public class Queue
 		{
 			return;
 		}
+		
+		//negative ticks left before acting means we want this at the very front of the queue no matter what, such as for the actor turn when their last event was interrupted
+		if (element.getTicksLeftBeforeActing() < 0)
+		{
+			element.increaseTicksLeftBeforeActing(element.getTicksLeftBeforeActing() * -1);
+			elements.add(0, element);
+			return;
+		}
 
 		for (int i = 0; i < elements.size(); i++)
 		{
@@ -45,6 +55,7 @@ public class Queue
 			if (element.getTicksLeftBeforeActing() < currentElement.getTicksLeftBeforeActing())
 			{
 				elements.add(i, element);
+				Logger.debug("Adding element [" + element.getClass() + "] to queue with " + element.getTicksLeftBeforeActing() + " ticks left before acting");
 				return;
 			}
 		}

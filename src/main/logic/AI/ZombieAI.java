@@ -43,6 +43,6 @@ public class ZombieAI extends ActorAI
 	@Override
 	protected List<AiType> getEnemyAiTypes()
 	{
-		return generateAiList(AiType.HUMAN_CONTROLLED);
+		return generateAiList(AiType.HUMAN_CONTROLLED, AiType.REPEAT_LAST_MOVE);
 	}
 }

@@ -21,15 +21,14 @@ import javax.swing.event.ListSelectionListener;
 
 import main.data.chat.ChatManager;
 import main.data.file.ChatLoader;
+import main.entity.CompareOperator;
 import main.entity.actor.ActorType;
 import main.entity.chat.Chat;
-import main.entity.chat.ChatReq;
-import main.entity.chat.ChatReqType;
 import main.entity.chat.ChatResponse;
-import main.entity.chat.CompareOperator;
 import main.entity.event.Trigger;
 import main.entity.event.TriggerType;
-import main.presentation.Logger;
+import main.entity.requirement.Requirement;
+import main.entity.requirement.RequirementType;
 
 @SuppressWarnings("serial")
 public class ChatEditorPanel extends JPanel implements ListSelectionListener, ActionListener
@@ -85,16 +84,16 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 	
 	private Chat currentChat = null;
 	private ChatResponse currentResponse = null;
-	private ChatReq currentRequirement = null;
+	private Requirement currentRequirement = null;
 	private Trigger currentTrigger = null;
 	
 	private JList<ActorType> actorList = new JList<ActorType>(new DefaultListModel<ActorType>());
 	private JList<Chat> chatList = new JList<Chat>(new ChatListModel());
 	private JList<ChatResponse> responseList = new JList<ChatResponse>(new ResponseListModel());
-	private JList<ChatReq> requirementList = new JList<ChatReq>(new RequirementListModel());
+	private JList<Requirement> requirementList = new JList<Requirement>(new RequirementListModel());
 	private JList<Trigger> triggerList = new JList<Trigger>(new TriggerListModel());
 	
-	private JComboBox<ChatReqType> requirementType = new JComboBox<ChatReqType>();
+	private JComboBox<RequirementType> requirementType = new JComboBox<RequirementType>();
 	private JComboBox<String> requirementModifiers = new JComboBox<String>();
 	private JComboBox<String> requirementValues = new JComboBox<String>();
 	private JComboBox<CompareOperator> requirementComparator = new JComboBox<CompareOperator>();
@@ -318,12 +317,12 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 		if (response == null)
 			return;
 		
-		List<ChatReq> requirements = response.getReqs();
+		List<Requirement> requirements = response.getReqs();
 		
 		if (requirements == null)
 			return;
 		
-		for (ChatReq requirement : requirements)
+		for (Requirement requirement : requirements)
 		{
 			model.addElement(requirement);
 		}
@@ -342,7 +341,7 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 		if (currentRequirement == null)
 			return;
 		
-		ChatReqType type = ChatReqType.fromString(requirementType.getSelectedItem().toString());
+		RequirementType type = RequirementType.fromString(requirementType.getSelectedItem().toString());
 		currentRequirement.setType(type);
 	}
 	
@@ -394,7 +393,7 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 		model.refreshView();
 	}
 	
-	private void changeSelectedRequirement(ChatReq requirement)
+	private void changeSelectedRequirement(Requirement requirement)
 	{
 //		updateCurrentRequirementFromFields();
 		refreshRequirementFields();
@@ -648,7 +647,7 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 		if (currentResponse == null)
 			return;
 		
-		ChatReq requirement = new ChatReq(ChatReqType.ACTOR_TYPE, "");
+		Requirement requirement = new Requirement(RequirementType.ACTOR_TYPE, "");
 		currentResponse.getReqs().add(requirement);
 		currentRequirement = requirement;
 		
@@ -817,7 +816,7 @@ public class ChatEditorPanel extends JPanel implements ListSelectionListener, Ac
 		}
 	}
 	
-	private class RequirementListModel extends AbstractSortableListModel<ChatReq>
+	private class RequirementListModel extends AbstractSortableListModel<Requirement>
 	{
 		@Override
 		public void sort()

@@ -1,6 +1,10 @@
 package main.entity;
 
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
@@ -16,15 +20,51 @@ public abstract class SaveableEntity
 	
 	protected String getContentsForTag(SaveStringBuilder saveStringBuilder, SaveTokenTag saveTokenTag)
 	{
-		String toRet = "";
 		SaveToken saveToken = saveStringBuilder.getToken(saveTokenTag);
 		
 		if (saveToken != null)
-		{
-			toRet = saveToken.getContents();
-		}
+			return saveToken.getContents();
 		
-		return toRet;
+		return "";
+	}
+	
+	protected int getIntContentsForTag(SaveStringBuilder saveStringBuilder, SaveTokenTag saveTokenTag)
+	{
+		try
+		{
+			return Integer.parseInt(getContentsForTag(saveStringBuilder, saveTokenTag));
+		} catch (NumberFormatException nfe)
+		{
+			return 0;
+		}
+	}
+	
+	protected boolean getBooleanContentsForTag(SaveStringBuilder saveStringBuilder, SaveTokenTag saveTokenTag)
+	{
+		return Boolean.parseBoolean(getContentsForTag(saveStringBuilder, saveTokenTag));
+	}
+	
+	protected List<String> getContentSetForTag(SaveStringBuilder saveStringBuilder, SaveTokenTag saveTokenTag)
+	{
+		SaveToken saveToken = saveStringBuilder.getToken(saveTokenTag);
+		
+		if (saveToken != null)
+			return saveToken.getContentSet();
+		
+		return new ArrayList<String>();
+	}
+	
+	protected Map<String, String> getContentMapForTag(SaveStringBuilder saveStringBuilder, SaveTokenTag saveTokenTag)
+	{
+		SaveToken saveToken = saveStringBuilder.getToken(saveTokenTag);
+		
+		try
+		{
+			if (saveToken != null)
+				return saveToken.getContentMap();
+		} catch (StringIndexOutOfBoundsException sioobe) {}		//thrown if the format is wrong; it's looking for ':' and can't find it
+		
+		return new HashMap<String, String>();
 	}
 	
 	@Override

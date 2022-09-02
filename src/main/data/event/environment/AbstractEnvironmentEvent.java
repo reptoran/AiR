@@ -1,7 +1,10 @@
 package main.data.event.environment;
 
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 
+import main.data.event.InternalEvent;
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
 import main.entity.actor.Actor;
@@ -13,6 +16,8 @@ import main.entity.save.SaveTokenTag;
 
 public abstract class AbstractEnvironmentEvent extends SaveableEntity implements EnvironmentEvent 
 {
+	protected static final int TOTAL_VALUES = 5;
+	
 	protected EnvironmentEventQueue eventQueue;
 	protected int ticksBeforeActing = 0;
 	protected EnvironmentEventType type;		//needed for loading from a file
@@ -22,10 +27,9 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 	
 	protected Item item = null;
 	
-	protected int value = 0;
-	protected int secondaryValue = 0;
-	protected int tertiaryValue = 0;
+	protected int[] values = new int[TOTAL_VALUES];
 	//TODO: tiles, features, items, etc. as events are created that act on them; remember to also add getters
+	//update InterruptionEvent every time a new field is added
 	
 	@Override
 	public void setEventQueue(EnvironmentEventQueue eventQueue)
@@ -58,21 +62,9 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 	}
 	
 	@Override
-	public int getValue()
+	public int getValue(int index)
 	{
-		return value;
-	}
-	
-	@Override
-	public int getSecondaryValue()
-	{
-		return secondaryValue;
-	}
-	
-	@Override
-	public int getTertiaryValue()
-	{
-		return tertiaryValue;
+		return values[index];
 	}
 
 	@Override
@@ -104,11 +96,28 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		event.actor = actor;
 		event.secondaryActor = secondaryActor;
 		event.item = item;
-		event.value = value;
-		event.secondaryValue = secondaryValue;
-		event.tertiaryValue = tertiaryValue;
+		
+		for (int i = 0; i < TOTAL_VALUES; i++)
+			event.values[i] = values[i];
 		
 		return event;
+	}
+	
+	protected List<InternalEvent> singleEventList(InternalEvent event)
+	{
+		List<InternalEvent> events = new ArrayList<InternalEvent>();
+		events.add(event);
+		return events;
+	}
+	
+	private List<String> convertValuesToList()
+	{
+		List<String> toReturn = new ArrayList<String>();
+
+		for (int i = 0; i < TOTAL_VALUES; i++)
+			toReturn.add(String.valueOf(values[i]));
+
+		return toReturn;
 	}
 	
 	@Override
@@ -128,9 +137,7 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		ssb.addToken(new SaveToken(SaveTokenTag.E_TYP, getType().toString()));
 		ssb.addToken(new SaveToken(SaveTokenTag.E_TIC, String.valueOf(ticksBeforeActing)));
 		ssb.addToken(new SaveToken(SaveTokenTag.E_QUE, String.valueOf(eventQueue.hashCode())));
-		ssb.addToken(new SaveToken(SaveTokenTag.E_VAL, String.valueOf(value)));
-		ssb.addToken(new SaveToken(SaveTokenTag.E_VA2, String.valueOf(secondaryValue)));
-		ssb.addToken(new SaveToken(SaveTokenTag.E_VA3, String.valueOf(tertiaryValue)));
+		ssb.addToken(new SaveToken(SaveTokenTag.E_VAL, convertValuesToList()));
 		
 		savePrimaryActor(ssb);
 		saveSecondaryActor(ssb);
@@ -197,8 +204,6 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		setMember(ssb, SaveTokenTag.E_AC2);
 		setMember(ssb, SaveTokenTag.E_ITM);
 		setMember(ssb, SaveTokenTag.E_VAL);
-		setMember(ssb, SaveTokenTag.E_VA2);
-		setMember(ssb, SaveTokenTag.E_VA3);
 		
 		return toRet;
 	}
@@ -249,17 +254,20 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 
 		case E_VAL:
 			saveToken = ssb.getToken(saveTokenTag);
-			this.value = Integer.parseInt(saveToken.getContents());
-			break;
-
-		case E_VA2:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.secondaryValue = Integer.parseInt(saveToken.getContents());
-			break;
-
-		case E_VA3:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.tertiaryValue = Integer.parseInt(saveToken.getContents());
+			List<String> strVals = saveToken.getContentSet();
+			
+			values = new int[TOTAL_VALUES];
+			
+			for (int i = 0; i < strVals.size(); i++)
+			{
+				String value = strVals.get(i);
+				
+				if (value.isEmpty())
+					continue;
+				
+				values[i] = Integer.valueOf(value);
+			}
+			
 			break;
 			
 		default:
@@ -287,8 +295,14 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		
 		AbstractEnvironmentEvent event = (AbstractEnvironmentEvent) obj;
 		
-		if (type != event.type || ticksBeforeActing != event.ticksBeforeActing || value != event.value || secondaryValue != event.secondaryValue || tertiaryValue != event.tertiaryValue)
+		if (type != event.type || ticksBeforeActing != event.ticksBeforeActing)
 			return false;
+		
+		for (int i = 0; i < TOTAL_VALUES; i++)
+		{
+			if (values[i] != event.values[i])
+				return false;
+		}
 		
 		if (eventQueue == null)
 		{
@@ -333,9 +347,11 @@ public abstract class AbstractEnvironmentEvent extends SaveableEntity implements
 		hash = prime * hash + ((item == null) ? 0 : item.hashCode());
 		hash = prime * hash + ((eventQueue == null) ? 0 : eventQueue.hashCode());
 		hash = prime * hash + ticksBeforeActing;
-		hash = prime * hash + value;
-		hash = prime * hash + secondaryValue;
-		hash = prime * hash + tertiaryValue;
+		
+		for (int i = 0; i < TOTAL_VALUES; i++)
+		{
+			hash = 31 * hash + values[i];
+		}
 		
 		return hash;
 	}

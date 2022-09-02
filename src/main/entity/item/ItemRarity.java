@@ -2,6 +2,7 @@ package main.entity.item;
 
 public enum ItemRarity
 {
+	VERY_COMMON(6),
 	COMMON(4),
 	UNCOMMON(3),
 	RARE(2);

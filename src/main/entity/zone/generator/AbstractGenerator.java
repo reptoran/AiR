@@ -6,7 +6,7 @@ import main.presentation.Logger;
 
 public abstract class AbstractGenerator
 {
-	public abstract Zone generateZone(ZoneKey zoneKey);
+	protected abstract Zone generateZone(ZoneKey zoneKey);
 	
 	public Zone generateZone(ZoneKey zoneKey, boolean descending, Zone originZone)
 	{

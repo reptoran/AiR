@@ -52,18 +52,15 @@ public class ZoneLoaderTest
 	@Test
 	public void generateSpecialLevel_validDataFiles_specialLevelGenerated()
 	{
-		specialLevelManager.populateSpecialZonesForLevels(predefinedZoneLoader.loadAllPredefinedZones());
-		
-		assertNotNull(specialLevelManager.generateSpecialLevel(0));
-		assertNotNull(specialLevelManager.generateSpecialLevel(15));
-		assertNotNull(specialLevelManager.generateSpecialLevel(1));
+		assertNotNull(specialLevelManager.generateSpecialLevel("outpost.zon"));
+		assertNotNull(specialLevelManager.generateSpecialLevel("boss.zon"));
+		assertNotNull(specialLevelManager.generateSpecialLevel("bandit_lair.zon"));
 	}
 	
 	@Test
 	public void limitedPathfindingInTown_runAloneWithoutRunningOtherTests()
 	{
-		specialLevelManager.populateSpecialZonesForLevels(predefinedZoneLoader.loadAllPredefinedZones());
-		Zone town = specialLevelManager.generateSpecialLevel(0);
+		Zone town = specialLevelManager.generateSpecialLevel("town.zon");
 		
 		List<Point> path = Pathfinder.findPath(town, new Point(17, 25), new Point(7, 34));
 		

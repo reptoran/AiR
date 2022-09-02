@@ -92,12 +92,11 @@ Flow:
     Offering an empty Readied/Magic slot to "fill" is the only way to pull out stored items.
    If there is no place to put it (equip/ready/stored), the ground item will not be selectable.
   Readied, Magic, and Stored items all collapse upward (so no gaps between slots); Equipped remains static.
-  Selecting an equipped item removes it and puts it in the first available Readied slot, or the first available Stored slot if no Readied spaces are free (or finally the Ground if both Readied and Stored are full).
-  Selecting a readied item removes it and puts it in the first available Stored slot, or on the ground if Stored is full.
+  Selecting an equipped item removes it and puts it in the first available Readied slot (that can accomodate it; note this should usually only apply to armaments), or the first available Stored slot if no Readied spaces are free, or finally the Ground if both Readied and Stored are full).
+  Selecting a readied item prompts where to put it.  Valid slots are equipment armament slots (even if filled, in which case the items are swapped), the first available Stored slot (if there's sufficient space in the pack; this is the only one given a letter), and the ground.
   Selecting the item on the ground removes it and puts it (in order of preference) in the proper Equipped slot, or the first available Readied slot, or the first available Stored slot.
    In all three cases, it takes turns equal to an item's size to store the item.
  (State: EQUIP) Selecting an empty item slot (Equipped, Readied, Magic, or Ground) highlights it in a different color, removes the letters from the left side, and displays them on the right side (including the "-" for ground items) instead for any eligible item.
-   
   
  Pressing "d" brings up this screen with letters along right side, numbers in front of the materials, and nothing for equipped items (you can't drop equipped items).
   The "Ground" element is unselectable regardless of if it's empty or full.
@@ -108,13 +107,14 @@ Flow:
   perhaps you can't use items on other items? if you want to, that's a recipe? but on the other hand, how would you apply raw materials to items to give them that quick boost?
   perhaps 'u' from the inventory screen assumes first that you're using it on another item, while doing it from outside makes the opposite assumption
    -I like this: 'u' from the main game screen prompts an item, then a direction, and it's applied in the order actor/item/feature/tile (and never to an item in the inventory)
+   -Then 'u' from the inventory screen is "upgrade," not "use," and only allows you to use two items in your inventory together (and is the only way to do that without recipes).
   
 --
 
 Tricky things:
  You basically always have to keep one "readied" slot open to swap weapons, since you need to remove the weapon first and therefore need a free spot to put it.
+	This can be solved by having filled armament equipment slots being valid targets for ready items.
 	Similarly, it's impossible to replace armor unless you have an empty pack.  You can't pick up the one on the ground, and you can't drop the one you're wearing.  Maybe auto-drop when removing items you have no room in your pack for?
  "Magic" placement is difficult, because it probably should be together as in the first mockup, but doesn't really interact with anything else.  Also, such items should be droppable, but if I leave that out, the rest only requires 26 selectors (10 equip + 4 ready + 12 stored), which is perfect for letters.  Maybe F1-F5 for magic items?
  You should be able to use any item regardless of where it is (ready or not), but even if that's prompted by pressing 'u' instead of 'i', there aren't enough selectors unless equipped items are ignored.
  I can't immediately decide how best to represent an object's bulk, or why a bulky item that can't fit into the pack isn't allowed to be selected.  Perhaps color-code items?
- Currently not clear which state (view, drop, equip) you're in.

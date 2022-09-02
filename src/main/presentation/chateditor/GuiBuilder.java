@@ -13,14 +13,14 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 
+import main.entity.CompareOperator;
 import main.entity.actor.ActorType;
 import main.entity.chat.Chat;
-import main.entity.chat.ChatReq;
-import main.entity.chat.ChatReqType;
 import main.entity.chat.ChatResponse;
-import main.entity.chat.CompareOperator;
 import main.entity.event.Trigger;
 import main.entity.event.TriggerType;
+import main.entity.requirement.Requirement;
+import main.entity.requirement.RequirementType;
 import main.presentation.chateditor.renderer.ActorListRenderer;
 import main.presentation.chateditor.renderer.ChatListRenderer;
 import main.presentation.chateditor.renderer.OperatorListRenderer;
@@ -35,7 +35,7 @@ public class GuiBuilder
 	private static JList<ActorType> bActorList;
 	private static JList<Chat> bChatList;
 	private static JList<ChatResponse> bResponseList;
-	private static JList<ChatReq> bRequirementList;
+	private static JList<Requirement> bRequirementList;
 	private static JList<Trigger> bTriggerList;
 	
 	private static JTextArea bChatText;
@@ -220,7 +220,7 @@ public class GuiBuilder
 		panel.add(flowToLabel);
 	}
 
-	public static void addRequirementFields(JList<ChatReq> requirementList, JComboBox<ChatReqType> requirementType, JComboBox<String> requirementModifier, JComboBox<String> requirementValue, JComboBox<CompareOperator> comparator, JComboBox<String> comparison)
+	public static void addRequirementFields(JList<Requirement> requirementList, JComboBox<RequirementType> requirementType, JComboBox<String> requirementModifier, JComboBox<String> requirementValue, JComboBox<CompareOperator> comparator, JComboBox<String> comparison)
 	{
 		bRequirementList = requirementList;
 		
@@ -251,7 +251,7 @@ public class GuiBuilder
 		requirementType.addActionListener(panel);
 		panel.add(requirementType);
 		
-		for (ChatReqType type : ChatReqType.values())
+		for (RequirementType type : RequirementType.values())
 		{
 				requirementType.addItem(type);
 		}

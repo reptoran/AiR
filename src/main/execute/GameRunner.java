@@ -35,12 +35,12 @@ public class GameRunner
 		logicLayer = new Engine(dataLayer);
 		
 		DataAccessor.getInstance().setData(dataLayer);
-		CursesGui gui = new CursesGui(logicLayer);
+		CursesGui gui = new CursesGui(logicLayer, GuiState.SELECT_PROFESSION);
 		UiManager.getInstance().setGui(gui);
 
 		if (dataLayer.setPlayerNameAndLoadGame(playerName))
 		{
-			gui.setCurrentState(GuiState.NONE);
+			gui.setSingleLayer(GuiState.MAIN_GAME);
 			logicLayer.beginGame();
 		}
 	}

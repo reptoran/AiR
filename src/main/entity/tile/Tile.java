@@ -2,6 +2,8 @@ package main.entity.tile;
 
 import java.text.ParseException;
 
+import main.data.GameSettings;
+import main.data.SettingType;
 import main.entity.EntityType;
 import main.entity.FieldCoord;
 import main.entity.actor.Actor;
@@ -21,24 +23,25 @@ public class Tile extends FieldCoord
 
 	// may move these up to fieldcoord
 	protected boolean obstructsCoaligned;
+	protected boolean obstructsEnemy;
 	private char rememberedIcon = ' ';
 	private int rememberedColor = 0;
 	private char fogIcon = ' ';
 
 	private static final int FOG_COLOR = 7;
-	private static final boolean SHOW_FOG = false;
 
 	public Tile()
 	{
-		this(TileType.NO_TYPE, "empty tile", 'T', 15, false, false, false, 1, "");
+		this(TileType.NO_TYPE, "empty tile", 'T', 15, false, false, false, false, 1, "");
 	}
 
 	public Tile(TileType tileType, String name, char icon, int color, boolean obstructsSight, boolean obstructsMotion,
-			boolean obstructsCoaligned, double moveCostModifier, String blockedMessage)
+			boolean obstructsCoaligned, boolean obstructsEnemy, double moveCostModifier, String blockedMessage)
 	{
 		super(name, icon, color, obstructsSight, obstructsMotion, moveCostModifier, blockedMessage);
 
 		this.obstructsCoaligned = obstructsCoaligned;
+		this.obstructsEnemy = obstructsEnemy;
 		type = tileType;
 		actorHere = null;
 		featureHere = null;
@@ -48,8 +51,8 @@ public class Tile extends FieldCoord
 	@Override
 	public Tile clone()
 	{
-		Tile toRet = new Tile(type, name, icon, color, obstructsSight, obstructsMotion, obstructsCoaligned, moveCostModifier,
-				blockedMessage);
+		Tile toRet = new Tile(type, name, icon, color, obstructsSight, obstructsMotion, obstructsCoaligned, obstructsEnemy,
+				moveCostModifier, blockedMessage);
 		toRet.visible = visible;
 		toRet.seen = seen;
 		toRet.actorHere = actorHere;
@@ -78,6 +81,7 @@ public class Tile extends FieldCoord
 		this.obstructsSight = baseTile.obstructsSight;
 		this.obstructsMotion = baseTile.obstructsMotion;
 		this.obstructsCoaligned = baseTile.obstructsCoaligned;
+		this.obstructsEnemy = baseTile.obstructsEnemy;
 
 		this.visible = false;
 		this.seen = false;
@@ -190,9 +194,19 @@ public class Tile extends FieldCoord
 		this.obstructsCoaligned = obstructsCoaligned;
 	}
 
+	public boolean obstructsEnemy()
+	{
+		return obstructsEnemy;
+	}
+
+	public void setObstructsEnemy(boolean obstructsEnemy)
+	{
+		this.obstructsEnemy = obstructsEnemy;
+	}
+
 	private char rememberedIcon()
 	{
-		if (SHOW_FOG)
+		if (GameSettings.getBoolean(SettingType.SHOW_FOG))
 			return fogIcon;
 
 		return rememberedIcon;
@@ -221,7 +235,7 @@ public class Tile extends FieldCoord
 
 	private int rememberedColor()
 	{
-		if (SHOW_FOG)
+		if (GameSettings.getBoolean(SettingType.SHOW_FOG))
 			return FOG_COLOR;
 
 		return rememberedColor;
@@ -293,6 +307,8 @@ public class Tile extends FieldCoord
 			ssb.addToken(new SaveToken(SaveTokenTag.C_OMV, String.valueOf(obstructsMotion)));
 		if (obstructsCoaligned != baseTile.obstructsCoaligned)
 			ssb.addToken(new SaveToken(SaveTokenTag.T_OCA, String.valueOf(obstructsCoaligned)));
+		if (obstructsEnemy != baseTile.obstructsEnemy)
+			ssb.addToken(new SaveToken(SaveTokenTag.T_OEN, String.valueOf(obstructsEnemy)));
 		if (visible != baseTile.visible)
 			ssb.addToken(new SaveToken(SaveTokenTag.C_VIS, String.valueOf(visible)));
 		if (seen != baseTile.seen)
@@ -356,6 +372,7 @@ public class Tile extends FieldCoord
 		setMember(ssb, SaveTokenTag.C_OST);
 		setMember(ssb, SaveTokenTag.C_OMV);
 		setMember(ssb, SaveTokenTag.T_OCA);
+		setMember(ssb, SaveTokenTag.T_OEN);
 		setMember(ssb, SaveTokenTag.C_MOV);
 		setMember(ssb, SaveTokenTag.C_BLK);
 		setMember(ssb, SaveTokenTag.C_VIS);
@@ -374,7 +391,8 @@ public class Tile extends FieldCoord
 	protected void setMember(SaveStringBuilder ssb, SaveTokenTag saveTokenTag)
 	{
 		String contents = getContentsForTag(ssb, saveTokenTag);
-		SaveToken saveToken = null;
+		int intContents = getIntContentsForTag(ssb, saveTokenTag);
+		boolean boolContents = getBooleanContentsForTag(ssb, saveTokenTag);
 		String referenceKey = "";
 
 		if (contents.equals(""))
@@ -390,92 +408,80 @@ public class Tile extends FieldCoord
 			break;
 
 		case C_NAM:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.name = saveToken.getContents();
+			this.name = contents;
 			break;
 
 		case C_ICO:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.icon = saveToken.getContents().charAt(0);
+			this.icon = contents.charAt(0);
 			break;
 
 		case C_CLR:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.color = Integer.parseInt(saveToken.getContents());
+			this.color = intContents;
 			break;
 
 		case T_RIC:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.rememberedIcon = saveToken.getContents().charAt(0);
+			this.rememberedIcon = contents.charAt(0);
 			break;
 
 		case T_RCL:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.rememberedColor = Integer.parseInt(saveToken.getContents());
+			this.rememberedColor = intContents;
 			break;
 
 		case T_FIC:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.fogIcon = saveToken.getContents().charAt(0);
+			this.fogIcon = contents.charAt(0);
 			break;
 
 		case T_AHR:
-			saveToken = ssb.getToken(saveTokenTag);
-			referenceKey = "A" + saveToken.getContents();
+			referenceKey = "A" + contents;
 			Actor actor = EntityMap.getActor(referenceKey);
 			this.actorHere = actor;
 			break;
 
 		case T_FHR:
-			saveToken = ssb.getToken(saveTokenTag);
-			referenceKey = "F" + saveToken.getContents();
+			referenceKey = "F" + contents;
 			Feature feature = EntityMap.getFeature(referenceKey).clone();
 			this.featureHere = feature;
 			break;
 
 		case T_IHR:
-			saveToken = ssb.getToken(saveTokenTag);
-			referenceKey = "I" + saveToken.getContents();
+			referenceKey = "I" + contents;
 			Item item = EntityMap.getItem(referenceKey).clone();
 			this.itemHere = item;
 			break;
 
 		case C_OST:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.obstructsSight = Boolean.parseBoolean(saveToken.getContents());
+			this.obstructsSight = boolContents;
 			break;
 
 		case C_OMV:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.obstructsMotion = Boolean.parseBoolean(saveToken.getContents());
+			this.obstructsMotion = boolContents;
 			break;
 
 		case T_OCA:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.obstructsCoaligned = Boolean.parseBoolean(saveToken.getContents());
+			this.obstructsCoaligned = boolContents;
+			break;
+
+		case T_OEN:
+			this.obstructsEnemy = boolContents;
 			break;
 
 		case C_VIS:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.visible = Boolean.parseBoolean(saveToken.getContents());
+			this.visible = boolContents;
 			break;
 
 		case C_SEN:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.seen = Boolean.parseBoolean(saveToken.getContents());
+			this.seen = boolContents;
 			break;
 
 		case C_MOV:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.moveCostModifier = Double.parseDouble(saveToken.getContents());
+			this.moveCostModifier = Double.parseDouble(contents);
 			break;
 
 		case C_BLK:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.blockedMessage = saveToken.getContents();
+			this.blockedMessage = contents;
 			break;
 
-		//$CASES-OMITTED$
+		// $CASES-OMITTED$
 		default:
 			throw new IllegalArgumentException("Tile - Unhandled token: " + saveTokenTag.toString());
 		}
@@ -502,7 +508,7 @@ public class Tile extends FieldCoord
 		if (!type.equals(tile.type))
 			return false;
 
-		if (obstructsCoaligned != tile.obstructsCoaligned || rememberedIcon != tile.rememberedIcon
+		if (obstructsCoaligned != tile.obstructsCoaligned || obstructsEnemy != tile.obstructsEnemy || rememberedIcon != tile.rememberedIcon
 				|| rememberedColor != tile.rememberedColor || fogIcon != tile.fogIcon)
 			return false;
 
@@ -531,6 +537,7 @@ public class Tile extends FieldCoord
 
 		hash = 31 * hash + type.toString().hashCode();
 		hash = 31 * hash + (obstructsCoaligned ? 1 : 0);
+		hash = 31 * hash + (obstructsEnemy ? 1 : 0);
 		hash = 31 * hash + rememberedIcon;
 		hash = 31 * hash + rememberedColor;
 		hash = 31 * hash + fogIcon;

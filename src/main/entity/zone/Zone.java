@@ -225,8 +225,11 @@ public class Zone extends SaveableEntity
 
 	public Actor getActor(int index)
 	{
-		if (index < 0)
+		if (index < 0 || index >= actors.size())
+		{
+//			Logger.warn("Invalid actor index [" + index + "] when calling Zone.getActor()!");
 			return null;
+		}
 		
 		return actors.get(index);
 	}
@@ -496,8 +499,8 @@ public class Zone extends SaveableEntity
 	protected void setMember(SaveStringBuilder ssb, SaveTokenTag saveTokenTag)
 	{
 		String contents = getContentsForTag(ssb, saveTokenTag);
-		SaveToken saveToken = null;
-		List<String> strVals = null;
+		int intContents = getIntContentsForTag(ssb, saveTokenTag);
+		List<String> strVals = getContentSetForTag(ssb, saveTokenTag);
 		String referenceKey = "";
 
 		if (contents.equals(""))
@@ -506,49 +509,38 @@ public class Zone extends SaveableEntity
 		switch (saveTokenTag)
 		{
 		case Z_NAM:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.name = saveToken.getContents();
+			this.name = contents;
 			break;
 			
 		case Z_TYP:
-			saveToken = ssb.getToken(saveTokenTag);
-			String typeString = saveToken.getContents();
-			this.type = ZoneType.valueOf(typeString);
+			this.type = ZoneType.valueOf(contents);
 			break;
 
 		case Z_PER:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.shouldPersist = Boolean.parseBoolean(saveToken.getContents());
+			this.shouldPersist = Boolean.parseBoolean(contents);
 			break;
 
 		case Z_CEW:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.canEnterWorld = Boolean.parseBoolean(saveToken.getContents());
+			this.canEnterWorld = Boolean.parseBoolean(contents);
 			break;
 
 		case Z_TRN:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.lastTurn = Integer.parseInt(saveToken.getContents());
+			this.lastTurn = intContents;
 			break;
 
 		case Z_HGT:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.height = Integer.parseInt(saveToken.getContents());
+			this.height = intContents;
 			break;
 
 		case Z_WID:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.width = Integer.parseInt(saveToken.getContents());
+			this.width = intContents;
 			break;
 
 		case Z_DEP:
-			saveToken = ssb.getToken(saveTokenTag);
-			this.depth = Integer.parseInt(saveToken.getContents());
+			this.depth = intContents;
 			break;
 
 		case Z_ACT:
-			saveToken = ssb.getToken(saveTokenTag);
-			strVals = saveToken.getContentSet();
 			actors.clear();
 			for (String val : strVals)
 			{
@@ -559,8 +551,6 @@ public class Zone extends SaveableEntity
 			break;
 
 		case Z_EVT:
-			saveToken = ssb.getToken(saveTokenTag);
-			strVals = saveToken.getContentSet();
 			eventQueue = null;
 			for (String val : strVals)
 			{
@@ -576,8 +566,6 @@ public class Zone extends SaveableEntity
 			break;
 
 		case Z_ZEK:
-			saveToken = ssb.getToken(saveTokenTag);
-			strVals = saveToken.getContentSet();
 			zoneEntryKeys.clear();
 			for (String val : strVals)
 			{
@@ -597,8 +585,6 @@ public class Zone extends SaveableEntity
 			break;
 
 		case Z_TIL:
-			saveToken = ssb.getToken(saveTokenTag);
-			strVals = saveToken.getContentSet();
 			for (int i = 0; i < height; i++)
 			{
 				for (int j = 0; j < width; j++)
@@ -771,6 +757,21 @@ public class Zone extends SaveableEntity
 		public Collection<Point> values()
 		{
 			return values;
+		}
+	}
+	
+	public void printOutZoneMap()
+	{
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				tiles[i][j].setSeen(true);
+				tiles[i][j].setVisible(true);
+				System.out.print(tiles[i][j].getIcon());
+			}
+			
+			System.out.println();
 		}
 	}
 }

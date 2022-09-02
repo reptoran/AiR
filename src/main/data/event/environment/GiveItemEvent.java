@@ -10,12 +10,13 @@ import main.entity.item.ItemSource;
 
 public class GiveItemEvent extends AbstractEnvironmentEvent
 {
-	public GiveItemEvent(Actor giver, Actor receiver, ItemSource itemSource, int itemIndex, EnvironmentEventQueue eventQueue)
+	public GiveItemEvent(Actor giver, Actor receiver, ItemSource itemSource, int itemIndex, int quantity, EnvironmentEventQueue eventQueue)
 	{
 		this.actor = giver;
 		this.secondaryActor = receiver;
-		this.value = itemSource.intValue();
-		this.secondaryValue = itemIndex;
+		this.values[0] = itemSource.intValue();
+		this.values[1] = itemIndex;
+		this.values[2] = quantity;
 		this.eventQueue = eventQueue;
 	}
 	
@@ -31,10 +32,11 @@ public class GiveItemEvent extends AbstractEnvironmentEvent
 		int receiverActorIndex = DataAccessor.getInstance().getIndexOfActor(secondaryActor);
 		
 		
-		ItemSource itemSource = ItemSource.fromInt(value);
-		int itemIndex = secondaryValue;
+		ItemSource itemSource = ItemSource.fromInt(values[0]);
+		int itemIndex = values[1];
+		int quantity = values[2];
 		
-		InternalEvent event = InternalEvent.giveItemInternalEvent(giverActorIndex, itemSource, itemIndex, receiverActorIndex);
+		InternalEvent event = InternalEvent.giveItemInternalEvent(giverActorIndex, itemSource, itemIndex, quantity, receiverActorIndex);
 		eventList.add(event);
 		
 		return eventList;

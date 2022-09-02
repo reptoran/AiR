@@ -1,25 +1,30 @@
 package main.data;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import main.entity.zone.Zone;
-import main.entity.zone.ZoneAttribute;
-import main.entity.zone.predefined.PredefinedZone;
-import main.logic.RPGlib;
+import main.entity.zone.predefined.PredefinedZoneLoader;
 import main.presentation.Logger;
 
-public class SpecialLevelManager
+public class SpecialLevelManager implements SaveableDataManager
 {
-	private List<PredefinedZone> specialZones = new ArrayList<PredefinedZone>();
-	private List<String> generatedZoneNames = new ArrayList<String>();
+	private Map<String, Zone> generatedZones = new HashMap<String, Zone>();
+	private Map<Integer, List<String>> specialZonesByBand;
 	
 	private static final String DELIMITER = ";";
 	
 	private static SpecialLevelManager instance = null;
 	
-	private SpecialLevelManager() {}
+	private SpecialLevelManager()
+	{
+		resetSpecialZonesByBand();
+		Map<String, Integer> bandsOfPredefinedZones = PredefinedZoneLoader.getInstance().getBandsOfPredefinedZones();
+		populateSpecialZonesForBands(bandsOfPredefinedZones);
+	}
 	
 	public static SpecialLevelManager getInstance()
 	{
@@ -28,86 +33,101 @@ public class SpecialLevelManager
 		
 		return instance;
 	}
+	
+	private void resetSpecialZonesByBand()
+	{
+		specialZonesByBand = new HashMap<Integer, List<String>>();
+		
+		for (int i = 0; i <= 30; i++)
+			specialZonesByBand.put(i, new ArrayList<String>());
+	}
 
+	@Override
 	public String saveState()
 	{
 		String saveString = "";
 		
-		for (String zoneName : generatedZoneNames)
+		for (String zoneFileName : generatedZones.keySet())
 		{
-			saveString = saveString + zoneName + DELIMITER;
+			saveString = saveString + zoneFileName + DELIMITER;
 		}
 		
 		return saveString.substring(0, saveString.length() - 1);
 	}
 	
+	@Override
 	public void loadState(String saveString)
 	{
-		generatedZoneNames.clear();
+		generatedZones.clear();
 		
 		@SuppressWarnings("resource")
 		Scanner scanner = new Scanner(saveString).useDelimiter(DELIMITER);
 		
 		while (scanner.hasNext())
 		{
-			generatedZoneNames.add(scanner.next());
+			generateSpecialLevel(scanner.next());
 		}
 		
 		scanner.close();
 	}
 	
-	public Zone generateSpecialLevel(int level)
-	{
-		if (specialZones == null)
-			throw new IllegalStateException("No special levels loaded into the manager yet.");
+	public Zone generateSpecialLevel(String zoneFileName)
+	{		
+		Logger.debug("Generating special level for file name " + zoneFileName);
 		
-		List<PredefinedZone> zonesForCurrentLevel = new ArrayList<PredefinedZone>();
-		
-		for (PredefinedZone zone : specialZones)
-		{
-			int minLevel = getIntegerAttribute(zone.getAttribute(ZoneAttribute.MINLEVEL), 1);
-			int maxLevel = getIntegerAttribute(zone.getAttribute(ZoneAttribute.MAXLEVEL), 99);
-			
-			if (minLevel <= level && maxLevel >= level)
-				zonesForCurrentLevel.add(zone);
-		}
-		
-		int totalPossibleZonesToGenerate = zonesForCurrentLevel.size();
-		
-		if (totalPossibleZonesToGenerate == 0)
-		{
-			Logger.warn("No predefined zones are eligible to be generated for level " + level + ".");
+		if (zoneFileName == null)
 			return null;
-		}
 		
-		int indexOfZoneToGenerate = RPGlib.randInt(0, totalPossibleZonesToGenerate - 1);
-		PredefinedZone zoneToGenerate = zonesForCurrentLevel.get(indexOfZoneToGenerate);
+		if (generatedZones.containsKey(zoneFileName))
+			return generatedZones.get(zoneFileName);
 		
-		specialZones.remove(zoneToGenerate);	//this zone can never be generated again
-		generatedZoneNames.add(zoneToGenerate.getAttribute(ZoneAttribute.NAME));
+		Zone generatedZone = PredefinedZoneLoader.getInstance().loadZoneFromDataFile(zoneFileName);
 		
-		return zoneToGenerate.getZone(); 
+		generatedZones.put(zoneFileName, generatedZone);
+		
+		return generatedZone;
 	}
-
-	public void populateSpecialZonesForLevels(List<PredefinedZone> predefinedZones)
+	
+	//IMPORTANT: the zone should be cached after it's retrieved, unless it's data's currentZone
+	public Zone retrieveZone(String zoneName)
 	{
-		specialZones.clear();
+		String uniqueId = PredefinedZoneLoader.getInstance().getCacheNameOfZone(zoneName);
+		Zone currentZone = DataAccessor.getInstance().getCurrentZone();
 		
-		for (PredefinedZone zone : predefinedZones)
+		if (currentZone != null && currentZone.getUniqueId().equals(uniqueId))
+			return currentZone;
+		
+		DataSaveUtils zoneCacheUtility = DataAccessor.getInstance().getZoneCacheUtility();
+		
+		if (!zoneCacheUtility.isZoneCached(uniqueId))
 		{
-			String zoneName = zone.getAttribute(ZoneAttribute.NAME);
-			if (generatedZoneNames.contains(zoneName))
-				continue;
+			String fileName = PredefinedZoneLoader.getInstance().getFileNameOfZone(zoneName);
+			return generateSpecialLevel(fileName);
+		}
 			
-			specialZones.add(zone);
+		
+		return zoneCacheUtility.uncacheZone(uniqueId);
+	}
+	
+	public List<String> getSpecialZonesForBand(int band)
+	{
+		return specialZonesByBand.get(band);
+	}
+	
+	private void populateSpecialZonesForBands(Map<String, Integer> predefinedZones)
+	{
+		for (String zoneName : predefinedZones.keySet())
+		{
+			int zoneBand = predefinedZones.get(zoneName);
+			
+			if (zoneBand < 0 || zoneBand > 30)
+			{
+				Logger.warn("Zone defined in file " + zoneName + " has an invalid band and will never be randomly generated.");
+				continue;
+			}
+			
+			List<String> specialZonesAtCurrentBand = specialZonesByBand.get(zoneBand);
+			specialZonesAtCurrentBand.add(zoneName);
 		}
 	}
-
-	private int getIntegerAttribute(String attribute, int defaultValue)
-	{
-		if (attribute == null)
-			return defaultValue;
-		
-		return Integer.valueOf(attribute);
-	} 
 }

@@ -16,27 +16,12 @@ public class EnvironmentEventFactory
 	
 	private EnvironmentEventFactory() {}
 	
-	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type)
+	private static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor)
 	{
-		return generateNewEvent(queue, type, null);
+		return generateNewEvent(queue, type, actor, null, null, 0, 0, 0);
 	}
 	
-	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor)
-	{
-		return generateNewEvent(queue, type, actor, 0);
-	}
-
-	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor, int value)
-	{
-		return generateNewEvent(queue, type, actor, null, null, value, 0);
-	}
-
-	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor, Item item, int value)
-	{
-		return generateNewEvent(queue, type, actor, null, item, value, 0);
-	}
-	
-	public static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor, Actor secondaryActor, Item item, int value, int secondaryValue)
+	private static EnvironmentEvent generateNewEvent(EnvironmentEventQueue queue, EnvironmentEventType type, Actor actor, Actor secondaryActor, Item item, int value, int secondaryValue, int tertiaryValue)
 	{
 		switch (type)
 		{
@@ -50,7 +35,7 @@ public class EnvironmentEventFactory
 			return new ActorTurnEvent(actor, queue);
 			
 		case GIVE_ITEM:
-			return new GiveItemEvent(actor, secondaryActor, ItemSource.fromInt(value), secondaryValue, queue);
+			return new GiveItemEvent(actor, secondaryActor, ItemSource.fromInt(value), secondaryValue, tertiaryValue, queue);
 		
 		case CONSUME_ITEM:
 			return new ConsumeInventoryItemEvent(actor, item, value, queue);

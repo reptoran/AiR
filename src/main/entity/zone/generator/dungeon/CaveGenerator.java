@@ -6,20 +6,37 @@ import java.util.List;
 import main.entity.zone.ZoneType;
 import main.logic.Line;
 import main.logic.RPGlib;
+import main.presentation.message.MessageBuffer;
 
 public class CaveGenerator extends RandomGenerator
 {
-	int size = 10;
-	int openness = 15;
-	int density = 30;
+	/*
+	 * Size: how many central points are created
+	 * Openness: how long the rays are; also determines minimum distance between stairs
+	 * Density: how many rays are cast from each central point
+	 */
+	
+	//CURRENT DEFAULTS
+//	int size = 10;
+//	int openness = 15;
+//	int density = 30;
+
+	//ALTERNATE DEFAULTS
 //	int size = 25;
 //	int openness = 12;
 //	int density = 35;
 	
+	int size = 20;
+	int openness = 45;
+	int density = 8;
+	
 	@Override
 	public char[][] generateCharMap(int height, int width)
 	{
-		char[][] map = new char[height][width];
+		mapHeight = height;
+		mapWidth = width;
+		
+		map = new char[height][width];
 		
 		int xMin = 0;
 		int yMin = 0;
@@ -119,18 +136,28 @@ public class CaveGenerator extends RandomGenerator
 		}
 
 		int count = 0;
-
-		while (!(temp[x1][y1] == main && RPGlib.distance(x0, y0, x1, y1) > openness))
+		int retry = 0;
+		double opennessModifier = 1.5;
+		boolean message = false;
+		
+		while (!(temp[x1][y1] == main && RPGlib.distance(x0, y0, x1, y1) > (openness * opennessModifier)))
 		{
 			x1 = RPGlib.randInt(xMin, xMax);
 			y1 = RPGlib.randInt(yMin, yMax);
 
 			count++;
 
-			if (count > 1000)
+			if (count > 2500)
 			{
-				// mBuffer.addMsg("This staircase is really long!");
-				return null;
+				count = 0;
+				retry++;
+				opennessModifier -= 0.1;
+				
+				if (!message && retry >= 10)
+				{
+					MessageBuffer.addMessage("This staircase is really long!");
+					message = true;
+				}
 			}
 		}
 

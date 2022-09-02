@@ -10,6 +10,7 @@ import main.entity.tile.Tile;
 import main.entity.zone.Zone;
 import main.logic.Direction;
 import main.logic.RPGlib;
+import main.logic.pathfinding.Pathfinder;
 
 public class CoalignedAI extends ActorAI
 {
@@ -59,6 +60,23 @@ public class CoalignedAI extends ActorAI
 		}
 		
 		return directions;
+	}
+	
+	@Override
+	protected Point nextPointToApproachTarget(Zone zone, Actor actor, Point target)
+	{
+		Point origin = zone.getCoordsOfActor(actor);
+		List<Point> line = Pathfinder.findPath(zone, origin, target);
+		
+		if (line.isEmpty())
+			return origin;
+		
+		Point nextPoint = line.get(0);
+		
+		if (zone.getTile(nextPoint).obstructsCoaligned())
+			return origin;
+		
+		return nextPoint;
 	}
 
 	@Override

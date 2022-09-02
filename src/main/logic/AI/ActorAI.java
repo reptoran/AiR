@@ -20,7 +20,7 @@ public abstract class ActorAI
 	protected Actor nearestActor = null;
 	protected Actor nearestEnemy = null;
 	
-	public abstract ActorCommand getNextCommand(Zone zone, Actor actor);	//maybe return something better than a String later
+	public abstract ActorCommand getNextCommand(Zone zone, Actor actor);
 	protected abstract List<AiType> getEnemyAiTypes();
 
 	//TODO: eventually remember the last location of the last target, so they can chase around corners, etc.
@@ -71,6 +71,15 @@ public abstract class ActorAI
 		return line.get(0);
 	}
 	
+	protected ActorCommand moveTowardPoint(Zone zone, Actor actor, Point target)
+	{
+		Point origin = zone.getCoordsOfActor(actor);
+		Point nextMove = nextPointToApproachTarget(zone, actor, target);
+		
+		Direction direction = RPGlib.convertCoordChangeToDirection(nextMove.x - origin.x, nextMove.y - origin.y);
+		return ActorCommand.move(direction);
+	}
+	
 	protected ActorCommand getRandomLegalMoveCommand(Zone zone, Actor actor)
 	{
 		List<Direction> moveTo = getValidRandomMoveDirections(zone, actor);
@@ -78,6 +87,7 @@ public abstract class ActorAI
 	    return ActorCommand.move(direction);
 	}
 	
+	//TODO: remove directions that are obstructed
 	protected List<Direction> getValidRandomMoveDirections(Zone zone, Actor actor)
 	{
 		return new ArrayList<Direction>(Arrays.asList(Direction.values()));

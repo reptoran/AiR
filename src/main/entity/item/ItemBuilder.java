@@ -16,6 +16,26 @@ public class ItemBuilder
 		return new ItemBuilder(type);
 	}
 	
+	public static ItemBuilder generateArmor(ItemType type)
+	{
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMOR).setUpgradedBy(ItemType.METAL_SHARD).setIcon('[');
+	}
+	
+	public static ItemBuilder generateShield(ItemType type)
+	{
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMAMENT).setUpgradedBy(ItemType.METAL_SHARD).setIcon('(');
+	}
+	
+	public static ItemBuilder generateWeapon(ItemType type, String damage)
+	{
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMAMENT).setUpgradedBy(ItemType.METAL_SHARD).setIcon('/').setDamage(damage);
+	}
+	
+	public static ItemBuilder generateMaterial(ItemType type)
+	{
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.MATERIAL);
+	}
+	
 	public Item build()
 	{
 		return item;
@@ -92,6 +112,23 @@ public class ItemBuilder
 	public ItemBuilder setDR(int dr)
 	{
 		item.setDR(dr);
+		return this;
+	}
+	
+	public ItemBuilder setUpgraded(boolean upgraded)
+	{
+		if (upgraded && !item.isUpgraded())
+			item.upgrade();
+		
+		if (!upgraded && item.isUpgraded())
+			item.downgrade();
+		
+		return this;
+	}
+	
+	public ItemBuilder setUpgradedBy(ItemType upgradedBy)
+	{
+		item.setUpgradedBy(upgradedBy);
 		return this;
 	}
 }

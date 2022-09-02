@@ -1,11 +1,9 @@
 package main.entity.zone.generator.dungeon;
 
 import java.awt.Point;
-import java.awt.Rectangle;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import main.entity.zone.ZoneType;
 import main.entity.zone.generator.dungeon.classic.Direction;
@@ -13,327 +11,395 @@ import main.entity.zone.generator.dungeon.classic.DungeonElement;
 import main.entity.zone.generator.dungeon.classic.DungeonElementCategory;
 import main.entity.zone.generator.dungeon.classic.DungeonElementFactory;
 import main.logic.RPGlib;
+import main.presentation.Logger;
 
+//NOTE THAT THERE ARE NO LOOPS POSSIBLE WITH THE CURRENT ALGORITHM
 public class ClassicGenerator extends RandomGenerator
 {
-	private static final char EMPTY_MAP_CHAR = '#';
+	private List<DungeonElement> openElements = new ArrayList<DungeonElement>();
 	
-	private int minHallWidth;
-	private int maxHallWidth;
-	private int minHallLength;
-	private int maxHallLength;
-	private int minRoomWidth;
-	private int maxRoomWidth;
-	private int minRoomHeight;
-	private int maxRoomHeight;
+	private DungeonElement firstRoom = null;
 	
-	private int minAdditionAttempts = 0;
-	private int minElements = 0;
-	private int maxElements = 0;
-	private int maxAdditionAttempts = 0;
-	private int mapHeight = -1;
-	private int mapWidth = -1;
+	private int totalElements = 0;
+	private int maxElements = 40;
 	
-	private List<DungeonElement> generatedElements = new ArrayList<DungeonElement>();
-	private Map<DungeonElement, Point> elementLocations = new HashMap<DungeonElement, Point>();
+	private int minElementHeight = 4;
+	private int maxElementHeight = 8;
+	private int minElementWidth = 4;
+	private int maxElementWidth = 10;
 	
-	private char[][] map = null;
-	char[][] mappedElements = null;
+	private static final char WALL = '#';
 	
-	public ClassicGenerator()
-	{
-		this(1, 1, 5, 10, 3, 6, 3, 8);
-	}
+	private DungeonElementFactory factory = DungeonElementFactory.getInstance();
 	
-	public ClassicGenerator(int minHallWidth, int maxHallWidth, int minHallLength, int maxHallLength, int minRoomWidth, int maxRoomWidth,
-			int minRoomHeight, int maxRoomHeight)
-	{
-		this.minHallWidth = minHallWidth;
-		this.maxHallWidth = maxHallWidth;
-		this.minHallLength = minHallLength;
-		this.maxHallLength = maxHallLength;
-		this.minRoomWidth = minRoomWidth;
-		this.maxRoomWidth = maxRoomWidth;
-		this.minRoomHeight = minRoomHeight;
-		this.maxRoomHeight = maxRoomHeight;
-	}
-
 	@Override
 	public char[][] generateCharMap(int height, int width)
 	{
-		setGenerationParametersBasedOnDimensions(height, width);
-		map = generateFullDungeon('#');
-		mappedElements = generateFullDungeon(EMPTY_MAP_CHAR);
-		addStartingRoom();
+		mapHeight = height;
+		mapWidth = width;
 		
-		int attempts = 0;
-		int elements = 1;
+		char[][] dungeonMap = new char[height][width];
 		
-		while (attempts < minAdditionAttempts || elements < minElements)
+		for (int i = 0; i < height; i++)
 		{
-			if (addDungeonElement(elements))
+			for (int j = 0; j < width; j++)
 			{
-				elements++;
-				System.out.println("Element generation successful; " + attempts + " total attempts so far");
-				printDungeonMap();
-				System.out.println();
+				dungeonMap[i][j] = WALL;
 			}
-			
-			attempts++;
-			
-			if (elements > maxElements)
-				break;
-			
-			if (attempts > maxAdditionAttempts)
-				break;
 		}
 		
-		return map;
-	}
-	
-	private void addStartingRoom()
-	{
-		int roomHeight = RPGlib.randInt(minRoomHeight, maxRoomHeight) + 2;
-		int roomWidth = RPGlib.randInt(minRoomWidth, maxRoomWidth) + 2;
+		generateStartingElement(dungeonMap);
 		
-		int startX = RPGlib.randInt(1, mapHeight - roomHeight - 1);
-		int startY = RPGlib.randInt(1, mapWidth - roomWidth - 1);
+		int iterationsWithoutNewElement = 0;
 		
-		DungeonElement startingRoom = DungeonElementFactory.getInstance().generateRoom(roomHeight, roomWidth);
-		addElementToMap(startingRoom, new Rectangle(startX, startY, roomWidth, roomHeight), -1);
+		while(totalElements < maxElements && !openElements.isEmpty())
+		{
+			if (iterationsWithoutNewElement > 1000)	//get rid of elements causing trouble if it's taking too long to generate
+			{
+				iterationsWithoutNewElement = 0;
+				openElements.remove(0);
+			}
+			
+			if (openElements.isEmpty())
+				break;
+			
+			int currentElementCount = totalElements;
+			generateNewElement(dungeonMap, getFirstHallOrRandomOpenElement());
+			
+			if (currentElementCount == totalElements)	//no element was added
+			{
+				iterationsWithoutNewElement++;
+				continue;
+			}
+			
+//			printDungeonMap(dungeonMap);
+//			try
+//			{
+//				Thread.currentThread().sleep(500);
+//			} catch (InterruptedException e)
+//			{
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+		}
+		
+		polishDungeon(dungeonMap);
+		addStairs(dungeonMap);
+		
+		return dungeonMap;
 	}
-	
-	private void printRegionMap()
+
+	public void printDungeonMap(char[][] dungeonMap)
 	{
 		for (int i = 0; i < mapHeight; i++)
 		{
 			for (int j = 0; j < mapWidth; j++)
 			{
-				System.out.print(mappedElements[i][j]);
-			}
-			
-			System.out.println();
-		}
-	}
-	
-	private void printDungeonMap()
-	{
-		for (int i = 0; i < mapHeight; i++)
-		{
-			for (int j = 0; j < mapWidth; j++)
-			{
-				System.out.print(map[i][j]);
+				System.out.print(dungeonMap[i][j]);
 			}
 			
 			System.out.println();
 		}
 	}
 
-	private boolean addDungeonElement(int nextElementNumber)
+	private void generateNewElement(char[][] dungeonMap, DungeonElement originElement)
 	{
-		DungeonElement elementToDigFrom = findNextElementToDigFrom();
-		Point nextPointToDigFrom = calculateNextPointToDigFrom(elementToDigFrom);
+		if (originElement == null)
+			originElement = getFirstHallOrRandomOpenElement();
 		
-		if (nextPointToDigFrom == null)
-			return false;
+		if (originElement.getType() == DungeonElementCategory.HALL)
+			Logger.debug("Generating element from hall");
 		
-		DungeonElementCategory nextType = DungeonElementCategory.HALL;
+		Point originalDigPoint = originElement.getNextPointToDigFrom();
 		
-		//assume next element is a hall, but if we're digging from a hall, there's a 2 in 3 chance it will be a room instead
-		if (elementToDigFrom.getType() == DungeonElementCategory.HALL && RPGlib.randInt(1, 3) != 1)
-			nextType = DungeonElementCategory.ROOM;
+		if (originalDigPoint == null)
+		{
+			openElements.remove(originElement);
+			return;
+		}
 		
-		Direction nextElementDirection = determineNextElementDirection(elementToDigFrom, nextPointToDigFrom);
-		Point entrance = calculateEntranceLocation(nextPointToDigFrom, nextElementDirection);
-		Rectangle nextElementRegion = generateNewRegion(entrance, nextElementDirection, nextType);
+		Point digPoint = new Point(originalDigPoint.x, originalDigPoint.y);
 		
-		if (nextElementRegion == null)
-			return false;
+		Point nextElementEntryPoint = new Point(digPoint.x, digPoint.y);
+		Direction nextElementDirection = getNextElementDirection(originElement, digPoint);
 		
-		DungeonElement nextElement = DungeonElementFactory.getInstance().generateRoom(nextElementRegion.height - 2, nextElementRegion.width - 2);	//remove the padding
-		addElementToMap(nextElement, nextElementRegion, nextElementNumber);
+		if (nextElementDirection == Direction.NORTH)
+		{
+			digPoint.x--;
+			nextElementEntryPoint.x -= 2;
+		}
+		if (nextElementDirection == Direction.EAST)
+		{
+			digPoint.y++;
+			nextElementEntryPoint.y += 2;
+		}
+		if (nextElementDirection == Direction.SOUTH)
+		{
+			digPoint.x++;
+			nextElementEntryPoint.x += 2;
+		}
+		if (nextElementDirection == Direction.WEST)
+		{
+			digPoint.y--;
+			nextElementEntryPoint.y -= 2;
+		}
 		
-		//TODO: commented out for now; perhaps have regions map their own entrances
-		//could be a door, but for now is just a single floor tile that separates the next element from this one
-//		Point entrance = calculateEntranceLocation(nextPointToDigFrom, nextElementDirection);
+		Logger.debug("Generating element in direction " + nextElementDirection + " from element " + originElement);
 		
-		//TODO: might not need these; just generate a region based on the point/direction and do a bounds check
-//		int xMin = 0;
-//		int yMin = 0;
-//		int xMax = mapHeight - 1;
-//		int yMax = mapWidth - 1;
+		DungeonElement nextElement = generateElement(nextElementDirection, nextElementEntryPoint, originElement.getType());
 		
-//		int startX = RPGlib.randInt(xMin, upper)
+		if (!areaIsValidForElement(dungeonMap, nextElement))
+		{
+			originElement.addEdge(originalDigPoint);
+			return;
+		}
 		
-		return true;
-	}
-	
-	private void addElementToMap(DungeonElement element, Rectangle region, int elementNumber)
-	{
-		Point origin = new Point(region.x, region.y);
-		Point unpaddedOrigin = new Point(region.x + 1, region.y + 1);
-		addNewRegionToMap(region, elementNumber);
-		addNewElementToMap(unpaddedOrigin, element);
-		generatedElements.add(element);
-		elementLocations.put(element, origin);
-		printRegionMap();
+		dungeonMap[digPoint.x][digPoint.y]= '.';
+		
+		if (originElement.getType() == DungeonElementCategory.ROOM || nextElement.getType() == DungeonElementCategory.ROOM)
+			dungeonMap[digPoint.x][digPoint.y]= '+';
+		
+		digElement(dungeonMap, nextElement);
+		openElements.add(0, nextElement);		//always put it in the front so it's the first to removed it there's trouble
+		totalElements++;
 	}
 
-	private void addNewRegionToMap(Rectangle newRegion, int regionNumber)
+	private Direction getNextElementDirection(DungeonElement originElement, Point digPoint)
 	{
-		for (int i = newRegion.x; i < newRegion.x + newRegion.height; i++)
-		{
-			for (int j = newRegion.y; j < newRegion.y + newRegion.width; j++)
-			{
-				mappedElements[i][j] = (char)(65 + regionNumber);
-			}
-		}
+		Point origin = originElement.getOrigin();
+		
+		List<Direction> possibleDirections = new ArrayList<Direction>();
+		possibleDirections.addAll(Arrays.asList(Direction.values()));
+		
+		if (origin.x != digPoint.x)
+			possibleDirections.remove(Direction.NORTH);
+		if (origin.y != digPoint.y)
+			possibleDirections.remove(Direction.WEST);
+		if (origin.x + originElement.getHeight() - 1 != digPoint.x)
+			possibleDirections.remove(Direction.SOUTH);
+		if (origin.y + originElement.getWidth() - 1 != digPoint.y)
+			possibleDirections.remove(Direction.EAST);
+		
+		if (possibleDirections.isEmpty())
+			throw new IllegalArgumentException("Dig point is not on edge of dungeon element.");
+		
+		return possibleDirections.get(RPGlib.randInt(0, possibleDirections.size() - 1));
+	}
+
+	private void generateStartingElement(char[][] dungeonMap)
+	{
+		int originRow = RPGlib.randInt(mapHeight / 3, mapHeight / 3 * 2);
+		int originCol = RPGlib.randInt(mapWidth / 3, mapWidth / 3 * 2);
+		firstRoom = generateElement(Direction.WEST, new Point(originRow, originCol));
+		openElements.clear();
+		openElements.add(firstRoom);
+		totalElements = 1;
+		digElement(dungeonMap, firstRoom);
+//		printDungeonMap(dungeonMap);
 	}
 	
-	private void addNewElementToMap(Point origin, DungeonElement element)
+	private DungeonElement generateElement(Direction nextElementDirection, Point nextElementEntryPoint)
 	{
-		char[][] elementMap = element.getTileMap();
+		return generateElement(nextElementDirection, nextElementEntryPoint, null);
+	}
+
+	private DungeonElement generateElement(Direction direction, Point entryPoint, DungeonElementCategory lastElementType)
+	{
+		int height = RPGlib.randInt(minElementHeight, maxElementHeight);
+		int width = RPGlib.randInt(minElementWidth, maxElementWidth);
+		
+		int rowAdjust = 0;
+		int colAdjust = 0;
+
+		if (direction == Direction.NORTH)
+		{
+			rowAdjust = -1 * height + 1;
+			colAdjust = -1 * RPGlib.randInt(0, width - 1);
+		}
+		if (direction == Direction.SOUTH)
+		{
+			colAdjust = -1 * RPGlib.randInt(0, width - 1);
+		}
+		if (direction == Direction.WEST)
+		{
+			rowAdjust = -1 * RPGlib.randInt(0, height - 1);
+			colAdjust = -1 * width + 1;
+		}
+		if (direction == Direction.EAST)
+		{
+			rowAdjust = -1 * RPGlib.randInt(0, height - 1);
+		}
+		
+		Point origin = new Point(entryPoint.x + rowAdjust, entryPoint.y + colAdjust);
+		
+		
+		//rooms always connect to halls, but halls have a chance to keep going
+		if (lastElementType == null || (lastElementType == DungeonElementCategory.HALL && RPGlib.randInt(1, 4) != 1))
+			return factory.generateRoom(origin, height, width);
+		
+		if (direction == Direction.NORTH || direction == Direction.SOUTH)
+			return factory.generateVerticalHall(new Point(origin.x, entryPoint.y), height, direction);
+		else
+			return factory.generateHorizontalHall(new Point(entryPoint.x, origin.y), width, direction);
+	}
+
+	private DungeonElement getFirstHallOrRandomOpenElement()
+	{
+		for (DungeonElement hall : openElements)
+		{
+			if (hall.getType() == DungeonElementCategory.HALL)
+				return hall;
+		}
+		
+		int elementIndex = RPGlib.randInt(0, openElements.size() - 1);
+		return openElements.get(elementIndex);
+	}
+	
+	private void digElement(char[][] dungeonMap, DungeonElement element)
+	{
+		char[][] elementTileMap = element.getTileMap();
+		Point origin = element.getOrigin();
 		
 		for (int i = 0; i < element.getHeight(); i++)
 		{
 			for (int j = 0; j < element.getWidth(); j++)
 			{
-				map[origin.x + i][origin.y + j] = elementMap[i][j];
+				dungeonMap[origin.x + i][origin.y + j] = elementTileMap[i][j];
 			}
 		}
 	}
 
-	private Point calculateNextPointToDigFrom(DungeonElement elementToDigFrom)
+	private boolean areaIsValidForElement(char[][] dungeonMap, DungeonElement element)
 	{
-		Point elementOrigin = elementLocations.get(elementToDigFrom);
-		Point nextPointToDigFrom = elementToDigFrom.getNextPointToDigFrom();
+		Point origin = element.getOrigin();
 		
-		if (nextPointToDigFrom == null)
-			return null;
-		
-		return new Point(elementOrigin.x + nextPointToDigFrom.x, elementOrigin.y + nextPointToDigFrom.y);
-	}
-
-	private Rectangle generateNewRegion(Point nextPointToDigFrom, Direction nextElementDirection, DungeonElementCategory nextType)
-	{
-		int regionHeight = 0;
-		int regionWidth = 0;
-		
-		//these all add 2 all around for padding so elements don't open into each other incorrectly
-		if (nextType == DungeonElementCategory.HALL && (nextElementDirection == Direction.EAST || nextElementDirection == Direction.WEST))
+		for (int i = -1; i <= element.getHeight(); i++)
 		{
-			regionHeight = RPGlib.randInt(minHallWidth, maxHallWidth) + 2;
-			regionWidth = RPGlib.randInt(minHallLength, maxHallLength) + 2;
-		}
-		else if (nextType == DungeonElementCategory.HALL && (nextElementDirection == Direction.NORTH || nextElementDirection == Direction.SOUTH))
-		{
-			regionHeight = RPGlib.randInt(minHallLength, maxHallLength) + 2;
-			regionWidth = RPGlib.randInt(minHallWidth, maxHallWidth) + 2;
-		}
-		else if (nextType == DungeonElementCategory.ROOM)
-		{
-			regionWidth = RPGlib.randInt(minRoomWidth, maxRoomWidth) + 2;
-			regionHeight = RPGlib.randInt(minRoomHeight, maxRoomHeight) + 2;
-		}
-		
-		//verify region is within map and doesn't overlap any other regions
-		for (int i = nextPointToDigFrom.x; i < nextPointToDigFrom.x + regionHeight; i++)
-		{
-			for (int j = nextPointToDigFrom.y; j < nextPointToDigFrom.y + regionWidth; j++)
+			for (int j = -1; j < element.getWidth() + 1; j++)
 			{
-				if (i < 0 || j < 0 || i >= mapHeight || j >= mapWidth)
-					return null;
+				int row = origin.x + i;
+				int col = origin.y + j;
 				
-				if (mappedElements[i][j] != EMPTY_MAP_CHAR)
-					return null;
+				if (row < 0 || col < 0 || row >= mapHeight || col >= mapWidth)
+					return false;
+				
+				if (dungeonMap[row][col] != WALL)
+					return false;
 			}
 		}
 		
-		return new Rectangle(nextPointToDigFrom.x, nextPointToDigFrom.y, regionWidth, regionHeight);
-	}
-
-	private Point calculateEntranceLocation(Point nextPointToDigFrom, Direction nextElementDirection)
-	{
-		int xChange = 0;
-		int yChange = 0;
-
-		if (nextElementDirection == Direction.NORTH)
-			xChange--;
-		if (nextElementDirection == Direction.EAST)
-			yChange++;
-		if (nextElementDirection == Direction.SOUTH)
-			xChange++;
-		if (nextElementDirection == Direction.WEST)
-			yChange--;
-		
-		return new Point(nextPointToDigFrom.x + xChange, nextPointToDigFrom.y + yChange);
-	}
-
-	private Direction determineNextElementDirection(DungeonElement elementToDigFrom, Point nextPointToDigFrom)
-	{
-		Point origin = elementLocations.get(elementToDigFrom);
-		Point transformedDigPoint = new Point(nextPointToDigFrom.x - origin.x, nextPointToDigFrom.y - origin.y);
-		
-		List<Direction> potentialDirections = new ArrayList<Direction>();
-		potentialDirections.add(Direction.NORTH);
-		potentialDirections.add(Direction.EAST);
-		potentialDirections.add(Direction.SOUTH);
-		potentialDirections.add(Direction.WEST);
-		
-		//the next point to dig from is in the format (row, column)
-		if (transformedDigPoint.x != 0)
-			potentialDirections.remove(Direction.NORTH);
-		if (transformedDigPoint.y != 0)
-			potentialDirections.remove(Direction.WEST);
-		if (transformedDigPoint.x != elementToDigFrom.getHeight() - 1)
-			potentialDirections.remove(Direction.SOUTH);
-		if (transformedDigPoint.y != elementToDigFrom.getWidth() - 1)
-			potentialDirections.remove(Direction.EAST);
-		
-		return RPGlib.getRandomListEntry(potentialDirections);
-	}
-
-	private DungeonElement findNextElementToDigFrom()
-	{
-		for (DungeonElement element : generatedElements)
-		{
-			if (element.hasDeadEnds())
-				return element;
-		}
-		
-		return generatedElements.get(RPGlib.randInt(0, generatedElements.size() - 1));
-	}
-
-	private char[][] generateFullDungeon(char symbol)
-	{
-		char[][] charMap = new char[mapHeight][mapWidth];
-		
-		for (int i = 0; i < mapHeight; i++)
-			for (int j = 0; j < mapWidth; j++)
-				charMap[i][j] = symbol;
-		
-		return charMap;
+		return true;
 	}
 	
-	private void setGenerationParametersBasedOnDimensions(int height, int width)
+	private void polishDungeon(char[][] dungeonMap)
 	{
-		mapHeight = height;
-		mapWidth = width;
+		for (int i = 0; i < mapHeight; i++)
+		{
+			for (int j = 0; j < mapWidth; j++)
+			{
+				Point coords = new Point(i, j);
+				if (isHallwayEnd(dungeonMap, coords))
+					fillHallwayTile(dungeonMap, coords);
+			}
+		}
+	}
+	
+	private boolean isHallwayEnd(char[][] dungeonMap, Point tileCoords)
+	{		
+		return (getAdjacentWallCount(dungeonMap, tileCoords) > 2);
+	}
+	
+	private int getAdjacentWallCount(char[][] dungeonMap, Point tileCoords)
+	{
+		int x = tileCoords.x;
+		int y = tileCoords.y;
+		int adjacentWalls = 0;
 		
-		int hallWidth = (minHallWidth + maxHallWidth) / 2;
-		int hallLength = (minHallLength + maxHallLength) / 2;
-		int roomWidth = (minRoomWidth + maxRoomWidth) / 2;
-		int roomHeight = (minRoomHeight + maxRoomHeight) / 2;
+		if (x > 0 && dungeonMap[x - 1][y] == WALL)
+			adjacentWalls++;
+		if (x < mapHeight - 1&& dungeonMap[x + 1][y] == WALL)
+			adjacentWalls++;
+		if (y > 0 && dungeonMap[x][y - 1] == WALL)
+			adjacentWalls++;
+		if (y < mapWidth - 1 && dungeonMap[x][y + 1] == WALL)
+			adjacentWalls++;
 		
-		int dungeonArea = height * width;
-		int hallArea = hallLength * hallWidth;
-		int roomArea = roomHeight * roomWidth;
+		return adjacentWalls;
+	}
+	
+	private void fillHallwayTile(char[][] dungeonMap, Point tileCoords)
+	{
+		if (!isHallwayEnd(dungeonMap, tileCoords))
+			return;
 		
-		//no science to these numbers; just experimenting for now
-		minElements = (dungeonArea / roomArea) / 10;
-		maxElements = (dungeonArea / roomArea) / 2;
-		minAdditionAttempts = minElements * 2;
-		maxAdditionAttempts = maxElements * 10;
+		int x = tileCoords.x;
+		int y = tileCoords.y;
+		
+		dungeonMap[x][y] = WALL;
+		
+		if (x > 0 && dungeonMap[x - 1][y] != WALL)
+			fillHallwayTile(dungeonMap, new Point(x - 1, y));
+		if (x < mapHeight - 1&& dungeonMap[x + 1][y] != WALL)
+			fillHallwayTile(dungeonMap, new Point(x + 1, y));
+		if (y > 0 && dungeonMap[x][y - 1] != WALL)
+			fillHallwayTile(dungeonMap, new Point(x, y - 1));
+		if (y < mapWidth - 1 && dungeonMap[x][y + 1] != WALL)
+			fillHallwayTile(dungeonMap, new Point(x, y + 1));
+	}
+	
+	private void addStairs(char[][] dungeonMap)
+	{
+		int minStairDistance = Math.max(mapHeight, mapWidth) / 2;
+		int iterations = 0;
+		
+		Point upStairs = firstRoom.getOrigin();
+		
+		try {
+			upStairs.x += RPGlib.randInt(1, firstRoom.getHeight() - 2);
+			upStairs.y += RPGlib.randInt(1, firstRoom.getWidth() - 2);
+		} catch (IllegalArgumentException iae)
+		{
+			Logger.error(iae.getMessage());
+		}
+		
+		
+		while (true)
+		{
+			iterations++;
+			
+			if (iterations % 1000 == 0)
+			{
+				Logger.debug(" On iteration " + iterations + ", reducing minimum stair distance.");
+				minStairDistance--;
+			}
+			
+			Point downStairs = findDownStairsLocation(dungeonMap);
+			
+			if (RPGlib.distance(upStairs.x, upStairs.y, downStairs.x, downStairs.y) < minStairDistance)
+				continue;
+			
+			dungeonMap[upStairs.x][upStairs.y] = '<';
+			dungeonMap[downStairs.x][downStairs.y] = '>';
+			return;
+		}
+	}
+
+	private Point findDownStairsLocation(char[][] dungeonMap)
+	{
+		Point downStairs = null;
+		
+		while (downStairs == null)
+		{
+			int row = RPGlib.randInt(0, mapHeight - 1);
+			int col = RPGlib.randInt(0, mapWidth - 1);
+			
+			downStairs = new Point(row, col);
+			
+			if (getAdjacentWallCount(dungeonMap, downStairs) != 0)
+				downStairs = null;
+		}
+		
+		return downStairs;
 	}
 
 	@Override
@@ -341,5 +407,4 @@ public class ClassicGenerator extends RandomGenerator
 	{
 		return ZoneType.CLASSIC;
 	}
-
 }

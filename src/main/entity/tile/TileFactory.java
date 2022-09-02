@@ -30,9 +30,9 @@ public class TileFactory
 			case CA_BLOCKER:
 				return TileBuilder.generateTile(tileType).setObstructsCoaligned(true).setName("floor").setIcon('.').setColor(7).build();
 			case STAIRS_DOWN:
-				return TileBuilder.generateTile(tileType).setName("stairs down").setIcon('>').setColor(7).build();
+				return TileBuilder.generateTile(tileType).setName("stairs down").setIcon('>').setColor(15).build();
 			case STAIRS_UP:
-				return TileBuilder.generateTile(tileType).setName("stairs up").setIcon('<').setColor(7).build();
+				return TileBuilder.generateTile(tileType).setName("stairs up").setIcon('<').setColor(15).build();
 			case NO_TYPE:	//falls through
 			default:
 				throw new IllegalArgumentException("No tile definition for tile type: " + tileType);

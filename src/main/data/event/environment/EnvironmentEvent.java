@@ -15,9 +15,7 @@ public interface EnvironmentEvent extends Queueable
 	public Actor getActor();
 	public Actor getSecondaryActor();
 	public Item getItem();
-	public int getValue();
-	public int getSecondaryValue();
-	public int getTertiaryValue();
+	public int getValue(int index);
 	public EnvironmentEventType getType();
 	public SaveableEnvironmentEvent asSaveableEvent();
 }

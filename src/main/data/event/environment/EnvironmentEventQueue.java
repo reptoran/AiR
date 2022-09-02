@@ -38,14 +38,10 @@ public class EnvironmentEventQueue extends Queue {
 	
 	public void add(Actor actor)
 	{
-		EnvironmentEvent event = EnvironmentEventFactory.generateNewEvent(this, EnvironmentEventType.ACTOR_TURN, actor);
-		super.add(event);
+		super.add(new ActorTurnEvent(actor, this));
 		
 		if (actor.hasTrait(ActorTraitType.HP_REGEN))
-		{
-			event = EnvironmentEventFactory.generateNewEvent(this, EnvironmentEventType.HP_REGEN, actor);
-			super.add(event);
-		}
+			super.add(new HitpointRegenEvent(actor, this));
 	}
 	
 	public void remove(Actor actor)

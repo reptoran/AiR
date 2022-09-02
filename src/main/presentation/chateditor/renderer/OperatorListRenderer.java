@@ -1,6 +1,6 @@
 package main.presentation.chateditor.renderer;
 
-import main.entity.chat.CompareOperator;
+import main.entity.CompareOperator;
 
 public class OperatorListRenderer extends ChatGuiListRenderer<CompareOperator>
 {

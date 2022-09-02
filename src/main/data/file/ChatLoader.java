@@ -36,7 +36,7 @@ public class ChatLoader extends FileHandler
 			if (!getFileExtension(file).equals(getExtension()))
 				continue;
 			
-			List<Chat> elements = ChatJsonFileUtils.loadChatFromDataFile(file);
+			List<Chat> elements = ChatJsonFileUtils.getInstance().loadFromFile(file);
 			String key = getFileNameNoExtension(file);
 			loadedChats.put(ActorType.fromString(key), elements);
 		}
@@ -60,7 +60,7 @@ public class ChatLoader extends FileHandler
 		if (chats.isEmpty())
 			return false;
 		
-		return ChatJsonFileUtils.saveChatListToFile(chats, file);
+		return ChatJsonFileUtils.getInstance().saveToFile(chats, file);
 	}
 	
 	@Override
@@ -74,5 +74,4 @@ public class ChatLoader extends FileHandler
 	{
 		return ROOT_PATH + "data" + File.separator + "talk" + File.separator;
 	}
-
 }

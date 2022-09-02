@@ -2,28 +2,51 @@ package main.entity.item;
 
 public enum ItemType
 {
+	//progamming only
 	NO_TYPE,
+	ANY_ITEM,
+	SOURCE_ITEM,
+	TARGET_ITEM,
 	VIRTUAL_ITEM,
-	THICK_SHIRT(0, 5),
+	UPGRADED_ITEM,
+	
+	//debug
+	DEBUG_GEM_UP,
+	DEBUG_GEM_DOWN,
+	
+	//armor
+	THICK_SHIRT(0, 3, ItemRarity.COMMON),
 	QUILTED_SHIRT(1, 5, ItemRarity.UNCOMMON),
-	SOFT_LEATHER_VEST(2, 6),
-	HARD_LEATHER_VEST(3, 7),
-	RING_MAIL(4, 15, ItemRarity.UNCOMMON),
-	LAMINAR_ARMOR(6, 18, ItemRarity.UNCOMMON),
-	SCALE_MAIL(10, 20, ItemRarity.UNCOMMON),
-	PLATE_MAIL(10, 20, ItemRarity.RARE),
-	KNIFE(0, 6),
-	DAGGER(0, 10),
-	CLUB(0, 5),
-	MACE(4, 12, ItemRarity.UNCOMMON),
-	SHORT_SWORD(3, 15, ItemRarity.UNCOMMON),
-	HAMMER(2, 8),
-	HEAVY_CLUB(5, 12, ItemRarity.UNCOMMON),
-	BUCKLER(2, 6),
-	SMALL_SHIELD(3, 8),
-	MEDIUM_SHIELD(3, 10, ItemRarity.UNCOMMON),
-	LARGE_SHIELD(6, 13, ItemRarity.UNCOMMON),
-	TOWER_SHIELD(8, 15, ItemRarity.RARE);
+	SOFT_LEATHER_VEST(3, 8, ItemRarity.COMMON),
+	HARD_LEATHER_VEST(5, 10, ItemRarity.COMMON),
+	RING_MAIL(8, 15, ItemRarity.UNCOMMON),
+	LAMINAR_ARMOR(12, 25, ItemRarity.UNCOMMON),
+	SCALE_MAIL(18, 35, ItemRarity.UNCOMMON),
+	PLATE_MAIL(25, 50, ItemRarity.RARE),
+	
+	//bladed weapons
+	KNIFE(0, 6, ItemRarity.COMMON),
+	AXE(3, 15, ItemRarity.COMMON),
+	SWORD(8, 20, ItemRarity.UNCOMMON),
+	
+	//blunt weapons
+	CLUB(0, 5, ItemRarity.COMMON),
+	HAMMER(2, 12, ItemRarity.COMMON),
+	HEAVY_CLUB(7, 18, ItemRarity.UNCOMMON),
+	
+	//shields
+	BUCKLER(2, 8, ItemRarity.COMMON),
+	SMALL_SHIELD(5, 12, ItemRarity.COMMON),
+	MEDIUM_SHIELD(8, 18, ItemRarity.UNCOMMON),
+	LARGE_SHIELD(10, 20, ItemRarity.UNCOMMON),
+	TOWER_SHIELD(15, 25, ItemRarity.RARE),
+	
+	//materials
+	MEDICINAL_FUNGUS(0, 100, ItemRarity.VERY_COMMON),
+	METAL_SHARD(0, 100, ItemRarity.COMMON),
+	
+	//magic items
+	HEALING_SALVE(0, 100, ItemRarity.RARE);
 	
 	private int minDepth;
 	private int maxDepth;
@@ -34,10 +57,10 @@ public enum ItemType
 		this(-1, -1, ItemRarity.COMMON);
 	}
 	
-	private ItemType(int minDepth, int maxDepth)
-	{
-		this(minDepth, maxDepth, ItemRarity.COMMON);
-	}
+//	private ItemType(int minDepth, int maxDepth)
+//	{
+//		this(minDepth, maxDepth, ItemRarity.COMMON);
+//	}
 	
 	private ItemType(int minDepth, int maxDepth, ItemRarity rarity)
 	{
@@ -59,5 +82,10 @@ public enum ItemType
 	public ItemRarity getRarity()
 	{
 		return rarity;
+	}
+	
+	public static ItemType fromString(String string)
+	{
+		return ItemType.valueOf(string.toUpperCase());
 	}
 }

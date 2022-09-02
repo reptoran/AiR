@@ -1,0 +1,75 @@
+intrinsic DR (for creatures like skeletons)
+healing potions
+poison, both inflicting and healing
+facing (last target)
+brief status effects (off-balance, etc.) - in fact, this could be what separates stronger and weaker creatures; not overt damage/hp, but ability to make the opponent vulnerable
+-more on this: player attributes (strength, etc.) wouldn't change damage or hitpoints, but rather give opportunities to stun, off-balance, inflict critical, and so on
+-these could be skills as well, like in runescape, and could be opposed rolls, like in crush
+-also, the player could have an attack style, and that would determine which opposed check gets made (stunning, critical hit, armor piercing, etc.)
+
+As the player goes deeper, monsters should become more dangerous in different ways.  Think that elf fighting Morgoth, or Gandalf fighting the Balrog - there's no way they just got lucky sword stabs in.  And how are you supposed to beat up an elemental or vortex? Those things should be true forces of nature that you can't just defeat by hitting them with a stick.
+Perhaps monsters could also work together - warriors engage, archers stay back, clerics buff.  That could be a source of difficulty from strategy, not strength; they'd be difficult until you figured out how to handle them.
+Monsters should also have weaknesses, prompting the player to explore different combat styles.  This shouldn't be to the MM "auto-kill with the right attack" level, but there should be plenty of situations where the player would have difficulties unless they use the correct approach.
+
+Perhaps in general, levels should be sparsely populated with monsters that are easy (enough) to kill and that respawn fairly often, but also contain harder monsters that can and should be avoided if the player chooses (hard hitters that move slowly, or powerful monsters that are sleeping, hibernating, or initially non-hostile - for the latter, think the dragons in Dragon Age 3).
+
+--
+
+Keeping in mind "Offer multiple sources of benefits" and "No 'required' items," monsters should generally be able to be killed by hitting them (even if it's ineffecient), and those that can't should have multiple ways of handling them.  While unkillable monsters (that is, ones with very specific weaknesses) should be rare, they should still exist, and the player needs to learn that sometimes you do just need to run.  Monsters like that should largely be slow, or perhaps be sleeping/hibernating upon first encounter? And perhaps their attacks could also be slow - you might see a glow on a group of tiles, then the next turn it intensifies, then the next it blasts for huge damage.
+
+Undead - strong against slash/piece weapons, normal against crush weapons, weak against dispel undead.
+Ogres/giants/etc. - strong attacks that stun or weaken enemies, but slow (half speed, maybe).
+	Though keep in mind that "hit, hit, step back, hit, hit, step back" isn't exactly engaging gameplay.
+
+--
+
+Opposed Checks:
+ Compare skills, adding 1D25 to each.  Then resolve the result as follows:
+  26 and up		High Success
+  16 to 25		Med Success
+  6 to 15		Low Success
+  -5 to 5		Neutral
+  -15 to -6		Low Failure
+  -25 to -16	Med Failure
+  below -26		High Failure
+ Above presumes skills are on a scale from 0-100, and may need tweaking.
+
+ 50 levels higher guarantees high success, 40 levels higher guarantees medium success, 30 levels higher guarantees low success.
+	50 + 1 = 51		40 + 1 = 41		30 + 1 = 31
+	0 + 25 = 25		0 + 25 = 25		0 + 25 = 25	
+ Same level rules out high success, 10 levels lower rules out medium success, 20 levels lower rules out low success.
+	1 + 25 = 26		1 + 25 = 26		1 + 25 = 26
+	1 + 0 = 1		11 + 0 = 11		21 + 0 = 21
+  
+When making an Aggressive attack, oppose Strength skills.
+  Neutral or below: no effect
+  Low Success: target is stunned (skip next turn)
+  Med Success: target is concussed ("paralyzed"; skip two turns)
+  High Success: target is concussed (as above) and free Combat check against target
+
+When making a Finesse attack, oppose Combat skills.
+  Neutral or below: no effect
+  Low Success: good hit (add extra side to damage dice)
+  Med Success: great hit (add extra die to damage dice)
+  High Success: critical hit (add extra die, extra side) and free Strength check against target
+  
+There are two nice side effects to this system.  First, certain monsters like Ogres could be brutally strong, which wouldn't increase their damage necessarily, but they'd be smacking weaker players around at melee range and making them skip combat turns; in other words, you need to change your gameplay style to account for this.  Second, monsters could have bonuses to defensive checks, so while they wouldn't necessarily be more successful at attacking, the player would have a harder time hitting status effects on them.
+
+Also, critical hits might be more than just increased damage; it might bypass armor instead.  This would be desirable for both increasing damage to the target and decreasing damage to the equipment that the player will (presumably) collect once killing the monster.  Similarly, the difference between sharp and blunt weapons (perhaps that's the duo, rather than the standard slash/crush/pierce) could be that blunt weapons deal big damage but are more likely to be absorbed by armor (and consequently often wrecking it before you can wear it), while sharp weapons would be more likely to bypass armor but don't do as much damage overall.  Put another way, a blunt weapon's remainder damage (after AR deduction) might not be more than a sharp weapon's pure damage (no AR deduction), but it might land that damage more frequently.
+ 4AC armor:
+  blunt - 2D5, 75% chance to be blocked by armor (average 1, 1, 1, 5 damage (8) to target; target's armor takes 12 damage)
+  sharp - 1D6, 50% chance to be blocked by armor (average 0, 0, 3, 3 damage (6) to target; target's armor takes 6 damage)
+Of course, natural DR like skeletons, etc. is not bypassable, because otherwise bladed weapons might be better.
+ 4DR actor:
+  blunt - 2D5, 100% chance to be blocked by DR (only 4 states don't damage - 1/1, 1/2, 2/1, 2/2, while 9 states do - 2/3, 3/2, 3/3, 3/4, 4/3, 4/4, 4/5, 5/4, 5/5; average 30 damage over 13 attacks, or ~14 over 6)
+  sharp - 1D6, 100% chance to be blocked by DR (4:6 chance of 0 damage, 1:6 of 1, 1:6 of 2; average 3 damage over 6 attacks)
+Also, maybe the difference is just that CR is doubled against blunt weapons?
+
+Assume blunt and sharp weapons have the same damage ranges, and the difference comes from their category, not their dice.  AC/DR could be half as effective against blunt weapons, but it would always block it (and maybe the armor would always take full damage equal to its AC as long as the weapon is dealing that much?).  On the other hand, AC/DR would have full effectiveness against bladed weapons, but the "slip-through" chance would be doubled (that is, against armor with 90% CR, a bladed weapon would have a 20% chance of ignoring it).  Then brutal weapons, the ones with a big hunk of metal on the end, can get an extra dice of damage AND get both those benefits - maybe they stagger the monster too, making them lose a turn.  (Perhaps that effect could also happen with brutal shields - "The foo's attack rebounds off your shield, staggering him!" - while armor would just absorb all damage of a single physical attack - "The blow catches on your armor.")
+-perhaps a boss could have a giant club with, say, six shards on it, and you need to deflect each of those attacks (or face serious damage) before "normal" combat starts.
+  
+Status Effects:
+ Stunned - take no action on your next turn (cannot stack - probably if the target's stun state is "none", it sets it to "prestun"; if the target's turn would come up while on prestun, it sets to "poststun" after the turn; if the target's turn would come up while on poststun, it sets to "none" after the turn)
+ Concussed - as above, but for two turns
+ Staggered - unable to move, change equipment, or attack (or probably cast spells); can still use items
+ Poisoned - At its most basic level, damages the player every X turns (ignoring armor, of course), but there are a couple of ways of altering severity.  The frequency could change, or the damage could change, or the duration could change, and perhaps different poisons require different treatments.  Also, poisons should keep track of what cures have been applied to them, so even if "cure minor poison" reduces the severity by one stage, you can't just use it five times to completely cure a potent toxin.  Finally, be very aware of introducing minutia here; there's no sense in forcing the player to carry a dozen different antitoxins "just in case."  Perhaps this can just be solved by limiting inventory size, though, forcing the player to make some tough decisions? Of course, there would need to be a bank or safe spot for this to work.  Also keep in mind that this is a "Stage 2" concern - the player shouldn't have to worry about poison and special damage types until later in the game (so don't give it to cave snakes at the top).

@@ -23,6 +23,12 @@ public class EmptyEquipmentImpl implements Equipment
 	}
 
 	@Override
+	public EquipmentSlotType getTypeOfSlot(int slotIndex)
+	{
+		return null;
+	}
+
+	@Override
 	public void equipItem(Item item, int slotIndex)
 	{
 		return;
@@ -56,6 +62,12 @@ public class EmptyEquipmentImpl implements Equipment
 	public List<EquipmentSlot> getEquipmentSlots()
 	{
 		return new ArrayList<EquipmentSlot>();
+	}
+	
+	@Override
+	public EquipmentSlot getEquipmentSlot(int slotIndex)
+	{
+		return null;
 	}
 
 	@Override

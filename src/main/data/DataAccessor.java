@@ -37,4 +37,9 @@ public class DataAccessor
 	{
 		return data.getCurrentZone();
 	}
+	
+	public DataSaveUtils getZoneCacheUtility()
+	{
+		return data.getZoneCacheUtility();
+	}
 }

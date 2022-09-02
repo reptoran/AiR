@@ -1,13 +1,116 @@
 [
    {
+      "tag":"ELDER_GOOD_LUCK",
+      "text":"It's the least I could do.  Good luck down there, and please, stay safe.",
+      "entry":false
+   },
+   {
+      "tag":"ELDER_INTRO",
+      "text":"Has the shadow clouded your mind? Surely you know your village elder?",
+      "entry":false
+   },
+   {
+      "tag":"ELDER_QUEST_FUNGUS_RATS",
+      "text":"Just one or two, I'm sure.  Nothing someone like you can't handle.",
+      "entry":false
+   },
+   {
+      "tag":"ELDER_QUEST_FUNGUS",
+      "text":"Actually, yes.  In the cellar beneath the village hall here, you can probably find some mushrooms with curative properties.  You're welcome to it, as well as anything else that catches your eye down there.  Just watch out for the rats...",
+      "entry":false,
+      "response":[
+         {
+            "text":"Thanks, I'll take a look."
+         },
+         {
+            "text":"Rats?",
+            "flowTo":"ELDER_QUEST_FUNGUS_RATS"
+         }
+      ]
+   },
+   {
+      "tag":"ELDER_RIFT",
+      "text":"It's incredibly dangerous, for one.  There will be plenty of wild animals who have made their homes near the surface.  And deeper? What little I've heard is that things only get worse the further you go.",
+      "entry":false,
+      "response":[
+         {
+            "text":"How can I keep myself safe?",
+            "flowTo":"ELDER_RIFT_SAFE"
+         }
+      ]
+   },
+   {
+      "tag":"ELDER_RIFT_SMITH",
+      "text":"I wouldn't rest down there; you're no healer, so while your injuries won't get worse, they probably won't get any better, either.  If you can find some medicinal fungus, your best bet is to apply that to your injuries.  Or, better yet, if you can bring some back to town, our physician can use it to make a potent healing salve.",
+      "entry":false,
+      "response":[
+         {
+            "text":"Anything else?",
+            "flowTo":"ELDER_RIFT_SHARDS"
+         }
+      ]
+   },
+   {
+      "tag":"ELDER_RIFT_SHARDS",
+      "text":"Hang onto whatever scraps of metal you find.  It shouldn't take too much ingenuity to attach one to your armor to give yourself a little extra protection against a single blow, or to stick one on your weapon to lend a bit more brutality to your next attack.",
+      "entry":false,
+      "response":[
+         {
+            "text":"Thank you.",
+            "flowTo":"ELDER_GOOD_LUCK"
+         }
+      ]
+   },
+   {
+      "tag":"ELDER_RIFT_PHYS",
+      "text":"You're our physician, so you should know how to treat your injuries if you stop and rest a little while.  You'll probably also come across some of the medicinal fungus you use to make your healing ointments.  The fungus can help minor injuries instantly, or you can craft it into a salve that will work just as quickly, but with more potency.",
+      "entry":false,
+      "response":[
+         {
+            "text":"Anything else?",
+            "flowTo":"ELDER_RIFT_SHARDS"
+         }
+      ]
+   },
+   {
+      "tag":"ELDER_RIFT_SAFE",
+      "text":"No matter how strong your equipment is, it won't stand up to the rigors of combat for very long, so be on the lookout for weapons and armor other unlucky adventurers have left behind.  Keep spare armaments readied; you don't want to be caught digging in your pack when an enemy attacks.  You'll do more damage holding two weapons, but you'll be safer with a shield.",
+      "entry":false,
+      "response":[
+         {
+            "text":"What if I get hurt?",
+            "flowTo":"ELDER_RIFT_PHYS",
+            "reqs":[
+               {
+                  "ACTOR_TYPE":"=PC_PHYSICIAN"
+               }
+            ],
+            "triggers":[
+               {
+                  "ACTIVATE_QUEST":"FUNGUS"
+               }
+            ]
+         },
+         {
+            "text":"What if I get hurt?",
+            "flowTo":"ELDER_RIFT_SMITH",
+            "reqs":[
+               {
+                  "ACTOR_TYPE":"!PC_PHYSICIAN"
+               }
+            ],
+            "triggers":[
+               {
+                  "ACTIVATE_QUEST":"FUNGUS"
+               }
+            ]
+         }
+      ]
+   },
+   {
       "tag":"ELDER_DEFAULT",
       "text":"Hello, adventurer.",
-	  "entry":true,
-      "reqs":[
-         {
-            "ACTOR_TYPE":"!PC_PHYSICIAN"
-         }
-      ],
+      "entry":true,
       "response":[
          {
             "text":"Who are you?",
@@ -15,56 +118,32 @@
          },
          {
             "text":"Hello."
-         }
-      ]
-   },
-   {
-      "tag":"ELDER_INTRO",
-      "text":"Has the shadow clouded your mind? Surely you know your village elder?"
-   },
-   {
-      "tag":"ELDER1",
-      "text":"Good afternoon, Physician.",
-	  "entry":true,
-      "reqs":[
-         {
-            "ACTOR_TYPE":"=PC_PHYSICIAN"
-         }
-      ],
-      "response":[
-         {
-            "text":"Good afternoon."
          },
          {
-            "text":"What's new?",
-            "flowTo":"ELDER2"
-         },
-         {
-            "text":"I'm hurt.",
-            "flowTo":"ELDER3",
+            "text":"What can you tell me about the rift?",
+            "flowTo":"ELDER_RIFT",
             "reqs":[
                {
-                  "HP_PERCENT":"<100"
+                  "QUEST_NOT_STARTED":"=FUNGUS"
                }
             ]
-         }
-      ]
-   },
-   {
-      "tag":"ELDER2",
-      "text":"Things are as bad as usual, I'm afraid.",
-      "response":[
+         },
          {
-            "text":"Sorry to hear that."
-         }
-      ]
-   },
-   {
-      "tag":"ELDER3",
-      "text":"Why are you telling me? You're the physician!",
-      "response":[
-         {
-            "text":"Ah, right.  I'll dig out some bandages, then."
+            "text":"Do you know where I can find some medicinal fungus?",
+            "flowTo":"ELDER_QUEST_FUNGUS",
+            "reqs":[
+               {
+                  "QUEST_NODE_ACTIVE":"=FUNGUS|START"
+               }
+            ],
+            "triggers":[
+               {
+                  "SET_QUEST_NODE_STATUS":"FUNGUS|START:COMPLETE"
+               },
+               {
+                  "DISCOVER_QUEST":"FUNGUS"
+               }
+            ]
          }
       ]
    }

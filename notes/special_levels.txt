@@ -1,0 +1,279 @@
+Special levels for "demo" version:
+ Ogre Lair (6-11, items/quest)
+ Outpost (8-13, town/quest)
+ Abandoned Mine (4-9, treasure)
+ TBD
+ 
+Level Roles:
+ Vault - Catch-all term for a level that can be bypassed if desired, but offers powerful items if the player is willing to confront powerful monsters.
+ Quest - Offers player advancement by NPCs that provide tasks in exchange for rewards (including experience).
+ Town - A (normally) friendly level that offers the player permanent aid in some of the following ways:
+  -item source/disposal (shops)
+  -item repair
+  -item storage
+  -health restoration
+  -story/xp source (quests)
+
+Ancient Temple (Pukel-deeps):
+"You pass through a tight opening into a crumbled and ruined enclave.  Some
+collapse must have exposed it to the rest of the cave system."
+################################################################################
+#.....#######..%%%..%%###....%.##..##..%%%%###%#################################
+#..*...######.%.<...........%...##...%....%.....%###############################
+#.......#####...##%...#%%.%........%##%.#.>####%.######............##.?.########
+#.........#########.%.##%%.###%%################.######............##...########
+#..*..*.....#######..%##%..*###%#####......####...#####..#......#..###.#########
+#............######%..###..####..###........###.?.###.......**.........####...##
+#..............#########*..*####..#...####...##...###.#.....**.....###..##.....#
+#..*..*..*..*.....##*#*##..######....##  ##..########.#..#......#..####.....#..#
+#..........................*#######..#    #...........#.....__.....#######.....#
+#..........................*#######..#    #...........#.....__.....#######.....#
+#..*..*..*..*.....##*#*##..######....##  ##..########.#..#......#..####.....#..#
+#..............#########*..*####..#...####...########.#.....**.....###..##.....#
+#............######...###..####..###........###...###.......**.........####...##
+#..*..*.....#######.?.##*..*###.#####......####.?.#####..#......#..###.#########
+#.........#########...###..####.###############...#####............##...########
+#.......#####...####.###*..*###.################.######............##.?.########
+#..*...######.?..................................###############################
+#.....#######...################################################################
+################################################################################
+
+Features:
+ far left is the courtyard, checkered with statues
+ next is the grand hallway, lined with statues/idols
+ center top is a cave-in, with rubble and corridors up and down (rubble could be impassible but wouldn't block sight)
+ central ring is the sacred chamber (MEBA pukel-deeps card)
+ large room at right is the sacrificial gallery - altar, statues
+ far right has chambers of relics (perhaps artifacts), and a secondary gallery
+ 
+Role:
+This would be a "treasure" special level: aid is provided by way of powerful items available, if you're willing to fight through the denizens that have made their homes there (probably slightly out of depth monsters, but nothing particularly special).
+ 
+--
+
+Abandoned Mine:
+"Your descent brings you to a wide corridor, with a worn track of wood and metal
+disappearing into blackness.  An empty cart sits abandoned on the rails."
+###################***##################################
+###################***#######..###+++++++++++++++....###
+###################.**######...###+###########........##
+###..........######*+.#####...####+############......###
+#######.........###.+++++++++++++++####...########....##
+##..............###.+.##.....#####+###.....#######..####
+#................##.+.##......####+#####....######..####
+####..+++++....####.+.###...######+..##....#############
+####.."........####.+.############+......###############
+##....+........####.+.############+....#################
+###...+......######.+.######...###+#################.###
+##....+.......#####.+.#####..#....+###########.......###
+#####.+....########.+.##########..+#######+++++"....####
+######+############.+.############+#######+###.....#####
+##   #+############.+.############+#######+##########.<#
+.    .+.............+.............+.......+............#
++++ >+++++++++++++++++++++++++++++++++++++++++++++"++.##
+...    ...............................................##
+########################################################
+
+Features:
+A rail track (with some carts) winds through the mines, terminating at a collapsed floor (the track is broken and disappears into darkness, but the track provides a way to descend to the caverns below).  Several parts are mined out.
+
+Role:
+Out-of-depth monsters (perhaps the "dlev modifier" can be defined in the zone file) populate the mine.  Several out-of-depth items also exist, including maybe one very special item or artifact.
+Additionally, there could be some ores or gold here, which might otherwise be hard to find.  (Gold should be especially rare in this game.)
+
+--
+ 
+The Outpost:
+"You enter a rough-looking camp of rough-looking humans.  They're armed but seem
+unthreatening, acknowledging your presence with weary eyes."
+#########################################################
+#=#####.....#############################&&&.&&&.&&&..###
+##====...........<###################....&.&.&.&.&.&....#
+#####===...........######..###########................###
+#####..==.....##########....#######........&.&.&.&...####
+######..=.......########....#######........&&&.&&&......#
+###..======...........###..######...................#####
+#....=====...................#########..#######......####
+#...............................######.#######...2....###
+###.......................#####........########.......###
+####..#####.....%%%.%%%.....#########.##########..~~..###
+###....#####....%.....%....##########.###################
+###....#######..%..1..%..############..##################
+####...########.%.....%...############..#################
+#################....##################.........>########
+#########################################################
+
+Level: 8-13
+
+Features:
+ Most of the "buildings" are just natural hollows in the cave, but the blacksmith shop (with the blacksmith - "1") is surrounded by constructed walls, as it's a specialized location for specialized needs.
+ To the left is the "town" part of the outpost; to the right is the living quarters (with "%" representing animal hide tents).  "~" is a banner in the HQ.
+ There is a subterranean river leading to a small pool on the left side ("=").
+
+Population:
+ 1 Weaponsmith (to be distinct from the one on the surface)
+ 2 Leader (better title)
+ ? cook/mess hall/hunter person - maybe supply him with corpses/meat?
+ ? priest or medic, but of course now this is no different from the main town (though it does offer overlap; that is, a physician would be able to use the services of the medic)
+
+Role:
+This is basically the next "home base" for the player.  It doesn't have all the amenities of the surface, but there's likely a blacksmith, and they'll probably compensate the player for bringing in certain equipment (maybe in gold, maybe some other way?).  The main NPC would assign quests regarding lairs and other "evil" special levels the player has encountered; they likely will have no interest in historically significant levels.
+
+Quests:
+1) Only one survivor returned from the latest scouting expedition, ranting about "the dead."  The player needs to track down the survivor, then the location he fled from, and find a way to defeat the undead there.  If he can recover the badges of the fallen scouts, so much the better.
+-survivor probably says their swords and spears didn't stop the undead, and wonders if a crushing weapon could take them apart? maybe also some anti-shadow element to break the undead "curse"
+ 
+--
+ 
+Ogre Lair (Under-galleries):
+"The passage takes you to a series of foul-smelling caverns, much more regular
+and structured than the ones before.  Several large forms stir in the distance."
+################################################################################
+#################.......###############################...##########.....#######
+################.........#############################.....########.......######
+#################.......############...################...########.........#####
+##################x################.....##########.........................#####
+##################o###############.......########..####...########.........#####
+#######................###########.......#######..####.....########.......######
+#####....................#########.......#######.######...##########.....#######
+####......................#########.....########.#####################.#########
+###........................#########...#########.#####################.#########
+###........................##########.#########..#####################.#########
+##..........................#########.########..##########...#########.#########
+##.............................................##########..>.............#######
+##..........................#########.########..##########...###########.#######
+###........................##########.#########..##########.##########.....#####
+###........................#########...#########.##########.#########.......####
+####......................#########..<..########.##########.####............####
+#####....................###########...#########..#########.###..####.......####
+#######................##############.###########...............######.....#####
+################################################################################
+
+Level: 6-11
+
+Features:
+ TBD
+ Most of the "buildings" are just natural hollows in the cave, but the blacksmith shop (with the blacksmith - "1") is surrounded by constructed walls, as it's a specialized location for specialized needs.
+ To the left is the "town" part of the outpost; to the right is the living quarters (with "%" representing animal hide tents).  "~" is a banner in the HQ.
+ There is a subterranean river leading to a small pool on the left side ("=").
+
+Population:
+ TBD
+ 1 Weaponsmith (to be distinct from the one on the surface)
+ 2 Leader (better title)
+ ? cook/mess hall/hunter person - maybe supply him with corpses/meat?
+ ? priest or medic, but of course now this is no different from the main town (though it does offer overlap; that is, a physician would be able to use the services of the medic)
+
+Role:
+The ogres (probably some other sentient creature, actually) have taken up residence in the ruins of an ancient burrow or dwelling.  The player finds an adventurer/archaeologist there who was trying to find the origin of the labyrinth, and discovered the remains of some ancient culture.  The scholar also indicates that if the player leaves any items in her room, they should be safe (sort of like a bank).
+
+Quests:
+1) Clear out the ogres and find out what the village elder knows about ancient cultures.
+2) ???
+
+--
+ 
+Den of Undeath:
+"You emerge into a series of tight corridors, littered with bodies and reeking
+of death.  The air feels strange, and you resist the urge to rub your skin."
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+###################################
+
+Level: 14-19
+
+Features:
+ This is a "vertical" level, with winding passages and a couple of smaller hollows where undead can be found.  In an alcove off to the side (avoidable if just going from stairs to stairs) is the boss.
+
+Population:
+ There should be a number of undead, and a handful of wights (who may require special treatment to destroy).  There could also be a "boss" monster, perhaps a revenant, that is absent until the player receives the quest to slay it.  Perhaps there should be a number of corpses that return the message "you find nothing that interests you" until the outpost leader asks you to recover their badges, in which case searching the corpses offers those.
+
+Role:
+This is possibly the player's first exposure to undead, and perhaps how they find out the best way to deal with it.  Discovering this level enables a quest from the outpost, where the player is tasked with finding out what wiped out the scouting party.
+
+Quests:
+TBD
+
+--
+ 
+Mushroom Forest (Under-leas):
+"The corridor expands into a vast region teeming with bioluminescence.  A moldy
+smell permeates the air, and swirling breezes disturb the undergrowth."
+-perhaps many components for potions here
+ 
+ 
+====
+ 
+Templates:
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+#..............................................................................#
+################################################################################

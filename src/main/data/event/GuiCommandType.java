@@ -1,0 +1,21 @@
+package main.data.event;
+
+public enum GuiCommandType
+{
+	MOVE,
+	SAVE,
+	EXIT,
+	PICKUP,
+	DROP,
+	EQUIP,
+	UNEQUIP,
+	USE,
+	UPGRADE,
+	REPAIR,
+	CHAT,
+	RECIPE,
+	REPEAT,
+	CHANGE_ZONE_DOWN,
+	CHANGE_ZONE_UP,
+	DEACTIVATE_REPEAT_AI;
+}

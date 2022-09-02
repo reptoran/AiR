@@ -1,6 +1,6 @@
 package main.presentation.chateditor;
 
-import main.entity.chat.ChatReqType;
+import main.entity.requirement.RequirementType;
 
 public class ReqFieldPopulator extends AbstractFieldPopulator
 {
@@ -16,7 +16,7 @@ public class ReqFieldPopulator extends AbstractFieldPopulator
 		return instance;
 	}
 	
-	public void updateFields(ChatReqType requirementType)
+	public void updateFields(RequirementType requirementType)
 	{
 		if (requirementType == null)
 		{
@@ -47,6 +47,26 @@ public class ReqFieldPopulator extends AbstractFieldPopulator
 			addItemValues();
 			addIntOperators();
 			clearComparisons();
+			break;
+		case PLAYER_ENTERS_ZONE:
+			disableModifiers();
+			disableValues();
+			addStringOperators();
+			addZoneNameComparisons();
+			break;
+		case QUEST_NODE_ACTIVE:
+			disableModifiers();
+			disableValues();
+			enableComparisons();
+			addStringOperators();
+			addQuestNodeComparisons();
+			break;
+		case QUEST_NOT_STARTED:
+			disableModifiers();
+			disableValues();
+			enableComparisons();
+			addExactOperator();
+			addQuestComparisons();
 			break;
 		default:
 			break;

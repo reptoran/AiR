@@ -128,11 +128,12 @@ public class Feature extends FieldCoord
 		return toRet;
 	}
 
+	@SuppressWarnings("incomplete-switch")
 	@Override
 	protected void setMember(SaveStringBuilder ssb, SaveTokenTag saveTokenTag)
 	{
 		String contents = getContentsForTag(ssb, saveTokenTag);
-		SaveToken saveToken = null;
+		int intContents = getIntContentsForTag(ssb, saveTokenTag);
 		
 		if (contents.equals("")) return;
 		
@@ -146,48 +147,39 @@ public class Feature extends FieldCoord
 				break;
 				
 			case C_NAM:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.name = saveToken.getContents();
+				this.name = contents;
 				break;
 				
 			case C_ICO:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.icon = saveToken.getContents().charAt(0);
+				this.icon = contents.charAt(0);
 				break;
 			
 			case C_CLR:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.color = Integer.parseInt(saveToken.getContents());
+				this.color = intContents;
 				break;
 			
 			case F_CHP:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.curHP = Integer.parseInt(saveToken.getContents());
+				this.curHP = intContents;
 				break;
 			
 			case F_MHP:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.maxHP = Integer.parseInt(saveToken.getContents());
+				this.maxHP = intContents;
 				break;
 			
 			case C_OST:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.obstructsSight = Boolean.parseBoolean(saveToken.getContents());
+				this.obstructsSight = Boolean.parseBoolean(contents);
 				break;
 			
 			case C_OMV:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.obstructsMotion = Boolean.parseBoolean(saveToken.getContents());
+				this.obstructsMotion = Boolean.parseBoolean(contents);
 				break;
 			
 			case C_MOV:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.moveCostModifier = Double.parseDouble(saveToken.getContents());
+				this.moveCostModifier = Double.parseDouble(contents);
 				break;
 				
 			case C_BLK:
-				saveToken = ssb.getToken(saveTokenTag);
-				this.blockedMessage = saveToken.getContents();
+				this.blockedMessage = contents;
 				break;
 				
 			default:

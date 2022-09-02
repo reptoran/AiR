@@ -1,34 +1,104 @@
 package main.entity.zone.generator;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+import main.data.SaveableDataManager;
 import main.data.SpecialLevelManager;
 import main.entity.zone.Zone;
 import main.entity.zone.ZoneType;
 import main.entity.zone.generator.dungeon.CaveGenerator;
+import main.entity.zone.generator.dungeon.ClassicGenerator;
+import main.entity.zone.generator.dungeon.RiftsGenerator;
 import main.logic.RPGlib;
 import main.presentation.Logger;
 
-public class LabyrinthGenerator extends AbstractLinearZoneSystemGenerator
+public class LabyrinthGenerator extends AbstractLinearZoneSystemGenerator implements SaveableDataManager
 {
-	private static int generatedLevels = 0;
-	private static int specialLevels = 0;
-	private static int levelsSinceLastSpecial = 0;
-	
-	private static final int BOTTOM_LEVEL = 15;
 	private static final String DELIMITER = ";";
+	private static final int NO_CURRENT_BAND = -1;
+	private static final int MAX_BANDS = 30;
 	
-	public static String saveState()
+	private int generatedLevels = 0;
+	private boolean lastLevelMissedSpecialChance = false;
+	
+	private List<String> specialLevels = new ArrayList<String>();
+	private boolean[] specialLevelGenerated = new boolean[MAX_BANDS];
+	
+	private static LabyrinthGenerator instance = null;
+	
+	private LabyrinthGenerator()
 	{
-		return generatedLevels + DELIMITER + specialLevels + DELIMITER + levelsSinceLastSpecial;
+		for (int i = 0; i < MAX_BANDS; i++)
+		{
+			List<String> potentialSpecialLevels = SpecialLevelManager.getInstance().getSpecialZonesForBand(i);
+			
+			if (potentialSpecialLevels.isEmpty())
+			{
+				specialLevels.add(null);
+				continue;
+			}
+			
+			String selectedSpecialLevelFileName = potentialSpecialLevels.get(RPGlib.randInt(0, potentialSpecialLevels.size() - 1));
+			specialLevels.add(selectedSpecialLevelFileName);
+			specialLevelGenerated[i] = false;
+		}
 	}
 	
-	public static void loadState(String saveString)
+	public static LabyrinthGenerator getInstance()
 	{
-		int firstDelimiterIndex = saveString.indexOf(DELIMITER.charAt(0));
-		int lastDelimiterIndex = saveString.lastIndexOf(DELIMITER.charAt(0));
+		if (instance == null)
+			instance = new LabyrinthGenerator();
 		
-		generatedLevels = Integer.parseInt(saveString.substring(0, firstDelimiterIndex));
-		specialLevels = Integer.parseInt(saveString.substring(firstDelimiterIndex + 1, lastDelimiterIndex));
-		levelsSinceLastSpecial = Integer.parseInt(saveString.substring(lastDelimiterIndex + 1));
+		return instance;
+	}
+	
+	@Override
+	public String saveState()
+	{
+		String hasSpecialLevelBeenGeneratedForBandString = "";
+		
+		for (int i = 0; i < MAX_BANDS; i++)
+			hasSpecialLevelBeenGeneratedForBandString = hasSpecialLevelBeenGeneratedForBandString + specialLevelGenerated[i] + DELIMITER;
+		
+		String saveString = hasSpecialLevelBeenGeneratedForBandString + generatedLevels + DELIMITER;
+		
+		for (String zoneFileName : specialLevels)
+		{
+			saveString = saveString + zoneFileName + DELIMITER;
+		}
+		
+		return saveString.substring(0, saveString.length() - 1);
+	}
+	
+	@Override
+	public void loadState(String saveString)
+	{
+		specialLevels.clear();
+		
+		@SuppressWarnings("resource")
+		Scanner scanner = new Scanner(saveString).useDelimiter(DELIMITER);
+		
+		for (int i = 0; i < MAX_BANDS; i++)
+		{
+			String value = scanner.next();
+			specialLevelGenerated[i] = Boolean.parseBoolean(value);
+		}
+		
+		generatedLevels = Integer.parseInt(scanner.next());
+		
+		while (scanner.hasNext())
+		{
+			String zoneFileName = scanner.next();
+			
+			if (zoneFileName.equals("null"))
+				specialLevels.add(null);
+			else
+				specialLevels.add(zoneFileName);
+		}
+		
+		scanner.close();
 	}
 	
 	@Override
@@ -38,21 +108,23 @@ public class LabyrinthGenerator extends AbstractLinearZoneSystemGenerator
 		
 		if (specialLevelShouldBeGenerated())
 		{
-			generatedZone = SpecialLevelManager.getInstance().generateSpecialLevel(generatedLevels);
+			int currentBand = getCurrentBand();
+			
+			generatedZone = SpecialLevelManager.getInstance().generateSpecialLevel(specialLevels.get(currentBand));
 			
 			if (generatedZone != null)
 			{
-				specialLevels++;
-				levelsSinceLastSpecial = 0;
 				generatedZone.setDepth(generatedLevels);
 				Logger.debug("Special level generated!");
+				specialLevelGenerated[currentBand] = true;
 			}
 		}
 		
 		if (generatedZone == null)
 		{
-			levelsSinceLastSpecial++;
-			generatedZone = new CaveGenerator().generate(zoneKey.getId(), HEIGHT, WIDTH, generatedLevels, true, false);
+//			generatedZone = new CaveGenerator().generate(zoneKey.getId(), HEIGHT, WIDTH, generatedLevels, true, false);
+//			generatedZone = new RiftsGenerator().generate(zoneKey.getId(), HEIGHT, WIDTH, generatedLevels, true, false);
+			generatedZone = new ClassicGenerator().generate(zoneKey.getId(), HEIGHT, WIDTH, generatedLevels, true, false);
 		}
 		
 		Logger.debug("just generated zone for level " + generatedLevels);
@@ -62,17 +134,48 @@ public class LabyrinthGenerator extends AbstractLinearZoneSystemGenerator
 	
 	private boolean specialLevelShouldBeGenerated()
 	{
-		if (generatedLevels == 0 || generatedLevels == BOTTOM_LEVEL)
-			return true;
+		int currentBand = getCurrentBand();
 		
-		int specialLevelChance = 10 * (-5 - specialLevels + levelsSinceLastSpecial);
+		if (currentBand == NO_CURRENT_BAND)
+		{
+			lastLevelMissedSpecialChance = false;
+			return false;
+		}
 		
-		Logger.debug("Attempting to generate special level; chance is " + specialLevelChance + ".");
-		
-		if (specialLevelChance <= 0)
+		if (specialLevelGenerated[currentBand])
 			return false;
 		
-		return (RPGlib.randInt(1, 100) <= specialLevelChance);
+		if (RPGlib.randInt(1, 2) == 1 || lastLevelMissedSpecialChance || currentBand == 0 || currentBand == 30)
+		{
+			lastLevelMissedSpecialChance = false;
+			return true;
+		}
+		
+		lastLevelMissedSpecialChance = true;
+		return false;
+	}
+	
+	private int getCurrentBand()
+	{
+		if (generatedLevels == 0)
+			return 0;
+		
+		if (generatedLevels < 3)
+			return NO_CURRENT_BAND;
+		
+		if (generatedLevels % 10 == 0)
+			return (generatedLevels - 1) / 3;
+		
+		if ((generatedLevels - 1) % 10 == 0)
+			return (generatedLevels - 2) / 3;
+		
+		if (generatedLevels % 3 == 0)
+			return generatedLevels / 3;
+		
+		if ((generatedLevels - 1) % 3 == 0)
+			return (generatedLevels - 1) / 3;
+		
+		return NO_CURRENT_BAND;
 	}
 
 	@Override

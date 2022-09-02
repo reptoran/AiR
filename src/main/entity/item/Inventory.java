@@ -17,7 +17,7 @@ public class Inventory implements Collection<Item>
 	private ItemComparator comparator = new ItemComparator();
 	private Map<Integer, Integer> filteredIndexes = null;
 
-	private int maxBulk = 12;
+	public static final int MAX_BULK = 12;
 
 	@Override
 	public boolean add(Item itemToAdd)
@@ -166,18 +166,16 @@ public class Inventory implements Collection<Item>
 		return bulk;
 	}
 
-	public void setMaxBulk(int maxBulk)
-	{
-		this.maxBulk = maxBulk;
-	}
-
 	public int getMaxBulk()
 	{
-		return maxBulk;
+		return MAX_BULK;
 	}
 
 	public boolean hasSpaceForItem(Item item)
 	{
+		if (item == null)
+			return false;
+		
 		return (getBulk() + item.getBulk() <= getMaxBulk());
 	}
 

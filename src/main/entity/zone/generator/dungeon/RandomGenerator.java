@@ -14,11 +14,15 @@ import main.presentation.Logger;
 
 public abstract class RandomGenerator
 {
+	protected char[][] map;
+	protected int mapHeight = -1;
+	protected int mapWidth = -1;
+	
 	public Zone generate(String name, int height, int width, int depth, boolean shouldPersist, boolean canEnterWorld)
 	{
 		Zone zone = new Zone(getZoneType(), name, height, width, depth, shouldPersist, canEnterWorld);
 		
-		char[][] mapTiles = generateCharMap(height, width);
+		map = generateCharMap(height, width);
 
 		for (int i = 0; i < height; i++)
 		{
@@ -28,7 +32,7 @@ public abstract class RandomGenerator
 
 				try {
 				
-				switch (mapTiles[i][j])
+				switch (map[i][j])
 				{
 				case '#':
 					newTile.setFeatureHere(FeatureFactory.generateNewFeature(FeatureType.WALL));
@@ -53,6 +57,19 @@ public abstract class RandomGenerator
 		}
 		
 		return zone;
+	}
+	
+	public void printDungeonMap()
+	{
+		for (int i = 0; i < mapHeight; i++)
+		{
+			for (int j = 0; j < mapWidth; j++)
+			{
+				System.out.print(map[i][j]);
+			}
+			
+			System.out.println();
+		}
 	}
 	
 	public abstract char[][] generateCharMap(int height, int width);

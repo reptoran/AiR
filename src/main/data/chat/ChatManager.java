@@ -8,13 +8,12 @@ import java.util.Map;
 import main.data.Data;
 import main.entity.actor.ActorType;
 import main.entity.chat.Chat;
-import main.entity.chat.ChatReq;
-import main.entity.chat.ChatReqType;
 import main.entity.chat.ChatResponse;
-import main.entity.chat.CompareOperator;
+import main.entity.requirement.Requirement;
+import main.logic.requirement.RequirementTester;
 import main.presentation.Logger;
 
-public class ChatManager
+public class ChatManager extends RequirementTester
 {
 	private Map<ActorType, List<Chat>> chats = new HashMap<ActorType, List<Chat>>();
 	private Map<String, Chat> chatsByTag = new HashMap<String, Chat>();
@@ -194,51 +193,20 @@ public class ChatManager
 		return filterChatResponsesByRequirement(validInitialChats.get(0));
 	}
 	
-	private boolean requirementsMet(List<ChatReq> requirements)
+	private boolean requirementsMet(List<Requirement> requirements)
 	{	
-		for (ChatReq requirement : requirements)
+		for (Requirement requirement : requirements)
 		{
-			try
-			{
-				validateRequirement(requirement);
-			} catch (ValidationException e)
-			{
+			if (!validateRequirement(requirement))
 				return false;
-			}	
 		}
 		
 		return true;
 	}
 	
-	private void validateRequirement(ChatReq requirement) throws ValidationException
+	@Override
+	protected Data getData()
 	{
-		ChatReqType reqType = requirement.getType();
-		CompareOperator operator = requirement.getOperator();
-		String modifier = requirement.getModifier();
-		String value = requirement.getValue();
-		String requiredValue = requirement.getComparison();
-		
-		String valueToCheck = "";
-		
-		switch (reqType)
-		{
-		case ACTOR_TYPE:
-			valueToCheck = data.getPlayer().getType().name();
-			break;
-		case HP_PERCENT:
-			valueToCheck = String.valueOf(data.getPlayer().getHpPercent());
-			break;
-		case ACTOR_HAS_ITEM:
-			valueToCheck = RequirementValidator.getInstance().getValueToCheckForActorHasItem(modifier, value);
-			break;
-		default:
-			return;
-		}
-		
-		if (!RequirementValidator.getInstance().checkRequirement(operator, requiredValue, valueToCheck))
-			throw new ValidationException();
+		return data;
 	}
-
-	@SuppressWarnings("serial")
-	private class ValidationException extends Exception {}
 }

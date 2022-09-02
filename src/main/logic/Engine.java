@@ -2,40 +2,41 @@ package main.logic;
 
 import java.awt.Point;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import main.data.Data;
 import main.data.chat.ChatManager;
 import main.data.event.ActorCommand;
-import main.data.event.ActorCommandType;
 import main.data.event.EventObserver;
+import main.data.event.GuiCommandType;
 import main.data.event.InternalEvent;
 import main.data.event.InternalEventType;
 import main.data.event.environment.ActorTurnEvent;
+import main.data.event.environment.ConsumeInventoryItemEvent;
+import main.data.event.environment.CreateItemEvent;
 import main.data.event.environment.EnvironmentEvent;
 import main.data.event.environment.EnvironmentEventQueue;
 import main.data.event.environment.EnvironmentEventType;
+import main.data.event.environment.EventInterruptionManager;
+import main.data.event.environment.InterruptibleTurnEvent;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorTraitType;
 import main.entity.feature.Feature;
 import main.entity.item.InventorySelectionKey;
 import main.entity.item.Item;
+import main.entity.item.ItemFactory;
 import main.entity.item.ItemSource;
+import main.entity.item.ItemType;
 import main.entity.item.ItemUsageEventGenerator;
 import main.entity.item.equipment.EquipmentSlotType;
+import main.entity.item.recipe.Recipe;
+import main.entity.item.recipe.RecipeManager;
+import main.entity.quest.QuestManager;
 import main.entity.tile.Tile;
 import main.entity.world.Overworld;
 import main.entity.zone.Zone;
 import main.logic.AI.ActorAI;
 import main.logic.AI.AiType;
-import main.logic.AI.CoalignedAI;
-import main.logic.AI.MeleeAI;
-import main.logic.AI.MoveRandomAI;
-import main.logic.AI.ZombieAI;
 import main.presentation.Logger;
 import main.presentation.UiManager;
 import main.presentation.message.FormattedMessageBuilder;
@@ -49,8 +50,6 @@ public class Engine
 	private Data gameData; // remember that the presentation layer can't see this; it can only see what the logic layer provides
 	private List<EventObserver> eventObservers;
 
-	private Map<AiType, ActorAI> gameAIs;
-
 	private boolean acceptInput = false;
 	
 	@SuppressWarnings("unused")
@@ -58,29 +57,20 @@ public class Engine
 
 	public Engine(Data data)
 	{
-		loadAIs();
-		
 		turnIndex = 0;
 		gameData = data;
 		MessageGenerator.getInstance().setEngine(this);
 		
 		eventObservers = new ArrayList<EventObserver>();
+		eventObservers.add(EventInterruptionManager.getInstance());
 		eventObservers.add(MessageGenerator.getInstance());		//this MUST be before data, so it can act on the current state before Data changes it (for example, with item pickups)
 		eventObservers.add(data);
+		eventObservers.add(QuestManager.getInstance());			//and this must be after data, so the things actually happen before the quest manager checks for it
 	}
 	
 	public boolean addEventObserver(EventObserver observer)
 	{
 		return eventObservers.add(observer);
-	}
-
-	private void loadAIs()
-	{
-		gameAIs = new HashMap<AiType, ActorAI>();
-		gameAIs.put(AiType.RAND_MOVE, new MoveRandomAI());
-		gameAIs.put(AiType.COALIGNED, new CoalignedAI());
-		gameAIs.put(AiType.ZOMBIE, new ZombieAI());
-		gameAIs.put(AiType.MELEE, new MeleeAI());
 	}
 
 	public void beginGame()
@@ -124,7 +114,7 @@ public class Engine
 		return gameData.getTarget();
 	}
 	
-	public String getPromptForCommandType(ActorCommandType commandType)
+	public String getPromptForCommandType(GuiCommandType commandType)
 	{
 		String description;
 		
@@ -136,6 +126,9 @@ public class Engine
 		case USE:
 			description = "Use an item.  ";
 			break;
+		case REPEAT:
+			description = "Rest/Run.  ";
+			break;
 			//$CASES-OMITTED$
 		default:
 			description = "";
@@ -145,13 +138,13 @@ public class Engine
 		return description + "Which direction?";
 	}
 
-	public Direction determineDirectionOfCommand(ActorCommandType commandType)
+	public Direction determineDirectionOfCommand(GuiCommandType commandType)
 	{
 		Zone currentZone = gameData.getCurrentZone();
 		Actor player = gameData.getPlayer();
 		Point playerLocation = currentZone.getCoordsOfActor(player);
 		
-		if (commandType == ActorCommandType.CHAT)
+		if (commandType == GuiCommandType.CHAT)
 		{
 			List<Actor> potentialTargets = gameData.getAdjacentActors(playerLocation);
 			
@@ -176,6 +169,14 @@ public class Engine
 		acceptInput = true;
 	}
 	
+	private void sendEventToObservers(EnvironmentEvent event)
+	{
+		for (InternalEvent iEvent : event.trigger())
+		{
+			sendEventToObservers(iEvent);
+		}
+	}
+	
 	private void sendEventToObservers(InternalEvent event)
 	{
 		for (EventObserver observer : eventObservers)
@@ -196,7 +197,7 @@ public class Engine
 		}
 		
 		//must be separate logic because otherwise the event never gets put back in the queue to be saved
-		if (command.getType() == ActorCommandType.SAVE)
+		if (command.getType() == GuiCommandType.SAVE)
 		{
 			sendEventToObservers(InternalEvent.saveInternalEvent());
 			return;
@@ -211,8 +212,7 @@ public class Engine
 		if (actorIndex == -1)
 			throw new IllegalStateException("localEvents contained an actor not in zone");
 		
-		int eventDuration = executeActorCommandAndReturnEventDuration(actorIndex, command);
-		turnEvent.recur(eventDuration);	//this re-adds the event to the queue 
+		executeActorCommand(actorIndex, command, turnEvent, localEvents);
 		
 		runEnvironmentEvents();
 		refreshPlayerFov(playerActor);
@@ -264,10 +264,12 @@ public class Engine
 				throw new IllegalStateException("localEvents contained an actor not in zone");
 			
 			AiType aiType = curActor.getAI();
-			ActorAI curAI = gameAIs.get(aiType);
+			ActorAI curAI = gameData.getAI(aiType);
 			ActorCommand command = curAI.getNextCommand(gameData.getCurrentZone(), curActor);
-			int eventDuration = executeActorCommandAndReturnEventDuration(actorIndex, command);
-			turnEvent.recur(eventDuration);	//this re-adds the event to the queue 
+			executeActorCommand(actorIndex, command, turnEvent, localEvents);
+			
+			if (curActor.getAI() == AiType.REPEAT_LAST_MOVE)
+				refreshPlayerFov(curActor);
 		}
 	}
 
@@ -275,7 +277,7 @@ public class Engine
 	// Note that strings are fine here, because this only deals with actors moving
 	// I'll need a different method for in-game effects that aren't actor-driven
 	// Remember, this doesn't modify data, but rather sends change requests to the data layer
-	private int executeActorCommandAndReturnEventDuration(int actorIndex, ActorCommand command)
+	private void executeActorCommand(int actorIndex, ActorCommand command, ActorTurnEvent currentTurnEvent, EnvironmentEventQueue eventQueue)
 	{
 		InternalEvent event = null;
 		Direction direction = null;
@@ -287,7 +289,9 @@ public class Engine
 		{
 		case MOVE:
 			directionString = command.getArgument1();
-			return handleDirectionAndReturnEventDuration(actorIndex, Direction.fromString(directionString));
+			int moveCost = handleDirectionAndReturnEventDuration(actorIndex, Direction.fromString(directionString));
+			currentTurnEvent.recur(moveCost);
+			return;
 		case SAVE:
 			event = InternalEvent.saveInternalEvent();
 			break;
@@ -315,31 +319,58 @@ public class Engine
 			direction = Direction.fromString(command.getArgument2());
 			event = useItem(actorIndex, originalInventorySlot, direction);
 			break;
+		case UPGRADE:
+			originalInventorySlot = InventorySelectionKey.fromKey(command.getArgument1());
+			targetInventorySlot = InventorySelectionKey.fromKey(command.getArgument2());
+			event = upgradeItem(actorIndex, originalInventorySlot, targetInventorySlot);
+			break;
 		case CHAT:
 			event = chatWithActor(actorIndex, Direction.fromString(command.getArgument1()));
 			break;
+		case RECIPE:
+			event = craftRecipe(actorIndex, RecipeManager.getInstance().getRecipeForItem(ItemType.fromString(command.getArgument1())));
+			break;
+		case REPAIR:
+			event = repairItem(actorIndex, command);
+			break;
+		case REPEAT:
+			event = InternalEvent.setActorAiToRepeatDirectionInternalEvent(actorIndex, Direction.fromString(command.getArgument1()));
+			break;
+		case DEACTIVATE_REPEAT_AI:
+			event = InternalEvent.changeActorAiInternalEvent(actorIndex, AiType.HUMAN_CONTROLLED);
+			break;
 		//$CASES-OMITTED$
 		default:
+			Logger.warn("Engine has no logic for ActorCommand with type " + command.getType() + ".");
 			break;
 		}
 		
-		if ((command.getType() == ActorCommandType.CHANGE_ZONE_UP || command.getType() == ActorCommandType.CHANGE_ZONE_DOWN) && canTransitionToNewZone(actorIndex))
+		if ((command.getType() == GuiCommandType.CHANGE_ZONE_UP || command.getType() == GuiCommandType.CHANGE_ZONE_DOWN) && canTransitionToNewZone(actorIndex))
 		{
 			event = InternalEvent.transitionZoneInternalEvent(actorIndex);
-		} else if (command.getType() == ActorCommandType.CHANGE_ZONE_UP && !gameData.isWorldTravel() && gameData.getCurrentZone().canEnterWorld())
+		} else if (command.getType() == GuiCommandType.CHANGE_ZONE_UP && !gameData.isWorldTravel() && gameData.getCurrentZone().canEnterWorld())
 		{
 			event = InternalEvent.enterWorldInternalEvent(actorIndex);
-		} else if (command.getType() == ActorCommandType.CHANGE_ZONE_DOWN && gameData.isWorldTravel())
+		} else if (command.getType() == GuiCommandType.CHANGE_ZONE_DOWN && gameData.isWorldTravel())
 		{
 			event = InternalEvent.enterLocalInternalEvent(actorIndex);
 		}
-		
+				
 		if (event == null)
-			return 0;
+		{
+			currentTurnEvent.recur(0);
+			return;
+		}
+		
+		if (event.isInterruptible())
+		{
+			eventQueue.add(new InterruptibleTurnEvent(event, eventQueue, currentTurnEvent));
+			return;
+		}
 		
 		sendEventToObservers(event);
 		
-		return event.getActionCost();
+		currentTurnEvent.recur(event.getActionCost());
 	}
 
 	private InternalEvent pickupItem(int actorIndex)
@@ -359,19 +390,38 @@ public class Engine
 			MessageBuffer.addMessageIfHuman("There's no room in your pouch for " + item.getNameOnGround() + ".", actor.getAI());
 			return null;
 		}
-		else if (!actor.getStoredItems().hasSpaceForItem(item))
+		else if (!actor.hasSpaceForItem(item))
 		{
-			MessageBuffer.addMessageIfHuman("There's no room in your pack for " + item.getNameOnGround() + ".", actor.getAI());
+			MessageBuffer.addMessageIfHuman("You have no room for " + item.getNameOnGround() + ".", actor.getAI());
 			return null;
 		}
 		
-		//TODO: different messages for equipping, readying, storing based on equipment state
+		InternalEvent event = null;
 		
-		InternalEvent event = InternalEvent.pickupInternalEvent(actorIndex);
+		if (item.getInventorySlot().equals(EquipmentSlotType.ARMAMENT) && actor.getReadiedItems().hasEmptySlotAvailable(EquipmentSlotType.ARMAMENT))
+		{
+			event = InternalEvent.pickupInternalEvent(actorIndex, ItemSource.READY);
+			event.setActionCost(actor.getMovementCost());
+		}
+		else if (item.getBulk() > 1)
+		{
+			event = InternalEvent.pickupInternalEvent(actorIndex);
+			event.setActionCost(actor.getMovementCost() * item.getBulk());
+			event.setInterruptible(true);
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the start%1s to put an item into @1his pack.").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		}
+		else
+		{
+			event = InternalEvent.pickupInternalEvent(actorIndex);
+			event.setActionCost(actor.getMovementCost());
+		}
 		
-		//TODO: remove the message here once I've verified it works consistently
-//		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the pick%1s up " + item.getNameOnGround() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
 		return event;
+	}
+	
+	private Item getItemFromSource(Actor actor, InventorySelectionKey source)
+	{
+		return getItemFromSource(actor, source.getItemSource(), source.getItemIndex());
 	}
 	
 	private Item getItemFromSource(Actor actor, ItemSource source, int itemIndex)
@@ -386,8 +436,10 @@ public class Engine
 			return actor.getEquipment().getItem(itemIndex);
 		case MAGIC:
 			return actor.getMagicItems().getItem(itemIndex);
-		case GROUND:
 		case READY:
+			return actor.getReadiedItems().getItem(itemIndex);
+		case GROUND:
+			//$CASES-OMITTED$
 		default:
 			throw new IllegalArgumentException("No drop message behavior defined for item source " + source);
 		}
@@ -399,10 +451,35 @@ public class Engine
 		ItemSource source = key.getItemSource();
 		int itemIndex = key.getItemIndex();
 		Item item = getItemFromSource(actor, source, itemIndex);
-		 
-		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the drop%1s " + item.getNameInPack() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
 		
-		return InternalEvent.dropInternalEvent(actorIndex, source, itemIndex);
+		InternalEvent event = InternalEvent.dropInternalEvent(actorIndex, key);
+		
+		//held armaments (weapons, shields) can be dropped instantly
+		if (source == ItemSource.EQUIPMENT && item.getInventorySlot() == EquipmentSlotType.ARMAMENT)
+		{
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the drop%1s " + item.getNameOnGround() + " @1he @1was holding.").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+			return event;
+		}
+		
+		if (source == ItemSource.READY)
+		{
+			event.setActionCost(actor.getMovementCost());
+			return event;
+		}
+		
+		if (item.getBulk() > 0)
+			event.setActionCost(actor.getMovementCost() * item.getBulk());
+		
+		if (item.getBulk() > 1)
+			event.setInterruptible(true);
+		
+		if (source == ItemSource.EQUIPMENT)
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the start%1s to remove a piece of equipment.").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		
+		if (source == ItemSource.PACK)
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the dig%1s into @1his pack.").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		
+		return event;
 	}
 
 	private InternalEvent useItem(int actorIndex, InventorySelectionKey itemSlot, Direction direction)
@@ -415,13 +492,16 @@ public class Engine
 		Point origin = gameData.getCurrentZone().getCoordsOfActor(actor);
 		Point destination = getPointInDirection(origin, direction);
 		
-		useItemOnTile(actor, itemToUse, gameData.getCurrentZone().getTile(destination));
+		boolean usedItemSuccessfully = useItemOnTile(actor, itemToUse, gameData.getCurrentZone().getTile(destination));
+		
+		if (!usedItemSuccessfully)
+			return null;
 		
 		return InternalEvent.waitInternalEvent(gameData.getActorIndex(actor), actor.getMovementCost());	//effects of using should be instantaneous, but actor still needs to wait until his next turn afterward
 																										//actor index is refreshed because it may have been updated after using the item
 	}
 	
-	private void useItemOnTile(Actor actor, Item itemToUse, Tile targetTile)
+	private boolean useItemOnTile(Actor actor, Item itemToUse, Tile targetTile)
 	{
 		Item targetItem = targetTile.getItemHere();
 		Feature targetFeature = targetTile.getFeatureHere();
@@ -452,9 +532,12 @@ public class Engine
 		}
 		
 		if (eventsToTrigger.isEmpty())
+		{
 			MessageBuffer.addMessageIfHuman("You don't know how to use that item that way.", actor.getAI());
-		else
-			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the use%1s " + itemToUse.getName() + " on " + targetString + ".").setSource(actor).setTarget(targetActor).format());	//TODO: set visibility
+			return false;
+		}
+		
+		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the use%1s " + itemToUse.getName() + " on " + targetString + ".").setSource(actor).setTarget(targetActor).format());	//TODO: set visibility
 		
 		for (EnvironmentEvent event : eventsToTrigger)
 		{
@@ -463,16 +546,114 @@ public class Engine
 				sendEventToObservers(iEvent);
 			}
 		}
+		
+		return true;
+	}
+	
+	private InternalEvent upgradeItem(int actorIndex, InventorySelectionKey baseItemSlot, InventorySelectionKey enhancingItemSlot)
+	{
+		Actor actor = gameData.getActor(actorIndex);
+		Item itemToUpgrade = getItemFromSource(actor, baseItemSlot);
+		Item enhancingItem = getItemFromSource(actor, enhancingItemSlot);
+		
+		if (itemToUpgrade == null)
+		{
+			Logger.warn("Attempting to upgrade a null item!");
+			return null;
+		}
+		
+		if (enhancingItem == null)
+		{
+			Logger.warn("Attempting to upgrade with a null item!");
+			return null;
+		}
+		
+		if (itemToUpgrade.isUpgraded())
+		{
+			MessageBuffer.addMessageIfHuman("That item is already upgraded.", actor.getAI());
+			return null;
+		}
+		
+		ItemType enhancingItemType = enhancingItem.getType();
+		
+		if (itemToUpgrade.getUpgradedBy() != enhancingItemType)
+		{
+			MessageBuffer.addMessageIfHuman("You can't upgrade that item with that material.", actor.getAI());
+			return null;
+		}
+		
+		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the enhance%1s @1his " + itemToUpgrade.getName() + " with a " + enhancingItem.getName() + ".").setSource(actor).format());	//TODO: set visibility
+		
+		sendEventToObservers(new ConsumeInventoryItemEvent(actor, enhancingItem, 1, null));
+		sendEventToObservers(InternalEvent.upgradeWeaponInternalEvent(actorIndex, baseItemSlot));
+		
+		return InternalEvent.waitInternalEvent(actorIndex, actor.getMovementCost());
 	}
 	
 	private InternalEvent equipItem(int actorIndex, InventorySelectionKey originalInventorySlot, InventorySelectionKey targetInventorySlot)
 	{
-		return InternalEvent.equipInternalEvent(actorIndex, originalInventorySlot, targetInventorySlot);
+		InternalEvent event = InternalEvent.equipInternalEvent(actorIndex, originalInventorySlot, targetInventorySlot);
+		Actor actor = gameData.getActor(actorIndex);
+		
+		Tile tile = getCurrentZone().getTile(actor);
+		Item item = tile.getItemHere();
+		
+		if (originalInventorySlot.getItemSource() != ItemSource.GROUND)
+			item = actor.getItem(originalInventorySlot.getItemSource(), originalInventorySlot.getItemIndex());
+		
+		//scooping up an armament from the ground to wield is free to do
+		if (originalInventorySlot.getItemSource() == ItemSource.GROUND && targetInventorySlot.getItemSource() == ItemSource.EQUIPMENT && item.getInventorySlot() == EquipmentSlotType.ARMAMENT)
+		{
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the snatch%1e%1s up " + item.getNameOnGround() + " from the ground and wield%1s it.").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+			return event;
+		}
+		//moving between equipment and ready still takes time but is uninterruptible
+		else if ((originalInventorySlot.getItemSource() == ItemSource.READY && targetInventorySlot.getItemSource() == ItemSource.EQUIPMENT) ||
+				(originalInventorySlot.getItemSource() == ItemSource.EQUIPMENT && targetInventorySlot.getItemSource() == ItemSource.READY))
+		{
+			event.setActionCost(actor.getMovementCost());
+		}
+		else if (item.getBulk() > 0)	//note that this excludes magic items and materials
+		{
+			event.setActionCost(actor.getMovementCost() * item.getBulk());
+			
+			if (item.getBulk() > 1)
+				event.setInterruptible(true);
+			
+			if (originalInventorySlot.getItemSource() == ItemSource.PACK)
+				MessageBuffer.addMessage(new FormattedMessageBuilder("@1the dig%1s into @1his pack for an item.").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+			if (originalInventorySlot.getItemSource() == ItemSource.GROUND)
+				MessageBuffer.addMessage(new FormattedMessageBuilder("@1the begin%1s to pick up an item.").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		}
+		
+		return event;
 	}
 	
 	private InternalEvent unequipItem(int actorIndex, InventorySelectionKey originalInventorySlot, InventorySelectionKey targetInventorySlot)
 	{
-		return InternalEvent.unequipInternalEvent(actorIndex, originalInventorySlot, targetInventorySlot);
+		InternalEvent event = InternalEvent.unequipInternalEvent(actorIndex, originalInventorySlot, targetInventorySlot);
+		Actor actor = gameData.getActor(actorIndex);
+		
+		Tile tile = getCurrentZone().getTile(actor);
+		Item item = tile.getItemHere();
+		
+		if (targetInventorySlot.getItemSource() == ItemSource.READY)
+		{
+			event.setActionCost(actor.getMovementCost());
+			return event;
+		}
+		
+		if (originalInventorySlot.getItemSource() != ItemSource.GROUND)
+			item = actor.getItem(originalInventorySlot.getItemSource(), originalInventorySlot.getItemIndex());
+		
+		if (item.getBulk() > 1)
+		{
+			event.setActionCost(actor.getMovementCost() * item.getBulk());
+			event.setInterruptible(true);
+			MessageBuffer.addMessage(new FormattedMessageBuilder("@1the start%1s to remove a piece of equipment.").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		}
+		
+		return event;
 	}
 	
 	private InternalEvent chatWithActor(int actorIndex, Direction direction)
@@ -495,6 +676,46 @@ public class Engine
 		}
 		
 		return InternalEvent.chatInternalEvent(actorIndex, targetIndex);
+	}
+	
+	private InternalEvent craftRecipe(int actorIndex, Recipe recipe)
+	{
+		Actor actor = gameData.getActor(actorIndex);
+		
+		if (!recipe.sufficientSkills(actor))
+		{
+			MessageBuffer.addMessageIfHuman("Your skill is not high enough to craft this item.", actor.getAI());
+			return null;
+		}
+		
+		if (!recipe.sufficientComponents(actor))
+		{
+			MessageBuffer.addMessageIfHuman("Your don't have the necessary components to craft this item.", actor.getAI());
+			return null;
+		}
+		
+		for (ItemType component : recipe.getComponents().keySet())
+		{
+			int quantity = recipe.getComponents().get(component);
+			sendEventToObservers(new ConsumeInventoryItemEvent(actor, ItemFactory.generateNewItem(component), quantity, gameData.getEventQueue()));
+		}
+		
+		sendEventToObservers(new CreateItemEvent(actor, recipe.getResultingItem(), 1, gameData.getEventQueue()));
+		
+		Item createdItem = ItemFactory.generateNewItem(recipe.getResultingItem());
+		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the craft%1s a " + createdItem.getName() + ".").setSource(actor).format());	//TODO: set visibility
+		
+		return InternalEvent.waitInternalEvent(actorIndex, actor.getMovementCost());	//effects of crafting should be instantaneous, but actor still needs to wait until his next turn afterward
+																						//TODO: not necessarily true; some items might take a while to make, and the crafting should be able to be interrupted 
+	}
+	
+	private InternalEvent repairItem(int actorIndex, ActorCommand command)
+	{
+		InventorySelectionKey itemKey = InventorySelectionKey.fromKey(command.getArgument1());
+		Actor actor = gameData.getActor(actorIndex);
+		Item item = actor.getItem(itemKey);
+		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the repair%1s " + item.getNameOnGround() + ".").setSource(actor).setSourceVisibility(canPlayerSeeActor(actor)).format());
+		return InternalEvent.changeInventoryItemHpInternalEvent(actorIndex, itemKey, Integer.valueOf(command.getArgument2()));
 	}
 	
 	private Point getPointInDirection(Point origin, Direction direction)
@@ -582,7 +803,7 @@ public class Engine
 		{
 			if (targetActor == actor)
 				return InternalEvent.waitInternalEvent(actorIndex, actor.getMovementCost());
-			else if (actor.isPlayer() && targetActor.getAI().equals(AiType.COALIGNED))
+			else if (actor.isPlayer() && targetActor.getAI().chatDefault())
 				return chatWithActor(actorIndex, direction);
 			
 			return InternalEvent.attackInternalEvent(actorIndex, gameData.getActorIndex(targetActor), -1, actor.getMovementCost());
@@ -643,15 +864,22 @@ public class Engine
 		boolean canSeeSource = canPlayerSeeActor(attacker);
 		boolean canSeeTarget = canPlayerSeeActor(defender);
 		
-		ItemDestructionMessageStorer messageStorer = new ItemDestructionMessageStorer();
+		AttackDetails attackDetails = new AttackDetails();
 		
-		int damageToDefender = calculateAttackAndReturnDamageToDefender(attacker, defender, attackingWeapon, canSeeSource, canSeeTarget, messageStorer);
+		int damageToDefender = calculateAttackAndReturnDamageToDefender(attacker, defender, attackingWeapon, canSeeSource, canSeeTarget, attackDetails);
 		String attackMessage = "";
-		String armorDestroyedMessage = messageStorer.getArmorDestroyedMessage();
-		String weaponDestroyedMessage = messageStorer.getWeaponDestroyedMessage();
+		String armorDestroyedMessage = attackDetails.getArmorDestroyedMessage();
+		String weaponDestroyedMessage = attackDetails.getWeaponDestroyedMessage();
+		Item armor = attackDetails.getArmorThatAbsorbedAttack();
 		
 		//TODO: right now an action cost of 0 is being set on the event because it's not used anyway - a constant duration is returned regardless of attack count
-		if (damageToDefender < 0)
+		if (armor != null && armor.isUpgraded())
+		{
+			attackMessage = "@1thes attack glances off a makeshift plate on @2thes armor, sending it flying.";
+			sendEventToObservers(InternalEvent.waitInternalEvent(gameData.getActorIndex(attacker), 0));
+			sendEventToObservers(InternalEvent.downgradeItemInternalEvent(gameData.getActorIndex(defender), new InventorySelectionKey(ItemSource.EQUIPMENT, defender.getIndexOfEquippedItem(armor))));
+		}
+		else if (damageToDefender < 0)
 		{
 			attackMessage = "@2the deflect%2s @1thes attack.";
 			sendEventToObservers(InternalEvent.waitInternalEvent(gameData.getActorIndex(attacker), 0));
@@ -660,6 +888,12 @@ public class Engine
 		{
 			attackMessage = "@1the fail%1s to hurt @2the.";
 			sendEventToObservers(InternalEvent.waitInternalEvent(gameData.getActorIndex(attacker), 0));
+		}
+		else if (attackingWeapon.isUpgraded())
+		{
+			attackMessage = "@1the deliver%1s a brutal blow to @2the.";
+			sendEventToObservers(InternalEvent.attackInternalEvent(gameData.getActorIndex(attacker), gameData.getActorIndex(defender), damageToDefender, 0));
+			sendEventToObservers(InternalEvent.downgradeItemInternalEvent(gameData.getActorIndex(attacker), new InventorySelectionKey(ItemSource.EQUIPMENT, attacker.getIndexOfEquippedItem(attackingWeapon))));
 		}
 		else
 		{
@@ -713,14 +947,14 @@ public class Engine
 	//		attack of 3 against armor with 2/4 AR deals 3 to armor and 1 to defender
 	//		attack of 4 against armor with 2/4 AR deals 4 to armor and 2 to defender
 	//		attack of 5 against armor with 2/4 AR deals 4 to armor and 3 to defender
-	private int calculateAttackAndReturnDamageToDefender(Actor attacker, Actor defender, Item weapon, boolean canSeeSource, boolean canSeeTarget, ItemDestructionMessageStorer messageStorer)
+	private int calculateAttackAndReturnDamageToDefender(Actor attacker, Actor defender, Item weapon, boolean canSeeSource, boolean canSeeTarget, AttackDetails attackDetails)
 	{
 		boolean attackDeflected = false;
 		String damageString = weapon.getDamage();
 		Item shield = getShield(defender);
 		Item armor;
 		
-		if (shield != null)
+		if (shield != null)		//TODO: at present, shields ALWAYS block all damage, making them an armor upgrade on steroids
 		{
 			attackDeflected = true;
 			armor = shield;
@@ -729,6 +963,8 @@ public class Engine
 		{
 			armor = getArmorForAttackedBodyPart(defender);
 		}
+		
+		attackDetails.setArmorThatAbsorbedAttack(armor);
 				
 		int rawDamage = RPGlib.roll(damageString);
 		int damageToArmor = 0;
@@ -749,10 +985,10 @@ public class Engine
 //		damageToArmor -= armor.getDR();
 		damageToArmor -= getItemDR(armor, defender);
 		
-		if (damageToArmor < 0)
+		if (damageToArmor < 0 || armor.isUpgraded())
 			damageToArmor = 0;
 		
-		if (damageToWeapon < 0)
+		if (damageToWeapon < 0 || weapon.isUpgraded())
 			damageToWeapon = 0;
 		
 		if (damageToArmor > armor.getCurHp())
@@ -766,34 +1002,38 @@ public class Engine
 		
 		if (damageToArmor > 0)
 		{
-			sendEventToObservers(InternalEvent.changeHeldItemHpInternalEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), damageToArmor * -1));
+			sendEventToObservers(InternalEvent.changeInventoryItemHpInternalEvent(gameData.getActorIndex(defender), new InventorySelectionKey(ItemSource.EQUIPMENT, defender.getIndexOfEquippedItem(armor)), damageToArmor * -1));
 			
-//			boolean armorDestroyed = (damageToArmor == armor.getCurHp() ? true : false);
 			boolean armorDestroyed = (armor.getCurHp() <= 0 ? true : false);
 			
 			if (armorDestroyed)
+			{
 				sendEventToObservers(InternalEvent.deleteHeldItemInternalEvent(gameData.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), 1));
+				sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.METAL_SHARD, gameData.getCurrentZone().getCoordsOfActor(defender), 1));
+			}
 			
 			String effect = getDescriptionOfCondition(armorDestroyed, armor.getConditionModifer(), armorConditionBeforeAttack);
 			
 			if (effect != null)
-				messageStorer.setArmorDestroyedMessage(new FormattedMessageBuilder("@2his " + armor.getName() + " is " + effect).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+				attackDetails.setArmorDestroyedMessage(new FormattedMessageBuilder("@2his " + armor.getName() + " is " + effect).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
 		}
 		
 		if (damageToWeapon > 0)
 		{
-			sendEventToObservers(InternalEvent.changeHeldItemHpInternalEvent(gameData.getActorIndex(attacker), attacker.getIndexOfEquippedItem(weapon), damageToWeapon * -1));
+			sendEventToObservers(InternalEvent.changeInventoryItemHpInternalEvent(gameData.getActorIndex(attacker), new InventorySelectionKey(ItemSource.EQUIPMENT, attacker.getIndexOfEquippedItem(weapon)), damageToWeapon * -1));
 			
-//			boolean weaponDestroyed = (damageToWeapon == weapon.getCurHp() ? true : false);
 			boolean weaponDestroyed = (weapon.getCurHp() <= 0 ? true : false);
 			
 			if (weaponDestroyed)
+			{
 				sendEventToObservers(InternalEvent.deleteHeldItemInternalEvent(gameData.getActorIndex(attacker), attacker.getIndexOfEquippedItem(weapon), 1));
+				sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.METAL_SHARD, gameData.getCurrentZone().getCoordsOfActor(attacker), 1));
+			}
 			
 			String effect = getDescriptionOfCondition(weaponDestroyed, weapon.getConditionModifer(), weaponConditionBeforeAttack);
 			
 			if (effect != null)
-				messageStorer.setWeaponDestroyedMessage(new FormattedMessageBuilder("@1his " + weapon.getName() + " is " + effect).setSource(attacker).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
+				attackDetails.setWeaponDestroyedMessage(new FormattedMessageBuilder("@1his " + weapon.getName() + " is " + effect).setSource(attacker).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
 		}
 		
 		if (attackDeflected)
@@ -828,12 +1068,13 @@ public class Engine
 		return null;
 	}
 	
-	private class ItemDestructionMessageStorer
+	private class AttackDetails
 	{
 		private String armorDestroyedMessage = null;
 		private String weaponDestroyedMessage = null;
+		private Item armorThatAbsorbedAttack = null;
 		
-		public ItemDestructionMessageStorer() {}
+		public AttackDetails() {}
 
 		public String getArmorDestroyedMessage()
 		{
@@ -853,6 +1094,16 @@ public class Engine
 		public void setWeaponDestroyedMessage(String weaponDestroyedMessage)
 		{
 			this.weaponDestroyedMessage = weaponDestroyedMessage;
+		}
+		
+		public Item getArmorThatAbsorbedAttack()
+		{
+			return armorThatAbsorbedAttack;
+		}
+		
+		public void setArmorThatAbsorbedAttack(Item armor)
+		{
+			armorThatAbsorbedAttack = armor;
 		}
 	}
 }

@@ -13,9 +13,16 @@ public class MessageBuffer
 	
 	private static StringBuffer messageBuffer = new StringBuffer();
 	
+	private static MessageRecorder messageRecorder = new ConsoleOutputRecorder();
+	
 	public static void reset()
 	{
 		messageBuffer.delete(0, messageBuffer.capacity());
+	}
+	
+	public static boolean hasMessages()
+	{
+		return messageBuffer.length() != 0;
 	}
 	
 	public static void addMessage(String message)
@@ -66,10 +73,13 @@ public class MessageBuffer
 				}
 				
 				messageLines.add(currentLine);
+				messageRecorder.recordMessageLine(currentLine);
 				
 				//if the NEWLINE string is detected, pull it out instead of adding it to the next line
-				if (NEWLINE.equals(toAdd))
+				if (NEWLINE.equals(toAdd)) {
 					currentLine = "";
+					messageLines.add("");
+				}
 				else
 					currentLine = toAdd + " ";
 			}
@@ -81,7 +91,10 @@ public class MessageBuffer
 		
 		
 		if (currentLine.length() > 0)
+		{
+			messageRecorder.recordMessageLine(currentLine);
 			messageLines.add(currentLine);
+		}
 		
 		splitter.close();
 		reset();

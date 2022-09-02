@@ -3,15 +3,14 @@ package main.presentation.curses;
 import java.util.List;
 
 import main.presentation.Logger;
-import main.presentation.curses.terminal.CursesTerminal;
 
 public abstract class AbstractCursesGuiListInput extends ColorSchemeCursesGuiUtil
 {
 	private int elementCount = 0;
 
-	protected AbstractCursesGuiListInput(CursesTerminal csi, ColorScheme colorScheme)
+	protected AbstractCursesGuiListInput(ColorScheme colorScheme)
 	{
-		super(csi, colorScheme);
+		super(colorScheme);
 	}
 	
 	protected void printList(List<String> elements)
@@ -21,10 +20,8 @@ public abstract class AbstractCursesGuiListInput extends ColorSchemeCursesGuiUti
 		for (String element : elements)
 		{
 			elementCount++;
-			terminal.print(1, elementCount, (char)(96 + elementCount) + element, COLOR_LIGHT_GREY);
+			addText(elementCount, 1, (char)(96 + elementCount) + element, getTextColor());
 		}
-		
-		terminal.refresh();
 	}
 	
 	protected int getElementCount()

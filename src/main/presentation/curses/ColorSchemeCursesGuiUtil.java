@@ -1,14 +1,11 @@
 package main.presentation.curses;
 
-import main.presentation.curses.terminal.CursesTerminal;
-
-public abstract class ColorSchemeCursesGuiUtil extends CursesGuiUtil
+public abstract class ColorSchemeCursesGuiUtil extends CursesGuiScreen
 {
 	private ColorScheme colorScheme;
 	
-	public ColorSchemeCursesGuiUtil(CursesTerminal csi, ColorScheme colorScheme)
+	public ColorSchemeCursesGuiUtil(ColorScheme colorScheme)
 	{
-		super(csi);
 		this.colorScheme = colorScheme;
 	}
 	

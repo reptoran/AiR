@@ -69,6 +69,7 @@ public class FormattedMessageBuilder
 			formattedMessage = formattedMessage.replace("@1him", formatHim(source));
 			formattedMessage = formattedMessage.replace("@1his", formatHis(source));
 			formattedMessage = formattedMessage.replace("@1is", formatIs(source));
+			formattedMessage = formattedMessage.replace("@1was", formatWas(source));
 			formattedMessage = formattedMessage.replace("@1", formatName(source));
 		}
 		
@@ -85,6 +86,7 @@ public class FormattedMessageBuilder
 			formattedMessage = formattedMessage.replace("@2him", formatHim(target));
 			formattedMessage = formattedMessage.replace("@2his", formatHis(target));
 			formattedMessage = formattedMessage.replace("@2is", formatIs(target));
+			formattedMessage = formattedMessage.replace("@2was", formatWas(target));
 			formattedMessage = formattedMessage.replace("@2", formatName(target));
 		}
 			
@@ -106,16 +108,32 @@ public class FormattedMessageBuilder
 			String textToReplace = formattedText.substring(startIndex, startIndex + 3);
 			char letter = textToReplace.charAt(2);
 			char actor = textToReplace.charAt(1);
-			String formattedLetter = "";
+			String formattedString = "";
 			
-			if (actor == '1')
-				formattedLetter = formatLetter(letter, source);
-			else if (actor == '2')
-				formattedLetter = formatLetter(letter, target);
+			if (letter == '[')
+			{
+				int endIndex = formattedText.indexOf(']', startIndex);
+				textToReplace = formattedText.substring(startIndex, endIndex + 1);
+				
+				if (actor == '1')
+					formattedString = formatSequence(textToReplace, source);
+				else if (actor == '2')
+					formattedString = formatSequence(textToReplace, target);
+				else
+					break;
+			}
 			else
-				break;
+			{
+				if (actor == '1')
+					formattedString = formatLetter(letter, source);
+				else if (actor == '2')
+					formattedString = formatLetter(letter, target);
+				else
+					break;
+			}
 			
-			formattedText = formattedText.replace(textToReplace, formattedLetter);
+			
+			formattedText = formattedText.replace(textToReplace, formattedString);
 		}
 		
 		return formattedText;
@@ -127,6 +145,18 @@ public class FormattedMessageBuilder
 			return "";
 		
 		return "" + letter;
+	}
+	
+	private String formatSequence(String sequence, Actor actor)
+	{
+		int dividerIndex = sequence.indexOf('|');
+		String playerSequence = sequence.substring(3, dividerIndex);
+		String defaultSequence = sequence.substring(dividerIndex + 1, sequence.length() - 1);
+		
+		if (actor.getGender() == GenderType.PLAYER)
+			return playerSequence;
+		
+		return defaultSequence;
 	}
 
 	private String formatPossessive(Actor actor)
@@ -225,6 +255,14 @@ public class FormattedMessageBuilder
 			return "are";
 		
 		return "is";
+	}
+	
+	private String formatWas(Actor actor)
+	{
+		if (actor.getGender() == GenderType.PLAYER)
+			return "were";
+		
+		return "was";
 	}
 	
 	private String formatName(Actor actor)

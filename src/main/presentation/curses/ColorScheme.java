@@ -10,14 +10,20 @@ public class ColorScheme
 
 	public static ColorScheme woodenScheme()
 	{
-		return new ColorScheme(CursesGuiUtil.COLOR_BROWN, CursesGuiUtil.COLOR_YELLOW, CursesGuiUtil.COLOR_LIGHT_GREY,
-				CursesGuiUtil.COLOR_DARK_GREY, CursesGuiUtil.COLOR_WHITE);
+		return new ColorScheme(CursesGuiScreen.COLOR_BROWN, CursesGuiScreen.COLOR_YELLOW, CursesGuiScreen.COLOR_LIGHT_GREY,
+				CursesGuiScreen.COLOR_DARK_GREY, CursesGuiScreen.COLOR_WHITE);
+	}
+
+	public static ColorScheme specialWoodenScheme()
+	{
+		return new ColorScheme(CursesGuiScreen.COLOR_DARK_MAGENTA, CursesGuiScreen.COLOR_YELLOW, CursesGuiScreen.COLOR_LIGHT_GREY,
+				CursesGuiScreen.COLOR_DARK_GREY, CursesGuiScreen.COLOR_WHITE);
 	}
 
 	public static ColorScheme monochromeScheme()
 	{
-		return new ColorScheme(CursesGuiUtil.COLOR_LIGHT_GREY, CursesGuiUtil.COLOR_LIGHT_GREY, CursesGuiUtil.COLOR_LIGHT_GREY,
-				CursesGuiUtil.COLOR_LIGHT_GREY, CursesGuiUtil.COLOR_LIGHT_GREY);
+		return new ColorScheme(CursesGuiScreen.COLOR_LIGHT_GREY, CursesGuiScreen.COLOR_LIGHT_GREY, CursesGuiScreen.COLOR_LIGHT_GREY,
+				CursesGuiScreen.COLOR_LIGHT_GREY, CursesGuiScreen.COLOR_LIGHT_GREY);
 	}
 
 	private ColorScheme(int borderColor, int titleColor, int textColor, int shadeColor, int highlightColor)

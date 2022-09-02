@@ -1,0 +1,47 @@
+elemental - fire, earth, water, air, nature
+shadow
+runecrafting?
+illusion - use trinkets, devices, etc. for invisibility, confusion, phase door, and other circus magic things
+alchemy - scientific use of materials/chemicals to make potions (bombs, poison, rusting, light, heat)
+divine - cultish, as gods have been forgotten; based on piety and following particular rules to get better spells
+mysticism - stat boosts, resistances, telepathy
+druidic - camoflage, calm animal, healing, food creation, poison, etc.
+
+Definitely like Runescape, different magic categories should offer different abilities the other ones simply don't have.
+Many (most? all?) spells should use components, which are stored in the inventory section as materials.
+
+Potions:
+-Require a certain skill level and certain ingredients to create, but can be used by anyone.  Falls into alchemy and druidic categories.
+-Tend to act on a personal level; must be ingested or applied.
+-Non-magical; effects should be reasonable in real world.
+-Should come in several levels, increasing the effect, duration, etc.
+-Can (eventually) be thrown to apply their effect to what they hit; this probably counts as "using" the item on the primarily worn item (since it's not like you're force-feeding the target)
+cure wounds - heals 20% (higher levels heal more)
+poison - when used on a weapon, gives it a temporary poison quality (on anything else, "you have no reason to use those items together" - a generic message for any unrecognized pairing)
+antitoxin - reduces current poison level
+speed - temporarily increases speed
+acid - use with items to damage them; heavy damage if drunk (throwing damages worn armor)
+water - no effect, but rusts metal items (reduces DR)
+stoneskin - increases DR; perhaps this should be something else, since it's not really "non-magical"?
+ -maybe there could be a variation of this, either alchemic or druidic, that boosts both max and current hitpoints, then reduces both gradually until they're at their original levels (this could mean a player dies if he took more damage than he could handle while boosted and didn't heal)
+ 
+
+Illusion:
+-Very accessible; low cost for components, but ultimately limited in what it can offer, since it's not truly magical.
+-Possibly spells can come from different components, or not require any at all?
+-Also, may only work once on an enemy? after all, once you know how a trick works, it's a lot harder to fool you with that same trick
+Hiding - "smoke screen"; specifies a cluster of tiles that only the player can see in; would last a certain duration based on spell components and level
+Befuddle - targets a monster or group of monsters and stuns/confuses them for a certain number of turns; could also have a ventriloquism effect that causes them to move to a targeted tile for a turn or two
+Displace - leaves an illusion on the casted tile that remains after player moves away, but is instantly dispelled by any attack; the monster might automatically move to the tile they're attempting to attack, which could set them up to be out of position, or moving to a dangerous spot (trap), or something of that sort.
+-this could be done by having monsters have a "threat" level, and AI would always attack the highest threat.  in this case, that would be the illusion
+Elusiveness - percentage chance to completely avoid attacks for a certain amount of turns (maybe "tumbling" or "gymnastics")
+Charm - temporarily makes a monster neutral or coaligned, based on level
+Displace - relocates caster a few tiles away
+Hypnotise - paralyzes/sleeps target
+Escape - counters binding/paralysis
+Sense - detect invisible (maybe that it's there, rather than what it is)
+
+Druidic:
+-Bad name, since it has the connotation of "woodsy," and while this is all abilities based on the natural world, there's no forest, but caves.
+-Maybe more of a survival skillset?
+Healing salve - converts medicinal fungus into Healing Salve
