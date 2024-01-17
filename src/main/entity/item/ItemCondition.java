@@ -10,7 +10,8 @@ public enum ItemCondition
 	GREAT("Great", .75),
 	GOOD("Good", .5),
 	FAIR("Fair", .25),
-	POOR("Poor", 0);
+	POOR("Poor", 0),
+	DESTROYED("Destroyed", -100);	//TODO: this is an exception case and should really never be applied
 	
 	private String label;
 	private double lowerBound;

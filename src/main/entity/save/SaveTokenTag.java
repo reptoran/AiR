@@ -20,9 +20,10 @@ public enum SaveTokenTag
 	A_MAG,	//actor magic items
 	A_TRT,	//actor traits
 	A_SKL,	//actor skills
-	A_DAM,	//actor default damage
+	A_NWP,	//actor default damage
 	A_DAR,	//actor default armor
 	A_TLK,	//actor default talk response
+	A_FAC,	//actor facing
 	
 	C_NAM,	//fieldcoord name
 	C_ICO,	//fieldcoord icon
@@ -64,9 +65,10 @@ public enum SaveTokenTag
 	I_CHP,	//item current hp
 	I_CR_,	//item cover rating
 	I_AR_,	//item armor rating
-	I_DR_,	//item damage reduction
+	I_MAT,	//item material
 	I_UPG,	//item upgraded status
 	I_UPB,	//item upgraded by
+	I_TRT,	//item traits
 	
 	Z_UID,	//zone unique identifier
 	Z_TYP,	//zone type

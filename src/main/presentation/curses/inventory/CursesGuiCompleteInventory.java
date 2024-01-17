@@ -88,8 +88,6 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		case UPGRADE_BASE_ITEM_SELECT:
 			labelEquipment(false);
 			labelReadiedItems(false);
-			labelAllStoredItems();
-			labelMagic();
 			break;
 		}
 	}
@@ -646,6 +644,9 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			if (slotItem != null && state != InventoryState.DROP && !spaceToRemoveEquippedItem(slotItem))	//TODO: basically, if you're removing an item but there's no place to put it.  This is a temporary fix because removing an
 				selectable = false;																			//		item can only put it on the player's tile, but drop can "bubble out" - perhaps make it so removing can't drop the item?
 
+			if (slotItem != null && state == InventoryState.UPGRADE_BASE_ITEM_SELECT && slotItem.isUpgraded())
+				selectable = false;
+			
 			if (selectable)
 			{
 				addText(1 + i, 1, getLetterForSelectionIndex(existingLabels + i), getTitleColor());
@@ -677,6 +678,9 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 				selectable = false;
 			
 			if (slotItem == null && state != InventoryState.DROP && !itemAvailableForReadySlot()) // empty slot, but nothing can go there
+				selectable = false;
+			
+			if (slotItem != null && state == InventoryState.UPGRADE_BASE_ITEM_SELECT && slotItem.isUpgraded())
 				selectable = false;
 			
 			//note that as long as a ready item slot has an item, it will always have a valid target, because it can swap with the equipment

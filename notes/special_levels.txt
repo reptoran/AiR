@@ -79,7 +79,7 @@ A rail track (with some carts) winds through the mines, terminating at a collaps
 
 Role:
 Out-of-depth monsters (perhaps the "dlev modifier" can be defined in the zone file) populate the mine.  Several out-of-depth items also exist, including maybe one very special item or artifact.
-Additionally, there could be some ores or gold here, which might otherwise be hard to find.  (Gold should be especially rare in this game.)
+Additionally, there could be some ores or gold here, which might otherwise be hard to find.  (Gold should be especially rare in this game.)  Perhaps "valuables" materials?
 
 --
  

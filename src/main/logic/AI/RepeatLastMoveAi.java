@@ -1,38 +1,25 @@
 package main.logic.AI;
 
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.List;
 
 import main.data.event.ActorCommand;
 import main.data.event.GuiCommandType;
 import main.entity.actor.Actor;
-import main.entity.actor.ActorTraitType;
+import main.entity.actor.ActorTrait;
 import main.entity.tile.Tile;
 import main.entity.tile.TileType;
 import main.entity.zone.Zone;
 import main.logic.Direction;
 import main.logic.RPGlib;
+import main.logic.AI.faction.CoalignedFactionAi;
 import main.presentation.message.MessageBuffer;
 
-public class RepeatLastMoveAi extends ActorAI
+//an actor repeating its last move can only be human controlled, which is considered coaligned
+public class RepeatLastMoveAi extends CoalignedFactionAi
 {
-	private List<AiType> enemyAiTypes = new ArrayList<AiType>();
 	private Direction directionToRepeat = null;
 	private boolean isFirstMove = true;
 	private int actorLastHp = -1;
-	
-	public RepeatLastMoveAi()
-	{
-		for (AiType aiType : AiType.values())
-			enemyAiTypes.add(aiType);
-		
-		enemyAiTypes.remove(AiType.COALIGNED);
-		enemyAiTypes.remove(AiType.FROZEN_CA);
-		enemyAiTypes.remove(AiType.PHYSICIAN);
-		enemyAiTypes.remove(AiType.REPEAT_LAST_MOVE);
-		enemyAiTypes.remove(AiType.RAND_MOVE);
-	}
 	
 	public void initializeNewRepeat(Direction direction)
 	{
@@ -46,7 +33,7 @@ public class RepeatLastMoveAi extends ActorAI
 	public ActorCommand getNextCommand(Zone zone, Actor actor)
 	{
 		//if the actor doesn't regenerate hitpoints, don't let them rest
-		if (isResting() && !actor.hasTrait(ActorTraitType.HP_REGEN))
+		if (isResting() && !actor.hasTrait(ActorTrait.HP_REGEN))
 		{
 			MessageBuffer.addMessage("You don't have the medical skills to recover from resting.");
 			return new ActorCommand(GuiCommandType.DEACTIVATE_REPEAT_AI);
@@ -121,11 +108,5 @@ public class RepeatLastMoveAi extends ActorAI
 			return true;
 		
 		return false;
-	}
-
-	@Override
-	protected List<AiType> getEnemyAiTypes()
-	{
-		return enemyAiTypes;
 	}
 }

@@ -48,6 +48,18 @@ public class Recipe
 		return requiredSkills;
 	}
 	
+	public int getTotalSkillRanksRequired()
+	{
+		int totalSkillRanks = 0;
+		
+		for (Integer rank : requiredSkills.values())
+		{
+			totalSkillRanks += rank;
+		}
+		
+		return totalSkillRanks;
+	}
+	
 	public boolean sufficientSkills(Actor actor)
 	{
 		for (SkillType requiredSkill : requiredSkills.keySet())

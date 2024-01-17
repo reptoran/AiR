@@ -7,6 +7,7 @@ import main.entity.CompareOperator;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorType;
 import main.entity.item.ItemType;
+import main.presentation.Logger;
 
 public class RequirementValidator
 {
@@ -34,12 +35,14 @@ public class RequirementValidator
 		ActorType actorType = ActorType.fromString(actorTypeString);
 		Actor actor = data.getFirstActorOfType(actorType);
 		ItemType itemType = ItemType.fromString(itemTypeString);
+		Logger.debug("Checking how many items of type [" + itemTypeString + "] actor [" + actorTypeString + "] has.");
 		return getValueToCheckForActorHasItem(actor, itemType);
 	}
 	
 	public String getValueToCheckForActorHasItem(Actor actor, ItemType itemType)
 	{
 		int itemCount =  actor.getTotalItemCount(itemType);
+		Logger.debug("Item count is " + itemCount);
 		return String.valueOf(itemCount);
 	}
 	

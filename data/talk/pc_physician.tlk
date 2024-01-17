@@ -131,7 +131,7 @@
    },
    {
       "tag":"PHYS_GIVE_SALVE",
-      "text":"I do.  Here's a jar.",
+      "text":"I do.  Here you go.",
       "entry":false
    }
 ]

@@ -25,7 +25,7 @@ public class RPGlib
 	
 	public static boolean percentage(int percentage)
 	{
-		return randInt(1, 100) > percentage;
+		return randInt(1, 100) <= percentage;
 	}
 	
 	public static int roll(String diceString)

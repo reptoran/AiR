@@ -50,11 +50,15 @@ import main.logic.AI.AiType;
 import main.logic.AI.BlacksmithAI;
 import main.logic.AI.CoalignedAI;
 import main.logic.AI.FrozenCoalignedAI;
-import main.logic.AI.MeleeAI;
 import main.logic.AI.MoveRandomAI;
 import main.logic.AI.PhysicianAI;
+import main.logic.AI.RatKingAi;
 import main.logic.AI.RepeatLastMoveAi;
 import main.logic.AI.ZombieAI;
+import main.logic.AI.faction.EvilFactionAi;
+import main.logic.AI.faction.ShadowFactionAi;
+import main.logic.AI.faction.UnalignedFactionAi;
+import main.logic.AI.faction.WildFactionAi;
 import main.logic.requirement.RequirementValidator;
 import main.presentation.Logger;
 import main.presentation.message.FormattedMessageBuilder;
@@ -102,15 +106,19 @@ public class Data implements EventObserver
 	private void loadAIs()
 	{
 		gameAIs = new HashMap<AiType, ActorAI>();
-		gameAIs.put(AiType.HUMAN_CONTROLLED, new MoveRandomAI());	//needed to avoid the exception below
+		gameAIs.put(AiType.HUMAN_CONTROLLED, new CoalignedAI());	//needed to avoid the exception below
 		gameAIs.put(AiType.RAND_MOVE, new MoveRandomAI());
 		gameAIs.put(AiType.COALIGNED, new CoalignedAI());
+		gameAIs.put(AiType.WILD, new WildFactionAi());
+		gameAIs.put(AiType.EVIL, new EvilFactionAi());
+		gameAIs.put(AiType.SHADOW, new ShadowFactionAi());
+		gameAIs.put(AiType.UNALIGNED, new UnalignedFactionAi());
 		gameAIs.put(AiType.FROZEN_CA, new FrozenCoalignedAI());
 		gameAIs.put(AiType.ZOMBIE, new ZombieAI());
-		gameAIs.put(AiType.MELEE, new MeleeAI());
 		gameAIs.put(AiType.PHYSICIAN, new PhysicianAI());
 		gameAIs.put(AiType.BLACKSMITH, new BlacksmithAI());
 		gameAIs.put(AiType.REPEAT_LAST_MOVE, new RepeatLastMoveAi());
+		gameAIs.put(AiType.RAT_KING, new RatKingAi());
 		
 		for (AiType ai : AiType.values())
 		{
@@ -408,6 +416,7 @@ public class Data implements EventObserver
 			currentZone = dataSaveUtils.uncacheZone(newZoneId);
 		} else {
 			currentZone = ZoneFactory.getInstance().generateNewZone(newZoneKey, goingDown, currentZone);
+			awardExplorationExperience(currentZone);
 		}
 		
 		//because the ZoneKey in the origin zone may be updated by generating a new level, it needs to be cached after level generation, not before
@@ -419,6 +428,29 @@ public class Data implements EventObserver
 		currentZone.addActor(actor, newZoneKey.getEntryPoint());		//TODO: naturally, if there is a null entry point (like when generating a special level with no up staircase), this fails
 		
 		EventInterruptionManager.getInstance().setEventQueue(getEventQueue());
+	}
+
+	private void awardExplorationExperience(Zone zone)
+	{
+		int xpToAward = getBandOfZone(zone);
+		
+		if (xpToAward <= 0)
+			xpToAward = 1;
+		
+		PlayerAdvancementManager.getInstance().gainXP(xpToAward);
+	}
+
+	public int getBandOfZone(Zone zone)
+	{
+		int depth = zone.getDepth();
+		int modifier = (depth + 1) / 10;
+		
+		int band = (depth - modifier) / 3;
+		
+		if (band < 0)
+			return 0;
+		
+		return band;
 	}
 
 	// events are assumed to be checked and sanitized by the logic layer, so just
@@ -439,9 +471,13 @@ public class Data implements EventObserver
 		switch (internalEvent.getInternalEventType())
 		{
 		case WAIT:
+			//TODO: the actor should turn to face the nearest seen enemy...though that should be done by the engine, not the data
 			break;	//the only thing that happens here is the action cost reduction, which is already done
 		case DEATH:
 			killActor(actor);
+			break;
+		case UPDATE_FACING:
+			updateFacing(actor, internalEvent.getValue());
 			break;
 		case LOCAL_MOVE:
 			updateActorLocalCoords(actor, internalEvent.getFlag(1), internalEvent.getFlag(2));
@@ -491,10 +527,17 @@ public class Data implements EventObserver
 		case CHANGE_ACTOR_AI:
 			changeActorAi(actor, internalEvent.getValue(), internalEvent.getFlag(1), internalEvent.getFlag(2));
 			break;
+		case CHANGE_ACTOR_TYPE:
+			changeActorType(actor, internalEvent.getValue());
+			break;
 		case ZONE_TRANSITION:
 			Point playerLocation = currentZone.getCoordsOfActor(actor);
 			ZoneKey zoneKey = currentZone.getZoneKey(playerLocation);
 			updateZone(zoneKey, actor, (internalEvent.getFlag(1) == 1));
+			break;
+			
+		case ADVANCE_PLAYER_LEVEL:
+			advancePlayerLevel(internalEvent.getFlag(0));
 			break;
 
 		case ENTER_LOCAL:
@@ -521,6 +564,20 @@ public class Data implements EventObserver
 		}
 	}
 
+	private void updateFacing(Actor actor, String direction)
+	{
+		actor.setFacing(Direction.fromString(direction));
+	}
+
+	private void advancePlayerLevel(int characterLevel)
+	{
+		player.setMaxHp(player.getMaxHp() + 1);
+		player.setCurHp(player.getCurHp() + 1);
+		
+		//TODO: popup a proper congratulations window instead
+		MessageBuffer.addMessage("Congratulations! You have advanced to level " + characterLevel + "!");
+	}
+
 	private void changeActorAi(Actor actor, String newAiType, int rowChange, int colChange)
 	{
 		AiType newAi = AiType.valueOf(newAiType);
@@ -530,6 +587,12 @@ public class Data implements EventObserver
 			return;
 		
 		updateRepeatAiDirection(Direction.fromCoords(rowChange, colChange));
+	}
+
+	private void changeActorType(Actor actor, String value)
+	{
+		ActorType newType = ActorType.fromString(value);
+		actor.convertToType(newType);
 	}
 
 	private void changeItemHp(Actor actor, InternalEvent event)
@@ -584,6 +647,12 @@ public class Data implements EventObserver
 		if (currentAmount > amountToDelete)
 		{
 			item.setAmount(currentAmount - amountToDelete);
+			
+			if (itemSource == ItemSource.MATERIAL)
+				actor.getMaterials().condense();
+			else if (itemSource == ItemSource.PACK)
+				actor.getStoredItems().condense();
+			
 			return;
 		}
 		
@@ -599,14 +668,18 @@ public class Data implements EventObserver
 		Item item = ItemFactory.generateNewItem(ItemType.fromString(internalEvent.getValue()));
 		item.setAmount(internalEvent.getFlag(3));
 		
-		if (actor == null)
+		if (actor != null)
 		{
-			Point destination = new Point(internalEvent.getFlag(1), internalEvent.getFlag(2));
-			dropItem(destination, item);
-			return;
+			boolean itemReceived = actor.receiveItem(item);
+			
+			if (itemReceived)
+				return;
 		}
 		
-		actor.receiveItem(item);
+		//actor couldn't carry the item, so drop it
+		Point destination = new Point(internalEvent.getFlag(1), internalEvent.getFlag(2));
+		dropItem(destination, item);
+		return;	
 	}
 
 	private void moveItem(Actor actor, InternalEvent internalEvent)
@@ -759,7 +832,9 @@ public class Data implements EventObserver
 		ItemSource itemSource = ItemSource.fromInt(internalEvent.getFlag(1));
 		int itemIndex = internalEvent.getFlag(2);
 		int quantity = internalEvent.getFlag(3);
+		Logger.debug("DATA: Giving [" + quantity + "] items.");
 		Item itemToGive = removeItemFromActor(giver, itemSource, itemIndex, quantity);
+		Logger.debug("DATA: Item being given is type [" + itemToGive.getType() + "] and quantity [" + itemToGive.getAmount() + "].");
 		Actor receiver = getActor(internalEvent.getFlag(4));
 		receiver.receiveItem(itemToGive);
 	}

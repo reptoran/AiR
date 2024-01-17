@@ -18,7 +18,73 @@ public class Inventory implements Collection<Item>
 	private Map<Integer, Integer> filteredIndexes = null;
 
 	public static final int MAX_BULK = 12;
-
+	
+	//since adding items should properly combine item stacks (it's only removing that can be a problem), this should correct any issues in the inventory
+	public void condense()
+	{
+		Inventory tempInv = new Inventory();
+		
+		while (!items.isEmpty())
+			tempInv.add(items.remove(0));
+		
+		for (Item item : tempInv.items)
+		{
+			items.add(item);
+		}
+	}
+	
+	private void condense(Item item)
+	{
+		if (item.getMaxStackSize() <= 1)
+		{
+			items.sort(comparator);
+			return;
+		}
+		
+		int totalItemCount = 0;
+		
+		for (int i = 0; i < items.size(); i++)
+		{
+			Item itemToCheck = items.get(i);
+			if (!itemToCheck.equalsIgnoreAmount(item))
+				continue;
+			
+			itemToCheck = items.remove(i);
+			i--;
+			totalItemCount += itemToCheck.getAmount();
+		}
+		
+		int remainder = totalItemCount % item.getMaxStackSize();
+		Item remainderItem = item.clone();
+		remainderItem.setAmount(remainder);
+		totalItemCount -= remainder;
+		
+		if (remainder > 0)
+			items.add(remainderItem);
+		
+		
+		int totalMaxStackItemsToAdd = totalItemCount / item.getMaxStackSize();
+		
+		for (int i = 0; i < totalMaxStackItemsToAdd; i++)
+		{
+			Item maxStackItem = item.clone();
+			maxStackItem.setAmount(item.getMaxStackSize());
+			items.add(maxStackItem);
+		}
+		
+		items.sort(comparator);
+	}
+	
+	//TODO: right now bulk limits aren't respected
+	@Override
+	public boolean add(Item itemToAdd)
+	{
+		items.add(itemToAdd);
+		condense(itemToAdd);
+		return true;
+	}
+	
+	/*
 	@Override
 	public boolean add(Item itemToAdd)
 	{
@@ -41,7 +107,7 @@ public class Inventory implements Collection<Item>
 		items.addAll(itemsToAdd);
 		items.sort(comparator);
 		return true;
-	}
+	}*/
 
 	@Override
 	public boolean addAll(Collection<? extends Item> c)
@@ -275,6 +341,19 @@ public class Inventory implements Collection<Item>
 		}
 		
 		return null;
+	}
+	
+	public Item getLastItemOfType(ItemType type)
+	{
+		Item lastItem = null;
+		
+		for (Item item : items)
+		{
+			if (item.getType() == type)
+				lastItem = item;
+		}
+		
+		return lastItem;
 	}
 
 	// Right now, both inventories must be IDENTICAL - same order, same amounts. Once I implement sorting, this will really need to be the case.

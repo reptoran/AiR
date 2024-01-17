@@ -88,7 +88,6 @@ private static QuestLoader instance = null;
 		fungusFinder.addNode(fungusDescend);
 		fungusFinder.addNode(fungusCollect);
 		fungusFinder.addNode(fungusReturn);
-		
 		quests.add(fungusFinder);
 		
 		return quests;

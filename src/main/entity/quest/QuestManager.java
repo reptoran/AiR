@@ -8,6 +8,7 @@ import java.util.Scanner;
 import java.util.Set;
 
 import main.data.Data;
+import main.data.PlayerAdvancementManager;
 import main.data.SaveableDataManager;
 import main.data.event.EventObserver;
 import main.data.event.InternalEvent;
@@ -27,7 +28,6 @@ public class QuestManager extends RequirementTester implements EventObserver, Sa
 	
 	private Data data = null;
 	
-	private static final String DELIMITER = ";";
 	private static final String NO_COMPLETED_QUESTS = "NONE";
 	
 	private static QuestManager instance = null;
@@ -123,6 +123,9 @@ public class QuestManager extends RequirementTester implements EventObserver, Sa
 		incompleteQuestsByTag.remove(questTag);
 		completedQuestsByTag.put(questTag, quest);
 		
+		//TODO: maybe not perfect, especially for quests that might have a lot of setup nodes (that is, nodes that complete automatically), but it should be fine enough
+		PlayerAdvancementManager.getInstance().gainXP(quest.getCompletedNodes().size());
+
 		//TODO: popup a proper congratulations window instead
 		MessageBuffer.addMessage("Congratulations! You have completed " + quest.getName() + "!");
 	}

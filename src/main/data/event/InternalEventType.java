@@ -3,6 +3,7 @@ package main.data.event;
 public enum InternalEventType
 {
 	WAIT,
+	UPDATE_FACING,
 	LOCAL_MOVE,
 	WORLD_MOVE,
 	ENTER_LOCAL,
@@ -15,6 +16,7 @@ public enum InternalEventType
 	SWAP,
 	CHAT,
 	CHANGE_ACTOR_AI,
+	CHANGE_ACTOR_TYPE,
 	CHANGE_ITEM_HP,
 	CHANGE_ITEM_COORDS,
 	CREATE_ITEM,
@@ -26,6 +28,7 @@ public enum InternalEventType
 	ATTACK,
 	DEATH,
 	INTERRUPTION,
+	ADVANCE_PLAYER_LEVEL,
 	SAVE_GAME,
 	EXIT_GAME
 }

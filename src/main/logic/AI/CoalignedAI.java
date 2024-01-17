@@ -10,9 +10,10 @@ import main.entity.tile.Tile;
 import main.entity.zone.Zone;
 import main.logic.Direction;
 import main.logic.RPGlib;
+import main.logic.AI.faction.CoalignedFactionAi;
 import main.logic.pathfinding.Pathfinder;
 
-public class CoalignedAI extends ActorAI
+public class CoalignedAI extends CoalignedFactionAi
 {
 	@Override
 	public ActorCommand getNextCommand(Zone zone, Actor actor)
@@ -39,6 +40,9 @@ public class CoalignedAI extends ActorAI
 			Point target = RPGlib.addPoints(origin, coordChange);
 			
 			Tile targetTile = zone.getTile(target);
+			
+			if (targetTile == null)
+				continue;
 			
 			if (targetTile.obstructsCoaligned())
 				continue;
@@ -77,11 +81,5 @@ public class CoalignedAI extends ActorAI
 			return origin;
 		
 		return nextPoint;
-	}
-
-	@Override
-	protected List<AiType> getEnemyAiTypes()
-	{
-		return generateAiList();
 	}
 }

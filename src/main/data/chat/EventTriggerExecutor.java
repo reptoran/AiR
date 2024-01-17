@@ -1,6 +1,7 @@
 package main.data.chat;
 
 import java.awt.Point;
+import java.util.Map;
 
 import main.data.Data;
 import main.data.SpecialLevelManager;
@@ -13,11 +14,8 @@ import main.entity.actor.Actor;
 import main.entity.actor.ActorType;
 import main.entity.chat.ChatResponse;
 import main.entity.event.Trigger;
-import main.entity.item.Inventory;
-import main.entity.item.Item;
-import main.entity.item.ItemSource;
+import main.entity.item.InventorySelectionKey;
 import main.entity.item.ItemType;
-import main.entity.item.equipment.Equipment;
 import main.entity.quest.QuestManager;
 import main.entity.quest.QuestNodeStatus;
 import main.entity.tile.Tile;
@@ -26,6 +24,7 @@ import main.entity.tile.TileType;
 import main.entity.zone.Zone;
 import main.entity.zone.ZoneKey;
 import main.logic.requirement.RequirementValidator;
+import main.presentation.Logger;
 
 public class EventTriggerExecutor
 {
@@ -124,12 +123,6 @@ public class EventTriggerExecutor
 		transferItem(giverActor, receiverActor, trigger);
 	}
 	
-	//TODO: this should generate multiple internal events to transfer all items possible
-	//		do this by calling a helper method and using a clone of the original inventory to keep track of how many items are left
-	//		generate an event, manually remove the items from the clone inventory, and reduce the total amount that still need to be given
-	//		if that amount is less that or equal to 0, you're all done
-	//		otherwise, do it again
-	
 	//Keep in mind that transfers are fully "internal" events, like in Runescape.  There won't ever be a command to give an item (though
 	//there might be effects from using an item on a particular actor which include a transfer), so there don't need to be any messages
 	//or any overt announcement to the player, beyond them seeing their inventory has more or fewer items than it used to.
@@ -150,43 +143,25 @@ public class EventTriggerExecutor
 		if (itemsToGive == 0)
 			return;
 		
+		Logger.debug("Giving [" + itemsToGive + "] items.");
+		
 		Actor giver = data.getFirstActorOfType(ActorType.fromString(giverActorType));
 		Actor receiver = data.getFirstActorOfType(ActorType.fromString(receiverActorType));
 		ItemType itemType = ItemType.fromString(itemToTransfer);
-		ItemSource itemSource = giver.getFirstAvailableSourceForItem(itemType);
-		int itemIndex = getIndexOfItemToTransfer(giver, itemSource, itemType);
 		
-		if (itemIndex == -1)
-			return;
-			
-		EnvironmentEvent event = new GiveItemEvent(giver, receiver, itemSource, itemIndex, itemsToGive, null);
-		triggerEvent(event);
+		triggerGiveEventsForMultipleSlots(giver, receiver, itemType, itemsToGive);
 	}
 
-	private int getIndexOfItemToTransfer(Actor giver, ItemSource itemSource, ItemType itemType)
+	private void triggerGiveEventsForMultipleSlots(Actor giver, Actor receiver, ItemType itemType, int itemsToGive)
 	{
-		Inventory inventory;
-		Equipment equipment;
+		Map<InventorySelectionKey, Integer> itemsToTransfer = giver.getSlotsOfItemsToMeetQuantityRequirement(itemType, itemsToGive);
 		
-		switch (itemSource)	//TODO: add more if they become relevant
+		for (InventorySelectionKey key : itemsToTransfer.keySet())
 		{
-		case MATERIAL:
-			inventory = giver.getMaterials();
-			break;
-		case PACK:
-			inventory = giver.getStoredItems();
-			break;
-		case MAGIC:
-			equipment = giver.getMagicItems();
-			Item item = equipment.getFirstItemOfType(itemType);
-			return equipment.getIndexOfItem(item);
-		//$CASES-OMITTED$
-		default:
-			return -1;
+			int quantity = itemsToTransfer.get(key);
+			EnvironmentEvent event = new GiveItemEvent(giver, receiver, key.getItemSource(), key.getItemIndex(), quantity, null);
+			triggerEvent(event);
 		}
-		
-		Item item = inventory.getFirstItemOfType(itemType);
-		return inventory.indexOf(item);
 	}
 
 	private void setZoneTile(Trigger trigger)

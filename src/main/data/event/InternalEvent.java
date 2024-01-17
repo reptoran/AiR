@@ -2,6 +2,7 @@ package main.data.event;
 
 import java.awt.Point;
 
+import main.entity.actor.ActorType;
 import main.entity.item.InventorySelectionKey;
 import main.entity.item.ItemSource;
 import main.entity.item.ItemType;
@@ -60,6 +61,20 @@ public class InternalEvent
 		toRet.flags[0] = -1;
 		
 		return toRet;
+	}
+	
+	public static InternalEvent changeActorFacingEvent(int actorIndex, Direction direction)
+	{
+		InternalEvent internalEvent = actorOnlyInternalEvent(InternalEventType.UPDATE_FACING, actorIndex);
+		internalEvent.value = direction.name();
+		return internalEvent;
+	}
+	
+	public static InternalEvent advancePlayerLevelInternalEvent(int newLevel)
+	{
+		InternalEvent internalEvent = noActorInternalEvent(InternalEventType.ADVANCE_PLAYER_LEVEL);
+		internalEvent.flags[0] = newLevel;
+		return internalEvent;
 	}
 
 	//if flag 0 (actor index) is -1, then flags 1 and 2 are the coordinates of the item
@@ -312,6 +327,15 @@ public class InternalEvent
 		InternalEvent toRet = actorOnlyInternalEvent(InternalEventType.CHANGE_ACTOR_AI, actorIndex);
 		
 		toRet.value = newAi.name();
+		
+		return toRet;
+	}
+	
+	public static InternalEvent changeActorTypeInternalEvent(int actorIndex, ActorType newType)
+	{
+		InternalEvent toRet = actorOnlyInternalEvent(InternalEventType.CHANGE_ACTOR_TYPE, actorIndex);
+		
+		toRet.value = newType.name();
 		
 		return toRet;
 	}

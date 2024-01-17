@@ -8,7 +8,7 @@ import main.entity.actor.Actor;
 import main.entity.item.InventorySelectionKey;
 import main.entity.item.Item;
 
-public class UpgradeWeaponEvent extends AbstractInventoryItemEvent
+public class UpgradeWeaponEvent extends AbstractInventorySingleItemEvent
 {
 	public UpgradeWeaponEvent(Actor owner, Item itemToUpgrade, EnvironmentEventQueue eventQueue)
 	{

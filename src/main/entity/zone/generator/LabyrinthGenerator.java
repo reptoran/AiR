@@ -16,7 +16,6 @@ import main.presentation.Logger;
 
 public class LabyrinthGenerator extends AbstractLinearZoneSystemGenerator implements SaveableDataManager
 {
-	private static final String DELIMITER = ";";
 	private static final int NO_CURRENT_BAND = -1;
 	private static final int MAX_BANDS = 30;
 	

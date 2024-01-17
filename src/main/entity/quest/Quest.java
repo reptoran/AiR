@@ -19,7 +19,6 @@ public class Quest
 	private boolean isKnown;
 	
 	private Map<String, QuestNode> nodes;
-	private List<QuestNode> completedNodes;
 	
 	@JsonProperty("startNode")
 	private QuestNode startNode;
@@ -35,7 +34,6 @@ public class Quest
 		
 		startNode = null;
 		nodes = new HashMap<String, QuestNode>();
-		completedNodes = new ArrayList<QuestNode>();
 	}
 	
 	public void addStartNode(QuestNode node)
@@ -106,6 +104,16 @@ public class Quest
 	
 	public List<QuestNode> getCompletedNodes()
 	{
+		List<QuestNode> completedNodes = new ArrayList<QuestNode>();
+		
+		for (String nodeKey : nodes.keySet())
+		{
+			QuestNode node = nodes.get(nodeKey);
+			
+			if (node.isComplete())
+				completedNodes.add(node);
+		}
+		
 		return completedNodes;
 	}
 
@@ -126,6 +134,8 @@ public class Quest
 	
 	public void updateNodeStatus(String nodeTag, QuestNodeStatus newStatus)
 	{
+		Logger.debug("Updating node [" + nodeTag + "] to status [" + newStatus.name() + "].");
+		
 		QuestNode node = nodes.get(nodeTag);
 		
 		if (node == null)
@@ -137,7 +147,6 @@ public class Quest
 		if (newStatus == QuestNodeStatus.COMPLETE)
 		{
 			node.complete();
-			completedNodes.add(node);
 			return;
 		}
 		

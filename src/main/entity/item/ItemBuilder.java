@@ -36,6 +36,11 @@ public class ItemBuilder
 		return new ItemBuilder(type).setSlot(EquipmentSlotType.MATERIAL);
 	}
 	
+	public static ItemBuilder generateMagicItem(ItemType type)
+	{
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.MAGIC);
+	}
+	
 	public Item build()
 	{
 		return item;
@@ -109,9 +114,9 @@ public class ItemBuilder
 		return this;
 	}
 	
-	public ItemBuilder setDR(int dr)
+	public ItemBuilder setMaterial(ItemMaterial material)
 	{
-		item.setDR(dr);
+		item.setMaterial(material);
 		return this;
 	}
 	
@@ -129,6 +134,12 @@ public class ItemBuilder
 	public ItemBuilder setUpgradedBy(ItemType upgradedBy)
 	{
 		item.setUpgradedBy(upgradedBy);
+		return this;
+	}
+	
+	public ItemBuilder addTrait(ItemTrait trait)
+	{
+		item.addTrait(trait);
 		return this;
 	}
 }

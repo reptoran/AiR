@@ -1,7 +1,10 @@
 package main.data;
 
+import main.data.event.InternalEvent;
 import main.entity.actor.Actor;
 import main.entity.zone.Zone;
+import main.logic.AI.ActorAI;
+import main.logic.AI.AiType;
 
 public class DataAccessor
 {
@@ -23,6 +26,11 @@ public class DataAccessor
 		this.data = data;
 	}
 	
+	public ActorAI getActorAi(AiType aiType)
+	{
+		return data.getAI(aiType);
+	}
+	
 	public Actor getActorFromIndex(int actorIndex)
 	{
 		return data.getActor(actorIndex);
@@ -41,5 +49,10 @@ public class DataAccessor
 	public DataSaveUtils getZoneCacheUtility()
 	{
 		return data.getZoneCacheUtility();
+	}
+	
+	public void sendInternalEvent(InternalEvent event)
+	{
+		data.receiveInternalEvent(event);
 	}
 }

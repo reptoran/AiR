@@ -30,7 +30,7 @@ import main.presentation.Logger;
 
 public class DataSaveUtils
 {
-	public static final String VERSION = "0.8.1";
+	public static final String VERSION = "0.9.1d";
 	private static final String NULL_STRING = "null";
 	
 	private SaveHandler saveHandler;
@@ -276,6 +276,7 @@ public class DataSaveUtils
 		saveHandler.saveGameDataElement(LabyrinthGenerator.getInstance().saveState());
 		saveHandler.saveGameDataElement(SpecialLevelManager.getInstance().saveState());
 		saveHandler.saveGameDataElement(QuestManager.getInstance().saveState());
+		saveHandler.saveGameDataElement(PlayerAdvancementManager.getInstance().saveState());
 		//TODO: consider saving the current random seed (and loading it later in the appropriate method)
 
 		saveHandler.zipSaveDir();	// zip the individual files into a single save file
@@ -324,6 +325,7 @@ public class DataSaveUtils
 		LabyrinthGenerator.getInstance().loadState(entityLines.get(7));
 		SpecialLevelManager.getInstance().loadState(entityLines.get(8));
 		QuestManager.getInstance().loadState(entityLines.get(9));
+		PlayerAdvancementManager.getInstance().loadState(entityLines.get(10));
 
 		data.setWorldTravel(Boolean.valueOf(worldTravel));
 		data.setCurrentZone(null);

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import main.data.event.environment.ActorTypeChangeEvent;
 import main.data.event.environment.ConsumeInventoryItemEvent;
 import main.data.event.environment.EnvironmentEvent;
 import main.data.event.environment.HitpointChangeEvent;
@@ -67,6 +68,8 @@ public class ItemUsageEventGenerator
 			return consumeItem(itemUser, usedItem, trigger, item);
 		case UPGRADE_ITEM:
 			return upgradeItem(itemUser, usedItem, trigger, item);
+		case CHANGE_ACTOR_TYPE:
+			return new ActorTypeChangeEvent(actor, trigger.getModifier(), trigger.getValue());
 		case GET_ITEM_FROM:
 			break;
 		case GIVE_ITEM_TO:
@@ -188,7 +191,7 @@ public class ItemUsageEventGenerator
 		usageMap.put(new ItemUsageKey(ItemType.METAL_SHARD, ItemGroup.weapons()), triggers);
 		
 		triggers = new ArrayList<>();
-		//TODO: add trigger to transform one actor into another using Actor.convertToType() - in this case, bound_archeo to archeologist
+		triggers.add(TriggerFactory.changeActorType(ActorType.BOUND_ARCHEO, ActorType.ARCHAEOLOGIST));
 		usageMap.put(new ItemUsageKey(ItemGroup.bladedWeapons(), ActorType.BOUND_ARCHEO), triggers);
 	}
 }

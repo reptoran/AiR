@@ -29,6 +29,31 @@ public class ActorBuilder
 		return new ActorBuilder(actorType);
 	}
 	
+	public static ActorBuilder generateCoaligned(ActorType actorType)
+	{
+		return new ActorBuilder(actorType).setAI(AiType.COALIGNED);
+	}
+	
+	public static ActorBuilder generateWild(ActorType actorType)
+	{
+		return new ActorBuilder(actorType).setAI(AiType.WILD);
+	}
+	
+	public static ActorBuilder generateEvil(ActorType actorType)
+	{
+		return new ActorBuilder(actorType).setAI(AiType.EVIL);
+	}
+	
+	public static ActorBuilder generateShadow(ActorType actorType)
+	{
+		return new ActorBuilder(actorType).setAI(AiType.SHADOW);
+	}
+	
+	public static ActorBuilder generateUnaligned(ActorType actorType)
+	{
+		return new ActorBuilder(actorType).setAI(AiType.UNALIGNED);
+	}
+	
 	public Actor build()
 	{
 		return actor;
@@ -46,13 +71,13 @@ public class ActorBuilder
 		return this;
 	}
 	
-	public ActorBuilder setDamage(String damage)
+	public ActorBuilder addNaturalWeapon(NaturalWeapon weapon)
 	{
-		actor.setDefaultDamage(damage);
+		actor.addNaturalWeapon(weapon);
 		return this;
 	}
 	
-	public ActorBuilder setArmor(int armor)
+	public ActorBuilder setNaturalArmor(int armor)
 	{
 		actor.setDefaultArmor(armor);
 		return this;
@@ -121,7 +146,7 @@ public class ActorBuilder
 		return this;
 	}
 	
-	public ActorBuilder addTrait(ActorTraitType trait)
+	public ActorBuilder addTrait(ActorTrait trait)
 	{
 		actor.addTrait(trait);
 		return this;

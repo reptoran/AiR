@@ -1,6 +1,6 @@
 package main.entity.actor;
 
-public enum ActorTraitType
+public enum ActorTrait
 {
 	HP_REGEN, DURABLE_EQ
 }

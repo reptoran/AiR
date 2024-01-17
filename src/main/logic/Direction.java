@@ -4,15 +4,34 @@ import java.awt.Point;
 
 public enum Direction
 {
-	DIRNW,
-	DIRN,
-	DIRNE,
-	DIRW,
-	DIRNONE,
-	DIRE,
-	DIRSW,
-	DIRS,
-	DIRSE;
+	DIRNW("northwest", (char)218),
+	DIRN("north", '^'),
+	DIRNE("northeast", (char)191),
+	DIRW("west", '<'),
+	DIRNONE("no direction", (char)233),
+	DIRE("east", '>'),
+	DIRSW("southwest", (char)192),
+	DIRS("south", 'v'),
+	DIRSE("southeast", (char)217);
+	
+	private String stringValue;
+	private char facingIcon;
+	
+	private Direction(String stringValue, char facingIcon)
+	{
+		this.stringValue = stringValue;
+		this.facingIcon = facingIcon;
+	}
+	
+	public String getStringValue()
+	{
+		return stringValue;
+	}
+	
+	public char getFacingIcon()
+	{
+		return facingIcon;
+	}
 	
 	public static Direction fromString(String string)
 	{

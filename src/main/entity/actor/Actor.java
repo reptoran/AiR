@@ -2,12 +2,15 @@ package main.entity.actor;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import main.data.GameSettings;
+import main.data.SettingType;
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
 import main.entity.item.Inventory;
@@ -27,7 +30,9 @@ import main.entity.save.EntityMap;
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
 import main.entity.save.SaveTokenTag;
+import main.logic.Direction;
 import main.logic.AI.AiType;
+import main.presentation.Logger;
 
 public class Actor extends SaveableEntity
 {
@@ -57,7 +62,7 @@ public class Actor extends SaveableEntity
 	private int attributes[] = new int[TOTAL_ATTRIBUTES];
 	private Map<SkillType, Integer> skills;
 	
-	private Set<ActorTraitType> traits = new HashSet<ActorTraitType>();
+	private Set<ActorTrait> traits = new HashSet<ActorTrait>();
 	private Inventory storedItems = new Inventory();
 	private Inventory materials = new Inventory();
 	private EquipmentType equipmentType = EquipmentType.NONE;
@@ -68,9 +73,11 @@ public class Actor extends SaveableEntity
 	private static int currentHash = 0;
 	private int hashModifier;
 	
-	private String defaultDamage = "1D1";
+	private NaturalWeapons naturalWeapons = new NaturalWeapons();
 	private int defaultArmor = 0;
 	private String defaultTalkResponse = "There's no response.";
+	
+	private Direction facing = Direction.DIRN;
 
 	public Actor()
 	{
@@ -92,7 +99,7 @@ public class Actor extends SaveableEntity
 		maxHp = attributes[ATT_TOG];
 		curHp = maxHp;
 
-		AI = AiType.MELEE;
+		AI = AiType.UNALIGNED;
 
 		hashModifier = currentHash;
 		currentHash++;
@@ -102,7 +109,7 @@ public class Actor extends SaveableEntity
 
 	public Actor(ActorType actorType, String name, char icon, int color, int[] attributes)
 	{
-		this(actorType, name, icon, color, attributes, AiType.MELEE);
+		this(actorType, name, icon, color, attributes, AiType.UNALIGNED);
 	}
 
 	public Actor(ActorType actorType, String name, char icon, int color, int[] attributes, AiType AI)
@@ -140,11 +147,12 @@ public class Actor extends SaveableEntity
 		toRet.equipment = equipment.clone();
 		toRet.readiedItems = readiedItems.clone();
 		toRet.magicItems = magicItems.clone();
-		toRet.defaultDamage = defaultDamage;
+		toRet.naturalWeapons = naturalWeapons.clone();
 		toRet.defaultArmor = defaultArmor;
 		toRet.defaultTalkResponse = defaultTalkResponse;
+		toRet.facing = facing;
 		
-		for (ActorTraitType trait : traits)
+		for (ActorTrait trait : traits)
 		{
 			toRet.traits.add(trait);
 		}
@@ -157,7 +165,7 @@ public class Actor extends SaveableEntity
 		return toRet;
 	}
 
-	private void convertToType(ActorType actorType)
+	public void convertToType(ActorType actorType)
 	{
 		if (type == actorType)
 			return;
@@ -185,7 +193,7 @@ public class Actor extends SaveableEntity
 		this.magicItems = new MagicEquipmentImpl(DEFAULT_MAGIC_SLOTS);
 		this.readiedItems = new ReadyEquipmentImpl(DEFAULT_READY_SLOTS);
 		
-		for (ActorTraitType trait : baseActor.traits)
+		for (ActorTrait trait : baseActor.traits)
 		{
 			this.traits.add(trait);
 		}
@@ -195,9 +203,11 @@ public class Actor extends SaveableEntity
 			this.skills.put(skill, baseActor.skills.get(skill));
 		}
 		
-		this.defaultDamage = baseActor.defaultDamage;
+		this.naturalWeapons = baseActor.naturalWeapons.clone();
 		this.defaultArmor = baseActor.defaultArmor;
 		this.defaultTalkResponse = baseActor.defaultTalkResponse;
+		
+		this.facing = baseActor.facing;
 	}
 
 	public void damage(int damageAmount)
@@ -215,6 +225,9 @@ public class Actor extends SaveableEntity
 
 	public char getIcon()
 	{
+		if (GameSettings.getBoolean(SettingType.SHOW_FACING))
+			return facing.getFacingIcon();
+		
 		return icon;
 	}
 
@@ -310,23 +323,33 @@ public class Actor extends SaveableEntity
 		return magicItems;
 	}
 	
-	//TODO: there is no check here for capacity limits
-	public void receiveItem(Item item)
+	public boolean receiveItem(Item item)
 	{
-		if (item.getInventorySlot().equals(EquipmentSlotType.MATERIAL))
+		if (item.getInventorySlot().equals(EquipmentSlotType.MATERIAL) && materials.hasSpaceForItem(item))
+		{
 			materials.add(item);
+			return true;
+		}
 		else if (item.getInventorySlot().equals(EquipmentSlotType.MAGIC) && magicItems.hasEmptySlotAvailable(EquipmentSlotType.MAGIC))
 		{
 			int slotIndex = magicItems.getIndexOfFirstSlotAvailable(EquipmentSlotType.MAGIC);
 			magicItems.equipItem(item, slotIndex);
+			return true;
 		}
 		else if (item.getInventorySlot().equals(EquipmentSlotType.ARMAMENT) && readiedItems.hasEmptySlotAvailable(EquipmentSlotType.ARMAMENT))
 		{
 			int slotIndex = readiedItems.getIndexOfFirstSlotAvailable(EquipmentSlotType.ARMAMENT);
 			readiedItems.equipItem(item, slotIndex);
+			return true;
 		}
-		else
+		
+		if (storedItems.hasSpaceForItem(item))
+		{
 			storedItems.add(item);
+			return true;
+		}
+		
+		return false;
 	}
 	
 	public Item removeStoredItem(int itemIndex)
@@ -359,12 +382,12 @@ public class Actor extends SaveableEntity
 		return attributes[index];
 	}
 	
-	public boolean addTrait(ActorTraitType trait)
+	public boolean addTrait(ActorTrait trait)
 	{
 		return traits.add(trait);
 	}
 	
-	public boolean hasTrait(ActorTraitType trait)
+	public boolean hasTrait(ActorTrait trait)
 	{
 		return traits.contains(trait);
 	}
@@ -372,6 +395,19 @@ public class Actor extends SaveableEntity
 	public void setSkill(SkillType skill, int level)
 	{
 		skills.put(skill, level);
+	}
+	
+	public Set<SkillType> getSkills()
+	{
+		return skills.keySet();
+	}
+	
+	public int getSkillLevel(SkillType skill)
+	{
+		if (!skills.containsKey(skill))
+			return SkillRank.UNKNOWN.getLevel();
+		
+		return skills.get(skill);
 	}
 	
 	public void gainSkillLevel(SkillType skill)
@@ -455,9 +491,9 @@ public class Actor extends SaveableEntity
 		return equipment.removeItem(equipmentSlotIndex);
 	}
 
-	public void setDefaultDamage(String damage)
+	public void addNaturalWeapon(NaturalWeapon weapon)
 	{
-		this.defaultDamage = damage;
+		this.naturalWeapons.getAttacks().add(weapon);
 	}
 
 	public void setDefaultArmor(int armor)
@@ -475,18 +511,30 @@ public class Actor extends SaveableEntity
 		return defaultTalkResponse;
 	}
 	
+	public void setFacing(Direction newFacing)
+	{
+		this.facing = newFacing;
+	}
+	
+	public Direction getFacing()
+	{
+		return facing;
+	}
+	
+	public NaturalWeapons getNaturalWeapons()
+	{
+		return naturalWeapons;
+	}
+	
 	public List<Item> getWeapons()
 	{
-		List<Item> weapons = equipment.getWeapons();
+		if (!equipment.getWeapons().isEmpty())
+			return equipment.getWeapons();
 		
-		if (weapons.isEmpty())
-		{
-			Item virtualWeapon = ItemFactory.generateNewItem(ItemType.VIRTUAL_ITEM);
-			virtualWeapon.setDamage(defaultDamage);
-			weapons.add(virtualWeapon);
-		}
+		if (!naturalWeapons.getAttackItems().isEmpty())
+			return naturalWeapons.getAttackItems();
 		
-		return weapons;
+		return Collections.singletonList(NaturalWeapon.bump().asItem());
 	}
 	
 	public List<Item> getArmor()
@@ -556,16 +604,87 @@ public class Actor extends SaveableEntity
 		return null;
 	}
 	
+	public Map<InventorySelectionKey, Integer> getSlotsOfItemsToMeetQuantityRequirement(ItemType itemType, int quantity)
+	{
+		Map<InventorySelectionKey, Integer> slotMap = new HashMap<InventorySelectionKey, Integer>();
+		int totalItemsFound = 0;
+		
+		Actor copy = this.clone();
+		
+		while (totalItemsFound < quantity)
+		{
+			ItemSource itemSource = copy.getFirstAvailableSourceForItem(itemType);
+			int itemIndex = copy.getIndexOfItem(itemSource, itemType);
+			int itemsLeftToRemove = quantity - totalItemsFound;
+			
+			if (itemIndex == -1)
+				break;
+			
+			Item item = new Item(ItemType.VIRTUAL_ITEM);
+			item.setAmount(0);
+			
+			if (itemSource == ItemSource.MATERIAL)
+				item = copy.removeMaterial(itemIndex, itemsLeftToRemove);
+			else if (itemSource == ItemSource.PACK)
+				item = copy.removeStoredItem(itemIndex, itemsLeftToRemove);
+			else if (itemSource == ItemSource.MAGIC)
+				item = copy.getMagicItems().removeItem(itemIndex);
+			//currently cannot give from equipped or ready items
+			
+			if (item.getType() == ItemType.VIRTUAL_ITEM)
+			{
+				Logger.warn("Cannot remove item of type [" + itemType + "] from inventory; no such item was found for item source [" + itemSource + "].");
+				break;
+			}
+			
+			int itemsRemoved = item.getAmount();
+			
+			InventorySelectionKey key = new InventorySelectionKey(itemSource, itemIndex);
+			slotMap.put(key, itemsRemoved);
+			
+			totalItemsFound += itemsRemoved;
+		}
+		
+		return slotMap;
+	}
+	
+	//TODO: right now this ignores equipped and readied items
+	private int getIndexOfItem(ItemSource itemSource, ItemType itemType)
+	{
+		Inventory retInventory;
+		Equipment retEquipment;
+		
+		switch (itemSource)	//TODO: add more if they become relevant
+		{
+		case MATERIAL:
+			retInventory = getMaterials();
+			break;
+		case PACK:
+			retInventory = getStoredItems();
+			break;
+		case MAGIC:
+			retEquipment = getMagicItems();
+			Item item = retEquipment.getFirstItemOfType(itemType);
+			return retEquipment.getIndexOfItem(item);
+		//$CASES-OMITTED$
+		default:
+			return -1;
+		}
+		
+		Item item = retInventory.getLastItemOfType(itemType);
+		return retInventory.indexOf(item);
+	}
+	
 	//TODO: right now this doesn't check held or ready items - only materials, magic items, and items in the pack
 	public int getTotalItemCount(ItemType itemType)
 	{
-		Item virtualItem = ItemFactory.generateNewItem(itemType);
+		int totalItemCount = 0;
 		
-		if (virtualItem.getInventorySlot().equals(EquipmentSlotType.MATERIAL))
-			return materials.getTotalItemsOfType(itemType);
-		else if (virtualItem.getInventorySlot().equals(EquipmentSlotType.MAGIC))
-			return magicItems.getTotalItemsOfType(itemType);
-		return storedItems.getTotalItemsOfType(itemType);
+		totalItemCount += materials.getTotalItemsOfType(itemType);
+		totalItemCount += magicItems.getTotalItemsOfType(itemType);
+		totalItemCount += storedItems.getTotalItemsOfType(itemType);
+		
+		return totalItemCount;
 	}
 	
 	public ItemSource getFirstAvailableSourceForItem(ItemType itemType)
@@ -618,12 +737,14 @@ public class Actor extends SaveableEntity
 			ssb.addToken(new SaveToken(SaveTokenTag.A_CHP, String.valueOf(curHp)));
 		if (AI != baseActor.AI)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_AI_, String.valueOf(AI)));
-		if (!defaultDamage.equals(baseActor.defaultDamage))
-			ssb.addToken(new SaveToken(SaveTokenTag.A_DAM, defaultDamage));
+		if (!naturalWeapons.equals(baseActor.naturalWeapons))
+			ssb.addToken(new SaveToken(SaveTokenTag.A_NWP, naturalWeapons.toString()));
 		if (defaultArmor != baseActor.defaultArmor)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_DAR, String.valueOf(defaultArmor)));
 		if (!defaultTalkResponse.equals(baseActor.defaultTalkResponse))
 			ssb.addToken(new SaveToken(SaveTokenTag.A_TLK, defaultTalkResponse));
+		if (facing != baseActor.facing)
+			ssb.addToken(new SaveToken(SaveTokenTag.A_FAC, facing.toString()));
 
 		saveAttributes(baseActor, ssb);
 		
@@ -688,10 +809,11 @@ public class Actor extends SaveableEntity
 		setMember(ssb, SaveTokenTag.A_RDY);
 		setMember(ssb, SaveTokenTag.A_MAG);
 		setMember(ssb, SaveTokenTag.A_TRT);
-		setMember(ssb, SaveTokenTag.A_DAM);
+		setMember(ssb, SaveTokenTag.A_NWP);
 		setMember(ssb, SaveTokenTag.A_DAR);
 		setMember(ssb, SaveTokenTag.A_TLK);
 		setMember(ssb, SaveTokenTag.A_SKL);
+		setMember(ssb, SaveTokenTag.A_FAC);
 
 		return toRet;
 	}
@@ -736,7 +858,7 @@ public class Actor extends SaveableEntity
 	{
 		List<String> toReturn = new ArrayList<String>();
 
-		for (ActorTraitType trait : traits)
+		for (ActorTrait trait : traits)
 			toReturn.add(trait.toString());
 
 		return toReturn;
@@ -903,11 +1025,11 @@ public class Actor extends SaveableEntity
 			break;
 			
 		case A_TRT:
-			traits = new HashSet<ActorTraitType>();
+			traits = new HashSet<ActorTrait>();
 			
 			for (String value : strVals)
 			{
-				traits.add(ActorTraitType.valueOf(value));
+				traits.add(ActorTrait.valueOf(value));
 			}
 			break;
 			
@@ -923,8 +1045,8 @@ public class Actor extends SaveableEntity
 			}
 			break;
 			
-		case A_DAM:
-			this.defaultDamage = contents;
+		case A_NWP:
+			this.naturalWeapons = new NaturalWeapons(contents);
 			break;
 
 		case A_DAR:
@@ -934,6 +1056,12 @@ public class Actor extends SaveableEntity
 		case A_TLK:
 			this.defaultTalkResponse = contents;
 			break;
+		
+		case A_FAC:
+			Direction direction = Direction.valueOf(contents);
+			this.facing = direction;
+			break;
+			
 		//$CASES-OMITTED$
 		default:
 			throw new IllegalArgumentException("Actor - Unhandled token: " + saveTokenTag.toString());
@@ -954,8 +1082,8 @@ public class Actor extends SaveableEntity
 
 		if (!type.equals(actor.type) || icon != actor.icon || color != actor.color || !name.equals(actor.name)
 				|| !gender.equals(actor.gender) || unique != actor.unique || maxHp != actor.maxHp || curHp != actor.curHp
-				|| AI != actor.AI || hashModifier != actor.hashModifier
-				|| defaultDamage != actor.defaultDamage || defaultArmor != actor.defaultArmor || !defaultTalkResponse.equals(actor.defaultTalkResponse))
+				|| AI != actor.AI || hashModifier != actor.hashModifier || facing != actor.facing
+				|| !naturalWeapons.equals(actor.naturalWeapons) || defaultArmor != actor.defaultArmor || !defaultTalkResponse.equals(actor.defaultTalkResponse))
 			return false;
 
 		for (int i = 0; i < TOTAL_ATTRIBUTES; i++)
@@ -1014,9 +1142,10 @@ public class Actor extends SaveableEntity
 		hash = 31 * hash + magicItems.hashCode();
 		hash = 31 * hash + traits.hashCode();
 		hash = 31 * hash + skills.hashCode();
-		hash = 31 * hash + defaultDamage.hashCode();
+		hash = 31 * hash + naturalWeapons.hashCode();
 		hash = 31 * hash + defaultArmor;
 		hash = 31 * hash + defaultTalkResponse.hashCode();
+		hash = 31 * hash + facing.toString().hashCode();
 		
 		hash = 31 * hash + hashModifier;
 

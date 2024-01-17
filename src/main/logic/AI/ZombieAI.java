@@ -1,7 +1,6 @@
 package main.logic.AI;
 
 import java.awt.Point;
-import java.util.List;
 
 import main.data.event.ActorCommand;
 import main.entity.actor.Actor;
@@ -9,8 +8,9 @@ import main.entity.zone.Zone;
 import main.logic.Direction;
 import main.logic.Line;
 import main.logic.RPGlib;
+import main.logic.AI.faction.ShadowFactionAi;
 
-public class ZombieAI extends ActorAI
+public class ZombieAI extends ShadowFactionAi
 {
 	@Override
 	public ActorCommand getNextCommand(Zone zone, Actor actor)
@@ -38,11 +38,5 @@ public class ZombieAI extends ActorAI
 			return line.getPoint(1);
 				
 		return origin;
-	}
-
-	@Override
-	protected List<AiType> getEnemyAiTypes()
-	{
-		return generateAiList(AiType.HUMAN_CONTROLLED, AiType.REPEAT_LAST_MOVE);
 	}
 }

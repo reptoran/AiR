@@ -15,8 +15,6 @@ public class SpecialLevelManager implements SaveableDataManager
 	private Map<String, Zone> generatedZones = new HashMap<String, Zone>();
 	private Map<Integer, List<String>> specialZonesByBand;
 	
-	private static final String DELIMITER = ";";
-	
 	private static SpecialLevelManager instance = null;
 	
 	private SpecialLevelManager()

@@ -18,35 +18,46 @@ public enum ActorType
 	COOK,
 	SQUAD_LEADER,
 	HUMAN,
-	ROGUE(2, 7),
-	BAT(1, 6),
-	GIANT_BAT(4, 10),
-	RAT(1, 4),
-	GIANT_RAT(3, 9),
-	RATTLESNAKE(2, 5),
-	SCORPION(3, 6),
-	BEAR(3, 6),
-	WOLF(0, 3),
-	FOX(0, 2),
-	SKELETON(6, 15),
-	ZOMBIE(8, 16),
-	WILDMAN(4, 8),
-	BANDIT(0, 0),
-	OGRE(12, 22),
-	BOSS1(15, 15);
+	RAT_KING,
+	BOSS1,
+	FOX(1),
+	RAT(1),
+	BAT(1),
+	WOLF(2),
+	BEAR(2),
+	RATTLESNAKE(2),
+	ROGUE(3),
+	GIANT_BAT(3),
+	GIANT_RAT(3),
+	WILDMAN(4),
+	GIANT_BEETLE(4),
+	BANDIT(5),
+	LIZARD(5),
+	MANIAC(6),
+	GOBLIN(6),
+	WORM_MASS(7),
+	GOBLIN_CARVER(7),
+	CAVE_CRAWLER(8),
+	DESERTER(10),
+	SKELETON(11),
+	SHADOW_SLAVE(11),
+	ZOMBIE(12),
+	OGRE(13),
+	SCORPION(90);
 	
 	private int minDepth;
 	private int maxDepth;
 	
 	private ActorType()
 	{
-		this(-1, -1);
+		this(-1);
+		maxDepth = -1;
 	}
 	
-	private ActorType(int minDepth, int maxDepth)
+	private ActorType(int minDepth)
 	{
 		this.minDepth = minDepth;
-		this.maxDepth = maxDepth;
+		this.maxDepth = minDepth + 5;
 	}
 	
 	public int getMinDepth()

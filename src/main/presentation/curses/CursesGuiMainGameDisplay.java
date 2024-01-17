@@ -5,6 +5,7 @@ import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
+import main.data.PlayerAdvancementManager;
 import main.data.event.ActorCommand;
 import main.entity.actor.Actor;
 import main.entity.item.Item;
@@ -26,6 +27,7 @@ import main.presentation.message.MessageBuffer;
 public class CursesGuiMainGameDisplay extends CursesGuiScreen
 {
 	private static final int BORDER_COLOR = COLOR_LIGHT_GREY;
+//	private static final int PLAYER_INFO_LABEL_COLOR = COLOR_DARK_GREY;
 	private static final int PLAYER_INFO_COLOR = COLOR_LIGHT_GREY;
 
 	private int displayStartRow = 2;
@@ -176,21 +178,40 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		Actor player = engine.getData().getPlayer();
 		Zone localMap = engine.getCurrentZone();
 		
+		int hpColor = getHpColor(player);
+		if (hpColor == COLOR_LIGHT_GREEN && player.getCurHp() == player.getMaxHp())
+			hpColor = PLAYER_INFO_COLOR;
+		
 		addText(23, 0, player.getName(), PLAYER_INFO_COLOR);
-		addText(23, 12, "HP: " + player.getCurHp() + "/" + player.getMaxHp(), PLAYER_INFO_COLOR);
-		addText(24, 0, "Depth: " + localMap.getDepth(), PLAYER_INFO_COLOR);
+		addText(23, 12, "HP:", PLAYER_INFO_COLOR);
+		addText(23, 16, player.getCurHp() + "/" + player.getMaxHp(), hpColor);
+		addText(23, 26, "XP:", PLAYER_INFO_COLOR);
+		addText(23, 30, PlayerAdvancementManager.getInstance().getXpString(), PLAYER_INFO_COLOR);
+		addText(23, 40, "Level:", PLAYER_INFO_COLOR);
+		addText(23, 47, String.valueOf(PlayerAdvancementManager.getInstance().getCharacterLevel()), PLAYER_INFO_COLOR);
+		addText(24, 0, "Depth:", PLAYER_INFO_COLOR);
+		addText(24, 7, String.valueOf(localMap.getDepth()), PLAYER_INFO_COLOR);
+		
+		//TODO: add character level, change XP color based on how close you are to next level
 		
 		displayEquipmentCondition(player);
 		displayMagicItems(player);
 		displayTargetHitpoints();
 	}
 	
-	private void displayTargetHitpoints()
+	private int getHpPercentage(int curHp, int totalHp)
+	{
+		int percentage = (int)(((((double)curHp) / ((double)totalHp)) * 10) + .5);
+		if (percentage < 1 && curHp > 0)
+			percentage = 1;
+		
+		return percentage;
+	}
+	
+	private int getHpColor(Actor target)
 	{
 		int curHp = 0;
 		int totalHp = 1;
-		
-		Actor target = engine.getTarget();
 		
 		if (target != null)
 		{
@@ -198,22 +219,29 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 			totalHp = target.getMaxHp();
 		}
 		
-		int percentage = (int)(((((double)curHp) / ((double)totalHp)) * 10) + .5);
-		if (percentage < 1 && curHp > 0)
-			percentage = 1;
+		int percentage = getHpPercentage(curHp, totalHp);
 			
 		Logger.debug("Target HP is " + curHp + "/" + totalHp + "; percentage is " + percentage + ".");
 		
-		int hpColor = COLOR_DARK_RED;
-		
-		if (percentage > 2)
-			hpColor = COLOR_LIGHT_RED;
-		if (percentage > 4)
-			hpColor = COLOR_YELLOW;
-		if (percentage > 6)
-			hpColor = COLOR_LIGHT_GREEN;
 		if (percentage > 8)
-			hpColor = COLOR_DARK_GREEN;
+			return COLOR_LIGHT_GREEN;
+		if (percentage > 6)
+			return COLOR_DARK_GREEN;
+		if (percentage > 4)
+			return COLOR_YELLOW;
+		if (percentage > 2)
+			return COLOR_LIGHT_RED;
+		
+		return COLOR_DARK_RED;
+	}
+
+	private void displayTargetHitpoints()
+	{
+		Actor target = engine.getTarget();
+		int percentage = 0;
+		
+		if (target != null)
+			percentage = getHpPercentage(target.getCurHp(), target.getMaxHp());
 		
 		String hpGraph = "";
 		StringBuilder builder = new StringBuilder(hpGraph);
@@ -222,7 +250,7 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		}
 		
 		addText(23, 68, "[          ]", PLAYER_INFO_COLOR);
-		addText(23, 69, builder.toString(), hpColor);
+		addText(23, 69, builder.toString(), getHpColor(target));
 	}
 	
 	private void displayEquipmentCondition(Actor player)

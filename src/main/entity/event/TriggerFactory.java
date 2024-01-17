@@ -91,6 +91,13 @@ public class TriggerFactory
 		return trigger;
 	}
 	
+	public static Trigger changeActorType(ActorType originalType, ActorType newType)
+	{
+		Trigger trigger = new Trigger(TriggerType.CHANGE_ACTOR_TYPE);
+		trigger.setDetails(originalType.name(), newType.name(), null, null);
+		return trigger;
+	}
+	
 	private static String convertCoordsToString(Point coords)
 	{
 		return coords.x + "," + coords.y;

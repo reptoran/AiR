@@ -5,7 +5,9 @@ import main.data.event.EventObserver;
 import main.data.event.InternalEvent;
 import main.entity.actor.Actor;
 import main.entity.item.Item;
+import main.entity.item.ItemFactory;
 import main.entity.item.ItemSource;
+import main.entity.item.ItemType;
 import main.entity.item.equipment.EquipmentSlotType;
 import main.entity.tile.Tile;
 import main.logic.Engine;
@@ -95,6 +97,13 @@ public class MessageGenerator implements EventObserver
 	private Item getItemFromSourceFlags(InternalEvent event)
 	{
 		Actor actor = data.getActor(event.getFlag(0));
+		
+		if (actor == null)
+		{
+			Logger.error("Null actor when trying to get an item for a message; event flag[0] was " + event.getFlag(0) + " and player index is " + data.getCurrentZone().getActorIndex(data.getPlayer()));
+			return ItemFactory.generateNewItem(ItemType.VIRTUAL_ITEM);
+		}
+		
 		ItemSource itemSource = ItemSource.fromInt(event.getFlag(1));
 		int itemIndex = event.getFlag(2);
 		return actor.getItem(itemSource, itemIndex);

@@ -12,6 +12,7 @@ public enum TriggerType
 {
 	CHANGE_HP,				//"CHANGE_HP":"10000"								adds the quantity (does not set); assumes change is to player (and distinct from the environment event type HP_CHANGE for that reason)
 	CHANGE_HP_OF_ACTOR,		//"CHANGE_HP_OF_ACTOR":"PLAYER:1"					adds the quantity (does not set); note that here, "PLAYER" is the modifier, "1" is the value
+	CHANGE_ACTOR_TYPE,		//"CHANGE_ACTOR_TYPE":"RAT":"GIANT_RAT"				invokes Actor.convertToType(), replacing the original actor with a completely new one (full HP and all) based on the new type
 	GIVE_ITEM_TO,			//"GIVE_ITEM_TO":"MEDIC:MEDICINAL_FUNGUS=2"			assumes player is giving
 	GET_ITEM_FROM,			//"GET_ITEM_FROM":"MEDIC:HEALING_SALVE=1"			assumes player is receiving
 	CONSUME_ITEM,			//"CONSUME_ITEM":"PLAYER:MEDICINAL_FUNGUS=1"		makes an item (or stack of items) owned by the actor to disappear (rather than dealing damage to those items)

@@ -33,15 +33,19 @@ public class ItemGroup
 		return group;
 	}
 
-	@Override
+	@Override	//this feels like terrible programming practice, but I want a very board definition of "equality" for this, and right now the equals() implementation SHOULD be sufficient
 	public int hashCode()
+	{
+		return 1;
+	}
+	/*
 	{
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((itemsInGroup == null) ? 0 : itemsInGroup.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		return result;
-	}
+	}*/
 
 	@Override
 	public boolean equals(Object obj)
@@ -88,9 +92,18 @@ public class ItemGroup
 	{
 		ItemGroup group = new ItemGroup("bladed weapons");
 		
-		group.addItem(ItemType.KNIFE);
-		group.addItem(ItemType.AXE);
-		group.addItem(ItemType.SWORD);
+		for (ItemType type : ItemType.values())
+		{
+			try
+			{
+				Item itemToCheck = ItemFactory.generateNewItem(type);
+				if (itemToCheck.hasTrait(ItemTrait.SHARP))
+					group.addItem(type);
+			} catch (IllegalArgumentException iae)
+			{
+				continue;
+			}
+		}
 		
 		return group;
 	}
@@ -101,7 +114,6 @@ public class ItemGroup
 		
 		for (ItemType type : ItemType.values())
 		{
-			
 			try
 			{
 				Item itemToCheck = ItemFactory.generateNewItem(type);

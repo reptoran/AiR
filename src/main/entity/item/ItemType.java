@@ -44,6 +44,7 @@ public enum ItemType
 	//materials
 	MEDICINAL_FUNGUS(0, 100, ItemRarity.VERY_COMMON),
 	METAL_SHARD(0, 100, ItemRarity.COMMON),
+	VALUABLE(0, 100, ItemRarity.UNCOMMON),
 	
 	//magic items
 	HEALING_SALVE(0, 100, ItemRarity.RARE);

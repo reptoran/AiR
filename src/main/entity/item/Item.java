@@ -2,7 +2,9 @@ package main.entity.item;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import main.entity.EntityType;
 import main.entity.SaveableEntity;
@@ -30,14 +32,15 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	private int size = 0;		//TODO: possibly remove this, since I think this is covered by bulk now
 	private int amount = 1;
 	private EquipmentSlotType inventorySlot = EquipmentSlotType.ANY;
+	private Set<ItemTrait> traits = new HashSet<ItemTrait>();
 	
 	private int maxHp = 1;
 	private int curHp = 1;
 	
 	private int CR = 0;
 	private int AR = 0;
-	private int DR = 0;
 	
+	private ItemMaterial material;
 	private boolean isUpgraded = false;
 	
 	@Override
@@ -57,9 +60,14 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		toRet.curHp = curHp;
 		toRet.AR = AR;
 		toRet.CR = CR;
-		toRet.DR = DR;
+		toRet.material = material;
 		toRet.isUpgraded = isUpgraded;
 		toRet.upgradedBy = upgradedBy;
+		
+		for (ItemTrait trait : traits)
+		{
+			toRet.traits.add(trait);
+		}
 		
 		return toRet;
 	}
@@ -96,14 +104,20 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		this.curHp = baseItem.curHp;
 		this.AR = baseItem.AR;
 		this.CR = baseItem.CR;
-		this.DR = baseItem.DR;
+		this.material = baseItem.material;
 		this.isUpgraded = baseItem.isUpgraded;
 		this.upgradedBy = baseItem.upgradedBy;
+		
+		for (ItemTrait trait : baseItem.traits)
+		{
+			this.traits.add(trait);
+		}
 	}
 	
 	public Item(ItemType type)
 	{
 		this.type = type;
+		this.traits.clear();
 	}
 	
 	public String getNameOnGround()
@@ -153,9 +167,26 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		else if (isShield())
 			suffix = " (" + CR + ")";
 		else if (isArmor())
-			suffix = " [" + AR + "]";
+			suffix = " [" + getARAdjustedForCondition() + "]";
 		
 		return suffix + " {" + (int)(getConditionModifer() * 100) + "%}";
+	}
+	
+	//TODO: haven't found a representation I like yet, so we'll just show the real AR for now
+	private String getModifiedARString()
+	{
+		int difference = AR - getARAdjustedForCondition();
+		
+		if (difference == 0)
+			return String.valueOf(AR);
+		
+		return String.valueOf(AR) + "-" + difference;
+	}
+	
+	public int getARAdjustedForCondition()
+	{
+		double arAdjustment = AR * getConditionModifer();
+		return (int) Math.ceil(arAdjustment);
 	}
 	
 	public boolean isWeapon()
@@ -218,6 +249,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		return inventorySlot.getBulk();
 	}
 	
+	//TODO: currently only materials can have a stack greater than 1; at some point ammunition may get that treatment as well
 	public int getMaxStackSize()
 	{
 		switch (inventorySlot)
@@ -355,12 +387,20 @@ public class Item extends SaveableEntity implements Comparable<Item>
 
 	public int getDR()
 	{
-		return DR;
+		if (material == null)
+			return 0;
+		
+		return material.getDR();
 	}
 
-	public void setDR(int dR)
+	public void setMaterial(ItemMaterial itemMaterial)
 	{
-		DR = dR;
+		material = itemMaterial;
+	}
+	
+	public ItemMaterial getMaterial()
+	{
+		return material;
 	}
 
 	public ItemType getType()
@@ -412,6 +452,26 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	{
 		return upgradedBy;
 	}
+	
+	public boolean addTrait(ItemTrait trait)
+	{
+		return traits.add(trait);
+	}
+	
+	public boolean hasTrait(ItemTrait trait)
+	{
+		return traits.contains(trait);
+	}
+	
+	private List<String> convertTraitsToList()
+	{
+		List<String> toReturn = new ArrayList<String>();
+
+		for (ItemTrait trait : traits)
+			toReturn.add(trait.toString());
+
+		return toReturn;
+	}
 
 	@Override
 	public String saveAsText()
@@ -443,9 +503,12 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		if (curHp != baseItem.curHp) ssb.addToken(new SaveToken(SaveTokenTag.I_CHP, String.valueOf(curHp)));
 		if (CR != baseItem.CR) ssb.addToken(new SaveToken(SaveTokenTag.I_CR_, String.valueOf(CR)));
 		if (AR != baseItem.AR) ssb.addToken(new SaveToken(SaveTokenTag.I_AR_, String.valueOf(AR)));
-		if (DR != baseItem.DR) ssb.addToken(new SaveToken(SaveTokenTag.I_DR_, String.valueOf(DR)));
+		if (material != baseItem.material) ssb.addToken(new SaveToken(SaveTokenTag.I_MAT, String.valueOf(material)));
 		if (isUpgraded != baseItem.isUpgraded) ssb.addToken(new SaveToken(SaveTokenTag.I_UPG, String.valueOf(isUpgraded)));
 		if (upgradedBy != baseItem.upgradedBy) ssb.addToken(new SaveToken(SaveTokenTag.I_UPB, type.toString()));
+		
+		if (!traits.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.I_TRT, convertTraitsToList()));
 				
 		return ssb.getSaveString();
 	}
@@ -470,9 +533,10 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		setMember(ssb, SaveTokenTag.I_CHP);
 		setMember(ssb, SaveTokenTag.I_CR_);
 		setMember(ssb, SaveTokenTag.I_AR_);
-		setMember(ssb, SaveTokenTag.I_DR_);
+		setMember(ssb, SaveTokenTag.I_MAT);
 		setMember(ssb, SaveTokenTag.I_UPG);
 		setMember(ssb, SaveTokenTag.I_UPB);
+		setMember(ssb, SaveTokenTag.I_TRT);
 		
 		return toRet;
 	}
@@ -489,6 +553,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	{
 		String contents = getContentsForTag(ssb, saveTokenTag);
 		int intContents = getIntContentsForTag(ssb, saveTokenTag);
+		List<String> strVals = getContentSetForTag(ssb, saveTokenTag);
 		
 		if (contents.equals("")) return;
 		
@@ -549,8 +614,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 				this.AR = intContents;
 				break;
 				
-			case I_DR_:
-				this.DR = intContents;
+			case I_MAT:
+				this.material = ItemMaterial.valueOf(contents);
 				break;
 
 			case I_UPG:
@@ -559,6 +624,15 @@ public class Item extends SaveableEntity implements Comparable<Item>
 
 			case I_UPB:
 				this.upgradedBy = ItemType.valueOf(contents);
+				break;
+				
+			case I_TRT:
+				traits = new HashSet<ItemTrait>();
+				
+				for (String value : strVals)
+				{
+					traits.add(ItemTrait.valueOf(value));
+				}
 				break;
 				
 			default:
@@ -573,7 +647,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		int result = 1;
 		result = prime * result + AR;
 		result = prime * result + CR;
-		result = prime * result + DR;
+		result = prime * result + ((material == null) ? 0 : material.hashCode());
 		result = prime * result + color;
 		result = prime * result + curHp;
 		result = prime * result + ((damage == null) ? 0 : damage.hashCode());
@@ -585,6 +659,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		result = prime * result + (isUpgraded ? 1 : 0);
 		result = prime * result + ((upgradedBy == null) ? 0 : upgradedBy.hashCode());
+		result = prime * result + traits.hashCode();
 		return result;
 	}
 
@@ -602,7 +677,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 			return false;
 		if (CR != other.CR)
 			return false;
-		if (DR != other.DR)
+		if (material != other.material)
 			return false;
 		if (color != other.color)
 			return false;
@@ -633,6 +708,9 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		if (isUpgraded != other.isUpgraded)
 			return false;
 		if (upgradedBy != other.upgradedBy)
+			return false;
+
+		if (!traits.equals(other.traits))
 			return false;
 		
 		return true;

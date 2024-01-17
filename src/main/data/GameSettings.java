@@ -14,6 +14,7 @@ public class GameSettings
 		
 		settings = new HashMap<SettingType, Object>();
 		settings.put(SettingType.SHOW_FOG, false);
+		settings.put(SettingType.SHOW_FACING, false);
 		settings.put(SettingType.ZIP_CACHED_FILES, true);
 	}
 	

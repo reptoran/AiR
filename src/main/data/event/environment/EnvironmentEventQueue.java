@@ -6,7 +6,7 @@ import java.util.List;
 import main.data.event.Queue;
 import main.entity.Queueable;
 import main.entity.actor.Actor;
-import main.entity.actor.ActorTraitType;
+import main.entity.actor.ActorTrait;
 
 public class EnvironmentEventQueue extends Queue {
 	private static int instatiatedQueues = 0;
@@ -40,7 +40,7 @@ public class EnvironmentEventQueue extends Queue {
 	{
 		super.add(new ActorTurnEvent(actor, this));
 		
-		if (actor.hasTrait(ActorTraitType.HP_REGEN))
+		if (actor.hasTrait(ActorTrait.HP_REGEN))
 			super.add(new HitpointRegenEvent(actor, this));
 	}
 	
