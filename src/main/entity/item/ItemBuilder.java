@@ -18,22 +18,22 @@ public class ItemBuilder
 	
 	public static ItemBuilder generateArmor(ItemType type)
 	{
-		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMOR).setUpgradedBy(ItemType.METAL_SHARD).setIcon('[');
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMOR).setUpgradedBy(ItemType.SCRAP).setIcon('[');
 	}
 	
 	public static ItemBuilder generateShield(ItemType type)
 	{
-		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMAMENT).setUpgradedBy(ItemType.METAL_SHARD).setIcon('(');
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMAMENT).setUpgradedBy(ItemType.SCRAP).setIcon('(');
 	}
 	
 	public static ItemBuilder generateWeapon(ItemType type, String damage)
 	{
-		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMAMENT).setUpgradedBy(ItemType.METAL_SHARD).setIcon('/').setDamage(damage);
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.ARMAMENT).setUpgradedBy(ItemType.SCRAP).setIcon('/').setDamage(damage);
 	}
 	
-	public static ItemBuilder generateMaterial(ItemType type)
+	public static ItemBuilder generateComponent(ItemType type)
 	{
-		return new ItemBuilder(type).setSlot(EquipmentSlotType.MATERIAL);
+		return new ItemBuilder(type).setSlot(EquipmentSlotType.COMPONENT);
 	}
 	
 	public static ItemBuilder generateMagicItem(ItemType type)
@@ -62,6 +62,12 @@ public class ItemBuilder
 	public ItemBuilder setPlural(String plural)
 	{
 		item.setPlural(plural);
+		return this;
+	}
+	
+	public ItemBuilder setArticle(String article)
+	{
+		item.setArticle(article);
 		return this;
 	}
 	

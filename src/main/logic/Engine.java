@@ -49,12 +49,11 @@ import main.presentation.message.MessageGenerator;
 
 public class Engine
 {
-	public static final int ACTOR_SIGHT_RADIUS = 12;
-	
 	private Data gameData; // remember that the presentation layer can't see this; it can only see what the logic layer provides
 	private List<EventObserver> eventObservers;
 //	private AbstractCombatAttackCalculator combatAttackCalculator = ClassicCombatAttackCalculator.getInstance();
 	private AbstractCombatAttackCalculator combatAttackCalculator = CombatAttackCalculator.getInstance();
+	private ActorSightUtil actorSightUtil = ActorSightUtil.getInstance();
 
 	private boolean acceptInput = false;
 	
@@ -162,7 +161,7 @@ public class Engine
 			
 			Actor target = potentialTargets.get(0);
 			Point targetLocation = currentZone.getCoordsOfActor(target);
-			return RPGlib.convertCoordChangeToDirection(targetLocation.x - playerLocation.x, targetLocation.y - playerLocation.y);
+			return Direction.fromCoords(targetLocation.x - playerLocation.x, targetLocation.y - playerLocation.y);
 		}
 		
 		return Direction.DIRNONE;
@@ -229,9 +228,13 @@ public class Engine
 	
 	private void refreshPlayerFov(Actor playerActor)
 	{
-		Zone currentZone = gameData.getCurrentZone();
-		currentZone.resetVisible();
-		ActorSightUtil.updateFieldOfView(currentZone, currentZone.getCoordsOfActor(playerActor), ACTOR_SIGHT_RADIUS);	//TODO: base this on perception, and update that as it changes
+		if (!isWorldTravel())
+		{
+			Zone currentZone = gameData.getCurrentZone();
+			currentZone.resetVisible();
+			actorSightUtil.updateFieldOfView(currentZone, playerActor);
+		}
+		
 		UiManager.getInstance().refreshInterface();
 	}
 	
@@ -242,7 +245,9 @@ public class Engine
 		
 		Zone currentZone = gameData.getCurrentZone();
 		Point actorCoords = currentZone.getCoordsOfActor(actor);
-		return ActorSightUtil.losExists(currentZone, currentZone.getCoordsOfActor(gameData.getPlayer()), actorCoords, ACTOR_SIGHT_RADIUS);
+		AwarenessStatus status = new AwarenessStatus(currentZone, gameData.getPlayer(), actorCoords);
+		
+		return status.isTargetActorVisible();
 	}
 
 	private void runEnvironmentEvents()
@@ -266,6 +271,7 @@ public class Engine
 			ActorTurnEvent turnEvent = (ActorTurnEvent) event;
 			
 			Actor curActor = turnEvent.getActor();
+			curActor.resetNoiseMadeLastTurn();		//TODO: This *really* needs to be in Data, since it's changing an entity
 			Logger.debug("AI Actor " + curActor.getName() + " is taking a turn.");
 			int actorIndex = gameData.getActorIndex(curActor);
 			
@@ -394,7 +400,7 @@ public class Engine
 			return null;
 		}
 		
-		if (item.getInventorySlot().equals(EquipmentSlotType.MATERIAL) && !actor.getMaterials().hasSpaceForItem(item)) 
+		if (item.getInventorySlot().equals(EquipmentSlotType.COMPONENT) && !actor.getComponents().hasSpaceForItem(item)) 
 		{
 			MessageBuffer.addMessageIfHuman("There's no room in your pouch for " + item.getNameOnGround() + ".", actor.getAI());
 			return null;
@@ -439,8 +445,8 @@ public class Engine
 		{
 		case PACK:
 			return actor.getStoredItems().get(itemIndex);
-		case MATERIAL:
-			return actor.getMaterials().get(itemIndex);
+		case COMPONENT:
+			return actor.getComponents().get(itemIndex);
 		case EQUIPMENT:
 			return actor.getEquipment().getItem(itemIndex);
 		case MAGIC:
@@ -546,7 +552,7 @@ public class Engine
 			return false;
 		}
 		
-		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the use%1s " + itemToUse.getName() + " on " + targetString + ".").setSource(actor).setTarget(targetActor).format());	//TODO: set visibility
+		MessageBuffer.addMessage(new FormattedMessageBuilder("@1the use%1s " + itemToUse.getNameOnGround() + " on " + targetString + ".").setSource(actor).setTarget(targetActor).format());	//TODO: set visibility
 		
 		for (EnvironmentEvent event : eventsToTrigger)
 		{
@@ -587,7 +593,7 @@ public class Engine
 		
 		if (itemToUpgrade.getUpgradedBy() != enhancingItemType)
 		{
-			MessageBuffer.addMessageIfHuman("You can't upgrade that item with that material.", actor.getAI());
+			MessageBuffer.addMessageIfHuman("You can't upgrade that item with that component.", actor.getAI());
 			return null;
 		}
 		
@@ -622,7 +628,7 @@ public class Engine
 		{
 			event.setActionCost(actor.getMovementCost());
 		}
-		else if (item.getBulk() > 0)	//note that this excludes magic items and materials
+		else if (item.getBulk() > 0)	//note that this excludes magic items and components
 		{
 			event.setActionCost(actor.getMovementCost() * item.getBulk());
 			
@@ -732,7 +738,7 @@ public class Engine
 	
 	private Point getPointInDirection(Point origin, Direction direction)
 	{
-		Point coordChange = RPGlib.convertDirectionToCoordChange(direction);
+		Point coordChange = direction.getCoordChange();
 		return new Point(origin.x + coordChange.x, origin.y + coordChange.y);
 	}
 
@@ -753,6 +759,11 @@ public class Engine
 			return resolveAttackInternalEvent(event);
 		
 		sendEventToObservers(event);
+		
+		//certain moves should result in the actor changing direction afterward, like hitting a corner in a hallway
+		if (event.getInternalEventType() == InternalEventType.LOCAL_MOVE)
+			sendchangeFacingEventIfMovingToWall(event, direction);
+		
 		return event.getActionCost();
 	}
 
@@ -786,7 +797,7 @@ public class Engine
 			return null;
 		}
 
-		Point coordChange = RPGlib.convertDirectionToCoordChange(direction);
+		Point coordChange = direction.getCoordChange();
 		
 		int x2 = origin.x + coordChange.x;
 		int y2 = origin.y + coordChange.y;
@@ -892,5 +903,47 @@ public class Engine
 			combatAttackCalculator.handleAttack(attacker, attackerWeapons.remove(0), defender);
 		
 		return attacker.getMovementCost();		//TODO: for now, assume that no matter how many attacks an actor has, it only takes up one "turn" 
+	}
+	
+	private void sendchangeFacingEventIfMovingToWall(InternalEvent event, Direction direction)
+	{
+		int actorIndex = event.getFlag(0);
+		int targetRow = event.getFlag(1);
+		int targetCol = event.getFlag(2);
+		Point coordChange = direction.getCoordChange();
+		
+		Tile tileToCheck = getCurrentZone().getTile(targetRow + coordChange.x, targetCol + coordChange.y);
+		
+		if (tileToCheck != null && !tileToCheck.obstructsSight())	// a null tile is treated as a sight obstruction
+			return;
+		
+		Direction exitDirection = null;
+		
+		// Right now, just checking if the actor has hit a bend in the hallway
+		for (Direction directionToCheck : Direction.values())
+		{
+			//don't consider the direction the actor just came from, or no direction at all
+			if (directionToCheck == direction.getOppositeDirection() || directionToCheck == Direction.DIRNONE)
+				continue;
+			
+			coordChange = directionToCheck.getCoordChange();
+			tileToCheck = getCurrentZone().getTile(targetRow + coordChange.x, targetCol + coordChange.y);
+			
+			if (tileToCheck == null || tileToCheck.obstructsMotion())	//motion, not sight, because we're only considering going around a corner
+				continue;
+			
+			//more than one exit, so don't worry about facing updates
+			if (exitDirection != null)
+				return;
+			
+			exitDirection = directionToCheck;
+		}
+		
+		if (exitDirection != null)
+			sendEventToObservers(InternalEvent.changeActorFacingEvent(actorIndex, exitDirection));
+		
+		//TODO: Any more than the above is tricky from both a player and an NPC perspective.  The player is always going to want to see as much as possible, of
+		//		course, so it makes sense to always turn them in a way that sees as much open space as possible.  However, if the player is trying to backstab a
+		//		monster, they DON'T want the monster to turn, because it would mean things like the monster whipping around as soon as they hit a T intersection.		
 	}
 }

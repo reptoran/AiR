@@ -75,6 +75,21 @@ public class Overworld extends SaveableEntity
 	{
 		return getTile(coords.x, coords.y);
 	}
+	
+	public void setTile(int row, int column, WorldTile tile)
+	{
+		if (row < 0 || row >= height || column < 0 || column >= width)
+		{
+			return;
+		}
+		
+		tiles[row][column] = tile;
+	}
+	
+	public void setTile(Point coords, WorldTile tile)
+	{
+		setTile(coords.x, coords.y, tile);
+	}
 
 	public int getHeight()
 	{

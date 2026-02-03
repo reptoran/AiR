@@ -41,13 +41,18 @@ public enum ItemType
 	LARGE_SHIELD(10, 20, ItemRarity.UNCOMMON),
 	TOWER_SHIELD(15, 25, ItemRarity.RARE),
 	
-	//materials
-	MEDICINAL_FUNGUS(0, 100, ItemRarity.VERY_COMMON),
-	METAL_SHARD(0, 100, ItemRarity.COMMON),
+	//components
+	HERB(0, 100, ItemRarity.VERY_COMMON),
+	SCRAP(0, 100, ItemRarity.COMMON),
 	VALUABLE(0, 100, ItemRarity.UNCOMMON),
+	FUEL(0, 100, ItemRarity.COMMON),
+	AMMO(0, 100, ItemRarity.VERY_COMMON),
 	
 	//magic items
-	HEALING_SALVE(0, 100, ItemRarity.RARE);
+	HEALING_SALVE(0, 100, ItemRarity.RARE),
+	
+	//quest items
+	ANCIENT_TABLET;
 	
 	private int minDepth;
 	private int maxDepth;

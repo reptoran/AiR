@@ -24,10 +24,10 @@ public abstract class AbstractInventorySingleItemEvent extends AbstractEnvironme
 		ItemSource source = null;
 		int index = -1;
 		
-		if (actor.getIndexOfMaterial(inventoryItem) != -1)
+		if (actor.getIndexOfComponent(inventoryItem) != -1)
 		{
-			source = ItemSource.MATERIAL;
-			index = actor.getIndexOfMaterial(inventoryItem);
+			source = ItemSource.COMPONENT;
+			index = actor.getIndexOfComponent(inventoryItem);
 		}
 		else if (actor.getIndexOfMagicItem(inventoryItem) != -1)
 		{

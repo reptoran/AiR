@@ -2,6 +2,7 @@ package main.entity.tile;
 
 import java.text.ParseException;
 
+import main.data.DataAccessor;
 import main.data.GameSettings;
 import main.data.SettingType;
 import main.entity.EntityType;
@@ -28,7 +29,8 @@ public class Tile extends FieldCoord
 	private int rememberedColor = 0;
 	private char fogIcon = ' ';
 
-	private static final int FOG_COLOR = 7;
+//	private static final int FOG_COLOR = 7;
+	private static final int FOG_COLOR = 1;
 
 	public Tile()
 	{
@@ -145,7 +147,11 @@ public class Tile extends FieldCoord
 
 	private void setFogIcon()
 	{
-		fogIcon = getIcon();
+		//needed so the player doesn't leave a shadow due to not being able to see behind them
+		if (actorHere == DataAccessor.getInstance().getPlayer())
+			fogIcon = getIcon(true);
+		else
+			fogIcon = getIcon(false);
 	}
 
 	private void setRememberedIcon()
@@ -166,13 +172,18 @@ public class Tile extends FieldCoord
 	@Override
 	public char getIcon()
 	{
+		return getIcon(false);
+	}
+	
+	public char getIcon(boolean ignoreActor)
+	{
 		if (!seen)
 			return ' ';
 
 		if (seen && !visible)
 			return rememberedIcon();
 
-		if (actorHere != null && visible)
+		if (!ignoreActor && actorHere != null && visible)
 			return actorHere.getIcon();
 
 		if (itemHere != null && visible)

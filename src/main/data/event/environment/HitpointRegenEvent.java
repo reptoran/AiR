@@ -6,6 +6,7 @@ import java.util.List;
 import main.data.DataAccessor;
 import main.data.event.InternalEvent;
 import main.entity.actor.Actor;
+import main.entity.actor.SkillType;
 
 public class HitpointRegenEvent extends RecurringEnvironmentEvent
 {	
@@ -18,7 +19,32 @@ public class HitpointRegenEvent extends RecurringEnvironmentEvent
 	@Override
 	public List<InternalEvent> trigger()
 	{
-		recur(100);	//TODO: base on actor's toughness
+		int recurTicks;
+		
+		switch(actor.getSkillRank(SkillType.HEALING)) 
+		{
+		case NOVICE:
+			recurTicks = 100;
+			break;
+		case ADEPT:
+			recurTicks = 80;
+			break;
+		case EXPERT:
+			recurTicks = 60;
+			break;
+		case MASTER:
+			recurTicks = 40;
+			break;
+		case UNSKILLED:
+			recurTicks = 500;
+			break;
+		case UNKNOWN:
+		default:
+			recurTicks = 5000;
+			break;
+		}
+		
+		recur(recurTicks);
 		
 		List<InternalEvent> eventList = new ArrayList<InternalEvent>();
 		

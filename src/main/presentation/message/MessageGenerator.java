@@ -53,7 +53,7 @@ public class MessageGenerator implements EventObserver
 			
 			if (internalEvent.getValue().equals(ItemSource.READY.name()))	//TODO: the grammar here (and elsewhere in the file) is bad for non-players ("readys"), but fixing it requires work in FormattedMessageBuilder
 				MessageBuffer.addMessage(new FormattedMessageBuilder("@1the read%1[y|ies] " + item.getNameOnGround() + ".").setSource(actor).setSourceVisibility(engine.canPlayerSeeActor(actor)).format());
-			else if (item.getInventorySlot() == EquipmentSlotType.MATERIAL)
+			else if (item.getInventorySlot() == EquipmentSlotType.COMPONENT)
 				MessageBuffer.addMessage(new FormattedMessageBuilder("@1the collect%1s " + item.getNameOnGround() + ".").setSource(actor).setSourceVisibility(engine.canPlayerSeeActor(actor)).format());
 			else if (item.getInventorySlot() == EquipmentSlotType.MAGIC && actor.getMagicItems().hasEmptySlotAvailable(EquipmentSlotType.MAGIC))	//I hate that this logic is here, but for now it's how it has to be
 				MessageBuffer.addMessage(new FormattedMessageBuilder("@1the pick%1s up " + item.getNameOnGround() + " and prepare%1s it.").setSource(actor).setSourceVisibility(engine.canPlayerSeeActor(actor)).format());

@@ -39,6 +39,18 @@ public class EmptyEquipmentImpl implements Equipment
 	{
 		return -1;
 	}
+
+	@Override
+	public int getTotalBulk()
+	{
+		return 0;
+	}
+
+	@Override
+	public int getEquippedItemCount()
+	{
+		return 0;
+	}
 	
 	@Override
 	public List<Item> getWeapons()

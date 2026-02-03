@@ -92,7 +92,7 @@ public class ClassicCombatAttackCalculator extends AbstractCombatAttackCalculato
 		{
 			if (canSeeTarget)
 				MessageBuffer.addMessage(new FormattedMessageBuilder("@1the is killed!").setSource(defender).setSourceVisibility(canSeeTarget).format());
-			data.receiveInternalEvent(InternalEvent.deathInternalEvent(data.getActorIndex(defender)));
+			sendEventToObservers(InternalEvent.deathInternalEvent(data.getActorIndex(defender)));
 			
 			awardKillExperience(attacker, defender);
 		}
@@ -194,7 +194,7 @@ public class ClassicCombatAttackCalculator extends AbstractCombatAttackCalculato
 			if (armorDestroyed)
 			{
 				sendEventToObservers(InternalEvent.deleteHeldItemInternalEvent(data.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), 1));
-				sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.METAL_SHARD, data.getCurrentZone().getCoordsOfActor(defender), 1));
+				sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.SCRAP, data.getCurrentZone().getCoordsOfActor(defender), 1));
 			}
 			
 			String effect = getDescriptionOfCondition(armorDestroyed, armor.getConditionModifer(), armorConditionBeforeAttack);
@@ -212,7 +212,7 @@ public class ClassicCombatAttackCalculator extends AbstractCombatAttackCalculato
 			if (weaponDestroyed)
 			{
 				sendEventToObservers(InternalEvent.deleteHeldItemInternalEvent(data.getActorIndex(attacker), attacker.getIndexOfEquippedItem(weapon), 1));
-				sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.METAL_SHARD, data.getCurrentZone().getCoordsOfActor(attacker), 1));
+				sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.SCRAP, data.getCurrentZone().getCoordsOfActor(attacker), 1));
 			}
 			
 			String effect = getDescriptionOfCondition(weaponDestroyed, weapon.getConditionModifer(), weaponConditionBeforeAttack);

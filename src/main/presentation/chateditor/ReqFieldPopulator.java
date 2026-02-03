@@ -61,12 +61,27 @@ public class ReqFieldPopulator extends AbstractFieldPopulator
 			addStringOperators();
 			addQuestNodeComparisons();
 			break;
+		case QUEST_NODE_COMPLETE:
+			disableModifiers();
+			disableValues();
+			enableComparisons();
+			addStringOperators();
+			addQuestNodeComparisons();
+			break;
 		case QUEST_NOT_STARTED:
 			disableModifiers();
 			disableValues();
 			enableComparisons();
 			addExactOperator();
 			addQuestComparisons();
+			break;
+		case ACTOR_COUNT_IN_ZONE:
+			enableModifiers();
+			addActorModifiers();
+			enableValues();
+			addItemValues();
+			addIntOperators();
+			clearComparisons();
 			break;
 		default:
 			break;

@@ -65,6 +65,12 @@ public class ActorBuilder
 		return this;
 	}
 	
+	public ActorBuilder setCategory(ActorCategory category)
+	{
+		actor.setCategory(category);
+		return this;
+	}
+	
 	public ActorBuilder setGender(GenderType gender)
 	{
 		actor.setGender(gender);
@@ -93,6 +99,14 @@ public class ActorBuilder
 	{
 		Item item = ItemFactory.generateNewItem(itemType);
 		actor.equipItem(item, slotIndex);
+		return this;
+	}
+	
+	public ActorBuilder give(ItemType itemType, int quantity)
+	{
+		Item item = ItemFactory.generateNewItem(itemType);
+		item.setAmount(quantity);
+		actor.receiveItem(item);
 		return this;
 	}
 	
@@ -155,6 +169,12 @@ public class ActorBuilder
 	public ActorBuilder setSkill(SkillType skill, int level)
 	{
 		actor.setSkill(skill, level);
+		return this;
+	}
+	
+	public ActorBuilder setSkill(SkillType skill, SkillRank rank)
+	{
+		actor.setSkill(skill, rank.getLevel());
 		return this;
 	}
 }

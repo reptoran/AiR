@@ -31,6 +31,11 @@ public class DataAccessor
 		return data.getAI(aiType);
 	}
 	
+	public Actor getPlayer()
+	{
+		return data.getPlayer();
+	}
+	
 	public Actor getActorFromIndex(int actorIndex)
 	{
 		return data.getActor(actorIndex);

@@ -6,7 +6,7 @@ public enum EquipmentSlotType
 	ANY(1),
 	ARMOR(10),
 	ARMAMENT(4),
-	MATERIAL(0),
+	COMPONENT(0),
 	MAGIC(1);
 	
 	private int bulk;

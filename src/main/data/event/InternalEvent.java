@@ -45,6 +45,13 @@ public class InternalEvent
 		return toRet;
 	}
 	
+	public static InternalEvent makeNoiseEvent(int actorIndex, int noiseProduced)
+	{
+		InternalEvent toRet = actorOnlyInternalEvent(InternalEventType.MAKE_NOISE, actorIndex);
+		toRet.flags[1] = noiseProduced;
+		return toRet;
+	}
+	
 	private static InternalEvent actorOnlyInternalEvent(InternalEventType internalEventType, int actorIndex)
 	{
 		InternalEvent toRet = new InternalEvent(internalEventType);

@@ -60,6 +60,42 @@ public abstract class AbstractEquipment implements Equipment
 		
 		return -1;
 	}
+	
+	@Override
+	public int getTotalBulk()
+	{
+		int totalBulk = 0;
+		
+		for (int i = 0; i < TOTAL_SLOTS; i++)
+		{
+			Item item = equipmentSlots[i].getItem();
+			
+			if (item == null)
+				continue;
+			
+			totalBulk += item.getBulk();
+		}
+		
+		return totalBulk;
+	}
+	
+	@Override
+	public int getEquippedItemCount()
+	{
+		int totalItems = 0;
+		
+		for (int i = 0; i < TOTAL_SLOTS; i++)
+		{
+			Item item = equipmentSlots[i].getItem();
+			
+			if (item == null)
+				continue;
+			
+			totalItems++;
+		}
+		
+		return totalItems;
+	}
 
 	@Override
 	public List<EquipmentSlot> getEquipmentSlots()

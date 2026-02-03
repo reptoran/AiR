@@ -4,22 +4,31 @@ import java.util.List;
 
 import main.data.event.InternalEvent;
 import main.entity.actor.Actor;
+import main.entity.actor.SkillRank;
+import main.entity.actor.SkillType;
 import main.entity.item.InventorySelectionKey;
 import main.entity.item.Item;
 import main.entity.item.ItemSource;
 import main.entity.item.ItemTrait;
 import main.entity.item.ItemType;
 import main.entity.zone.Zone;
-import main.logic.ActorSightUtil;
-import main.logic.Engine;
+import main.logic.AwarenessStatus;
 import main.logic.RPGlib;
 import main.logic.AI.FacingCalculator;
-import main.presentation.Logger;
 import main.presentation.message.FormattedMessageBuilder;
 import main.presentation.message.MessageBuffer;
 
 public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 {
+	private static final int CRITICAL_HIT_NOISE = 0;
+	private static final int HIT_ON_NATURAL_ARMOR_NOISE = 2;
+	private static final int HIT_ON_WORN_ARMOR_NOISE = 4;
+	private static final int HIT_ON_UPGRADED_ARMOR_NOISE = 6;
+	private static final int HIT_ON_SHIELD_NOISE = 8;
+
+	private static final int PARTIAL_DAMAGE_RECEIVED_NOISE = 2;
+	private static final int FULL_DAMAGE_RECEIVED_NOISE = 4;
+	
 	private static CombatAttackCalculator instance = null;
 	
 	private CombatAttackCalculator() {}
@@ -45,9 +54,10 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 		
 		boolean canSeeSource = engine.canPlayerSeeActor(attacker);
 		boolean canSeeTarget = engine.canPlayerSeeActor(defender);
+		boolean isCriticalHit = isCriticalHit(attacker, defender);
 		
 		//calculate base damage
-		int rawDamage = RPGlib.roll(attackingWeapon.getDamage());
+		int rawDamage = RPGlib.roll(attackingWeapon.getDamage(), isCriticalHit);		
 		
 		//check shields (ignore if no armaments with CR, ignore if attacker is unseen, ignore if attacker is beside, diagonally behind, or behind)
 		if (defenderCanParry(attacker, defender))
@@ -78,6 +88,9 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 		//damage defender
 		damageDefender(attacker, defender, attackingWeapon, armor, rawDamage, canSeeSource, canSeeTarget);
 		
+		if (isCriticalHit && engine.canPlayerSeeActor(attacker))
+			MessageBuffer.addMessage("It was a critical hit!");
+		
 		//deal with armor damage after actor damage so the messages are in the right order
 		if (armor != null)
 			damageArmorAndWeapon(attacker, defender, attackingWeapon, armor, rawDamage, canSeeSource, canSeeTarget);
@@ -87,7 +100,7 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 		{
 			if (canSeeTarget)
 				MessageBuffer.addMessage(new FormattedMessageBuilder("@1the is killed!").setSource(defender).setSourceVisibility(canSeeTarget).format());
-			data.receiveInternalEvent(InternalEvent.deathInternalEvent(data.getActorIndex(defender)));
+			sendEventToObservers(InternalEvent.deathInternalEvent(data.getActorIndex(defender)));
 			
 			awardKillExperience(attacker, defender);
 		}
@@ -97,9 +110,30 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 		}
 	}
 
+	public boolean isCriticalHit(Actor attacker, Actor defender)
+	{
+		SkillRank stealth = attacker.getSkillRank(SkillType.STEALTH);
+		
+		switch (stealth)
+		{
+		case UNKNOWN:
+			return false;
+		case UNSKILLED:
+		case NOVICE:
+		case ADEPT:		//TODO: update this if if I give novice/adept a different critical hit benefit
+			return !canDefenderSeeAttacker(defender, attacker);
+		case EXPERT:
+			return !canDefenderSeeAttacker(defender, attacker) || FacingCalculator.getInstance().isActorBehindTarget(attacker, defender);
+		case MASTER:
+			return !canDefenderSeeAttacker(defender, attacker) || FacingCalculator.getInstance().isActorDiagonallyBehindTarget(attacker, defender);
+		default:
+			return false;
+		}
+	}
+
 	private void damageDefender(Actor attacker, Actor defender, Item attackingWeapon, Item armor, int rawDamage, boolean canSeeSource, boolean canSeeTarget)
 	{
-		//if the thing that's blocking the attack is upgraded, there's nothing to do here - the defender takes no damage, and the special message happens when damaging the armor
+		//if the thing that's blocking the attack is upgraded, there's nothing to do here - the defender takes no damage, and the noise and special message happen when damaging the armor
 		if (armor != null && armor.isUpgraded())
 			return;
 		
@@ -136,12 +170,24 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 			sendEventToObservers(InternalEvent.attackInternalEvent(data.getActorIndex(attacker), data.getActorIndex(defender), damageToDefender, 0));
 		}
 		
+		if (damageToDefender == rawDamage)
+		{
+			sendEventToObservers(InternalEvent.makeNoiseEvent(data.getActorIndex(attacker), CRITICAL_HIT_NOISE));
+			sendEventToObservers(InternalEvent.makeNoiseEvent(data.getActorIndex(defender), FULL_DAMAGE_RECEIVED_NOISE));
+		}
+		else if (damageToDefender > 0)
+		{
+			sendEventToObservers(InternalEvent.makeNoiseEvent(data.getActorIndex(attacker), HIT_ON_WORN_ARMOR_NOISE));
+			sendEventToObservers(InternalEvent.makeNoiseEvent(data.getActorIndex(defender), PARTIAL_DAMAGE_RECEIVED_NOISE));
+		}
+		
 		MessageBuffer.addMessage(new FormattedMessageBuilder(attackMessage).setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
 	}
 
 	private void sendDeflectMessage(Actor attacker, Actor defender, boolean canSeeSource, boolean canSeeTarget)
 	{
 		String attackMessage = "@2the deflect%2s @1thes attack.";
+		sendEventToObservers(InternalEvent.makeNoiseEvent(data.getActorIndex(attacker), HIT_ON_SHIELD_NOISE));
 		sendEventToObservers(InternalEvent.waitInternalEvent(data.getActorIndex(attacker), 0));
 		MessageBuffer.addMessage(new FormattedMessageBuilder(attackMessage).setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
 	}
@@ -153,6 +199,7 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 		{
 			String attackMessage = "@1thes attack glances off a makeshift plate on @2thes armor, sending it flying.";
 			sendEventToObservers(InternalEvent.waitInternalEvent(data.getActorIndex(attacker), 0));
+			sendEventToObservers(InternalEvent.makeNoiseEvent(data.getActorIndex(attacker), HIT_ON_UPGRADED_ARMOR_NOISE));
 			sendEventToObservers(InternalEvent.downgradeItemInternalEvent(data.getActorIndex(defender), new InventorySelectionKey(ItemSource.EQUIPMENT, defender.getIndexOfEquippedItem(armor))));
 			MessageBuffer.addMessage(new FormattedMessageBuilder(attackMessage).setSource(attacker).setTarget(defender).setSourceVisibility(canSeeSource).setTargetVisibility(canSeeTarget).format());
 			return;
@@ -190,7 +237,7 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 			if (armorDestroyed)
 			{
 				sendEventToObservers(InternalEvent.deleteHeldItemInternalEvent(data.getActorIndex(defender), defender.getIndexOfEquippedItem(armor), 1));
-				sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.METAL_SHARD, data.getCurrentZone().getCoordsOfActor(defender), 1));
+				sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.SCRAP, data.getCurrentZone().getCoordsOfActor(defender), 1));
 			}
 			
 			String armorEffect = getDescriptionOfCondition(armorDestroyed, armor.getConditionModifer(), armorConditionBeforeAttack);
@@ -212,7 +259,7 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 		if (weaponDestroyed)
 		{
 			sendEventToObservers(InternalEvent.deleteHeldItemInternalEvent(data.getActorIndex(attacker), attacker.getIndexOfEquippedItem(attackingWeapon), 1));
-			sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.METAL_SHARD, data.getCurrentZone().getCoordsOfActor(attacker), 1));
+			sendEventToObservers(InternalEvent.createItemOnGroundInternalEvent(ItemType.SCRAP, data.getCurrentZone().getCoordsOfActor(attacker), 1));
 		}
 		
 		String weaponEffect = getDescriptionOfCondition(weaponDestroyed, attackingWeapon.getConditionModifer(), weaponConditionBeforeAttack);
@@ -254,8 +301,8 @@ public class CombatAttackCalculator extends AbstractCombatAttackCalculator
 	
 	private boolean canDefenderSeeAttacker(Actor defender, Actor attacker)
 	{
-		//TODO: invisibility check, awareness check, etc.
 		Zone currentZone = data.getCurrentZone();
-		return ActorSightUtil.losExists(currentZone, currentZone.getCoordsOfActor(attacker), currentZone.getCoordsOfActor(defender), Engine.ACTOR_SIGHT_RADIUS);
+		AwarenessStatus status = new AwarenessStatus(currentZone, defender, currentZone.getCoordsOfActor(attacker));
+		return status.isTargetActorVisible();
 	}
 }

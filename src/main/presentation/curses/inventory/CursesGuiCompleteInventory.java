@@ -37,7 +37,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 	private EquipmentSlotType filter = null;
 
 	private List<InventorySelectionKey> slotSelectionMapping = new ArrayList<InventorySelectionKey>();
-	private int materialSlotCount = 0;
+	private int componentSlotCount = 0;
 	private boolean groundIsSelectable = false;
 	
 	private InventorySelectionKey selectedEquipment = null;	
@@ -74,15 +74,15 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		case MOVE_READY_ITEM:
 			labelAvailableSlotsToMoveReadyItemTo();
 			break;
-		case UPGRADE_MATERIAL_SELECT:
-			labelMaterials();
+		case UPGRADE_COMPONENT_SELECT:
+			labelComponents();
 			break;
 		case DROP:		//intentionally falls through
 		case USE:
 			labelEquipment(false);
 			labelReadiedItems(false);
 			labelAllStoredItems();
-			labelMaterials();
+			labelComponents();
 			labelMagic();
 			break;
 		case UPGRADE_BASE_ITEM_SELECT:
@@ -108,7 +108,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			{
 			// all of these intentionally fall through
 			case VIEW:
-			case UPGRADE_MATERIAL_SELECT:
+			case UPGRADE_COMPONENT_SELECT:
 			case UPGRADE_BASE_ITEM_SELECT:	//maybe this can be triggered from outside the inventory screen with 'U' (instead of 'u' for use)
 			case USE:						// also, instead of blindly calling the base item's upgrade method, perhaps check for a recipe first to see
 			case DROP:						// if a completely new item should be created instead
@@ -128,7 +128,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			return;
 		}
 		
-		if (state == InventoryState.VIEW && keyChar == 'u' && playerHasMaterials())
+		if (state == InventoryState.VIEW && keyChar == 'u' && playerHasComponents())
 		{
 			previousState = state;
 			state = InventoryState.UPGRADE_BASE_ITEM_SELECT;
@@ -160,7 +160,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			selection = new InventorySelectionKey(ItemSource.GROUND, 0);
 		} else if (selectionIndexSpecifiesNumber(selectionIndex))
 		{
-			selection = getMaterialSelection(selectionIndex);
+			selection = getComponentSelection(selectionIndex);
 		} else if (selectionIndexSpecifiesValidFunctionKey(selectionIndex))
 		{
 			selection = getMagicSelection(selectionIndex);
@@ -234,12 +234,12 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			return;
 		case UPGRADE_BASE_ITEM_SELECT:
 			itemToUseOrUpgrade = selection;
-			state = InventoryState.UPGRADE_MATERIAL_SELECT;
+			state = InventoryState.UPGRADE_COMPONENT_SELECT;
 			
 			if (parentGui.getTopLayerType() == GuiState.INVENTORY)
 				parentGui.refreshInterface();
 			return;
-		case UPGRADE_MATERIAL_SELECT:
+		case UPGRADE_COMPONENT_SELECT:
 			state = InventoryState.VIEW;
 			engine.receiveCommand(ActorCommand.upgrade(itemToUseOrUpgrade, selection));
 			
@@ -319,7 +319,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		if (selectionIndex == GROUND_KEY_INDEX && groundIsSelectable)
 			return true;
 		
-		if (selectionIndexSpecifiesNumber(selectionIndex) && convertMaterialSelectionToIndex(selectionIndex) < materialSlotCount)	//TODO: this might not handle 0 well
+		if (selectionIndexSpecifiesNumber(selectionIndex) && convertComponentSelectionToIndex(selectionIndex) < componentSlotCount)	//TODO: this might not handle 0 well
 			return true;
 
 		if (selectionIndexSpecifiesValidFunctionKey(selectionIndex))
@@ -367,7 +367,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		return false;
 	}
 	
-	private int convertMaterialSelectionToIndex(int selectionIndex)
+	private int convertComponentSelectionToIndex(int selectionIndex)
 	{
 		int selectionNumber = selectionIndex + 48;
 		
@@ -377,9 +377,9 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		return selectionNumber;
 	}
 	
-	private InventorySelectionKey getMaterialSelection(int selectionIndex)
+	private InventorySelectionKey getComponentSelection(int selectionIndex)
 	{
-		return new InventorySelectionKey(ItemSource.MATERIAL, convertMaterialSelectionToIndex(selectionIndex));
+		return new InventorySelectionKey(ItemSource.COMPONENT, convertComponentSelectionToIndex(selectionIndex));
 	}
 	
 	private InventorySelectionKey getMagicSelection(int selectionIndex)
@@ -394,7 +394,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		for (int i = 1; i <= 10; i++)
 			addText(i, 0, "[ ]", getBorderColor());
 
-		// material letter borders
+		// component letter borders
 		for (int i = 12; i <= 21; i++)
 			addText(i, 0, "[ ]", getBorderColor());
 
@@ -420,8 +420,8 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		addText(0, 66, "]-------------", getBorderColor());
 
 		addText(11, 0, "----------------[", getBorderColor());
-		addText(11, 17, "Materials", getTitleColor());
-		addText(11, 26, "]----------------+", getBorderColor());
+		addText(11, 17, "Components", getTitleColor());
+		addText(11, 27, "]---------------+", getBorderColor());
 
 		addText(22, 0, "-------------------------------------------+-------------[", getBorderColor());
 		addText(22, 58, "On Ground", getTitleColor());
@@ -447,7 +447,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		switch(state)
 		{
 		case VIEW:
-			if (playerHasMaterials())
+			if (playerHasComponents())
 				message = "[a-j,F1-F3] Equip, [u] Upgrade, [-] Drop";
 			else
 				message = "[a-j,F1-F3] Equip, [-] Drop, [ESC] Exit";
@@ -485,7 +485,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 			message = "[a-z] Pick Base Item, [ESC] Cancel";		//note that magic items can't be upgraded (no "F1-F3"), which is probably fine, at least for now
 			action = "UPGRADE:";
 			break;
-		case UPGRADE_MATERIAL_SELECT:
+		case UPGRADE_COMPONENT_SELECT:
 			message = "[0-9] Pick Enhancer, [ESC] Cancel";
 			action = "UPGRADE:";
 			break;
@@ -500,9 +500,9 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		addText(23, action.length() + 1, message, getHighlightColor());
 	}
 	
-	private boolean playerHasMaterials()
+	private boolean playerHasComponents()
 	{
-		Inventory inventory = engine.getData().getPlayer().getMaterials();
+		Inventory inventory = engine.getData().getPlayer().getComponents();
 		List<Item> itemsInInventory = inventory.getItemsForSlot(null);
 		return !itemsInInventory.isEmpty();
 	}
@@ -512,7 +512,7 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		populatePack();
 		populateEquipment();
 		populateReadyItems();
-		populateMaterials();
+		populateComponents();
 		populateMagic();
 		populateGround();
 	}
@@ -566,9 +566,9 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		}
 	}
 
-	private void populateMaterials()
+	private void populateComponents()
 	{
-		Inventory inventory = engine.getData().getPlayer().getMaterials();
+		Inventory inventory = engine.getData().getPlayer().getComponents();
 		List<Item> itemsInInventory = inventory.getItemsForSlot(null);
 
 		int packSlots = 10;
@@ -697,11 +697,11 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		}
 	}
 
-	private void labelMaterials()
+	private void labelComponents()
 	{
-		Inventory inventory = engine.getData().getPlayer().getMaterials();
+		Inventory inventory = engine.getData().getPlayer().getComponents();
 		List<Item> itemsInInventory = inventory.getItemsForSlot(null);
-		materialSlotCount = itemsInInventory.size();
+		componentSlotCount = itemsInInventory.size();
 
 		for (int i = 0; i < itemsInInventory.size(); i++)
 		{
@@ -956,10 +956,10 @@ public class CursesGuiCompleteInventory extends AbstractCursesGuiListInput
 		int itemIndex = pendingItemToUseSelectionKey.getItemIndex();
 		Item pendingItemToUse = null;
 		
-		if (pendingItemToUseSelectionKey.getItemSource() == ItemSource.MATERIAL)
+		if (pendingItemToUseSelectionKey.getItemSource() == ItemSource.COMPONENT)
 		{
-			Inventory materials = player.getMaterials();
-			pendingItemToUse = materials.get(itemIndex);
+			Inventory components = player.getComponents();
+			pendingItemToUse = components.get(itemIndex);
 		}
 		else if (pendingItemToUseSelectionKey.getItemSource() == ItemSource.PACK)
 		{

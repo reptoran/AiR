@@ -31,6 +31,10 @@ public class CursesGuiProfessionSelect extends AbstractCursesGuiListInput
 	public void refresh()
 	{
 		characterMap.clear();
+		
+		if (professionChosen)
+			return;
+		
 		addText(0, 0, "Choose a profession for your character:", getTextColor());
 		
 		List<String> formattedProfessions = new ArrayList<String>();

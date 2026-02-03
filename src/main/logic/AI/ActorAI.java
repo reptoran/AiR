@@ -9,9 +9,8 @@ import main.data.DataAccessor;
 import main.data.event.ActorCommand;
 import main.entity.actor.Actor;
 import main.entity.zone.Zone;
-import main.logic.ActorSightUtil;
+import main.logic.AwarenessStatus;
 import main.logic.Direction;
-import main.logic.Engine;
 import main.logic.RPGlib;
 import main.logic.AI.faction.FactionType;
 import main.logic.pathfinding.Pathfinder;
@@ -57,8 +56,16 @@ public abstract class ActorAI
 		
 		for (Actor actorToCheck : zoneActors)
 		{
+			if (actorToCheck == null)
+				continue;
+			
+			if (actor == actorToCheck)	//don't target yourself
+				continue;
+			
 			Point target = zone.getCoordsOfActor(actorToCheck);
-			if (ActorSightUtil.losExists(zone, origin, target, Engine.ACTOR_SIGHT_RADIUS))
+			AwarenessStatus status = new AwarenessStatus(zone, actor, target);
+			
+			if (status.isTargetActorVisible())
 			{
 				visibleActors.add(actorToCheck);
 				
@@ -106,7 +113,7 @@ public abstract class ActorAI
 		if (actorAtTarget != null && !enemyFactions.contains(getFactionOfActor(actorAtTarget)))
 			return getRandomLegalMoveCommand(zone, actor);
 		
-		Direction direction = RPGlib.convertCoordChangeToDirection(nextMove.x - origin.x, nextMove.y - origin.y);
+		Direction direction = Direction.fromCoords(nextMove.x - origin.x, nextMove.y - origin.y);
 		return ActorCommand.move(direction);
 	}
 	

@@ -47,7 +47,7 @@ public class ZoneItemGenerator
 				{
 					for (int j = 1; j <= itemType.getRarity().getInstances(); j++)
 						itemsForLevels.get(i).add(itemType);
-				} catch (ArrayIndexOutOfBoundsException aioobe) 
+				} catch (IndexOutOfBoundsException ioobe) 
 				{
 					Logger.debug("Item type " + itemType + " could not be included to be generated on level " + i + ".");
 					break;

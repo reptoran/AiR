@@ -22,82 +22,85 @@ public class PredefinedZoneLoader extends FileHandler
 	private static final String STATE_KEY_ACTORS = "[ACTORS]";
 	private static final String STATE_KEY_ITEMS = "[ITEMS]";
 	private static final String STATE_KEY_ATTRIBUTES = "[ATTRIBUTES]";
-	
+
 	private static int loadedZoneCount = 0;
 
 	private Map<String, Integer> zoneBands = new HashMap<String, Integer>();
 	private Map<String, String> zoneFileNames = new HashMap<String, String>();
 	private Map<String, String> zoneCacheNames = new HashMap<String, String>();
-	
+
 	private ZoneDataState currentState = null;
 	private PredefinedZoneBuilder predefinedZoneBuilder = null;
-	
+
 	private static PredefinedZoneLoader instance = null;
-	
+
 	private PredefinedZoneLoader()
 	{
 		scanAllPredefinedZones();
 	}
-	
+
 	public static PredefinedZoneLoader getInstance()
 	{
 		if (instance == null)
 			instance = new PredefinedZoneLoader();
-		
+
 		return instance;
 	}
-	
+
 	public Map<String, Integer> getBandsOfPredefinedZones()
 	{
 		if (zoneBands.isEmpty())
 			scanAllPredefinedZones();
-		
+
 		return zoneBands;
 	}
-	
+
 	public String getFileNameOfZone(String zoneName)
 	{
 		if (zoneFileNames.isEmpty())
 			scanAllPredefinedZones();
-		
+
 		return zoneFileNames.get(zoneName);
 	}
-	
+
 	public String getCacheNameOfZone(String zoneName)
 	{
 		return zoneCacheNames.get(zoneName);
 	}
-	
+
 	public List<PredefinedZone> loadAllPredefinedZones()
 	{
 		List<PredefinedZone> loadedZones = new ArrayList<PredefinedZone>();
-		
-		//TODO: unzip a .dat file that's just an archive of everything, then search the created folder
-		
+
+		// TODO: unzip a .dat file that's just an archive of everything, then search the created folder
+
 		File folder = new File(getDataPath());
 
 		for (File file : folder.listFiles())
 		{
 			if (!getFileExtension(file).equals(getExtension()))
 				continue;
-			
+
 			loadedZones.add(loadZoneFromDataFile(file.getName()));
 		}
-		
+
 		return loadedZones;
 	}
-	
+
 	private void scanAllPredefinedZones()
 	{
-		//TODO: unzip a .dat file that's just an archive of everything, then search the created folder
-		
+		// TODO: unzip a .dat file that's just an archive of everything, then search the created folder
+
 		File folder = new File(getDataPath());
+
+		if (folder.listFiles() == null)
+			return;
 
 		for (File file : folder.listFiles())
 		{
 			if (!getFileExtension(file).equals(getExtension()))
 				continue;
-			
+
 			setBandsAndFileNames(file.getName());
 		}
 	}
@@ -106,44 +109,44 @@ public class PredefinedZoneLoader extends FileHandler
 	{
 		String path = getDataPath() + zoneName;
 		List<String> lines = loadFile(path);
-		
+
 		predefinedZoneBuilder = new PredefinedZoneBuilder(++loadedZoneCount);
 		PredefinedZone zone = generateZoneFromData(lines);
 		predefinedZoneBuilder = null;
-		
+
 		zoneCacheNames.put(zone.getAttribute(ZoneAttribute.NAME), "Z" + zone.getName());
-		
+
 		return zone;
 	}
-	
+
 	private void setBandsAndFileNames(String fileName)
 	{
 		String path = getDataPath() + fileName;
 		List<String> lines = loadFile(path);
-		
+
 		String zoneName = "";
-		
+
 		for (String line : lines)
 		{
 			if (line.isEmpty())
 				continue;
-			
+
 			if (line.startsWith("["))
 				currentState = null;
-			
+
 			if (STATE_KEY_ATTRIBUTES.equals(line))
 			{
 				currentState = ZoneDataState.ATTRIBUTES;
 				continue;
 			}
-			
+
 			List<String> lineElements = tokenizeLine(line);
-			
+
 			if (currentState == ZoneDataState.ATTRIBUTES)
 			{
 				String key = lineElements.get(0);
 				String value = lineElements.get(1);
-				
+
 				if (ZoneAttribute.LEVELBAND.toString().equals(key))
 					zoneBands.put(fileName, Integer.parseInt(value));
 				else if (ZoneAttribute.NAME.toString().equals(key))
@@ -153,10 +156,10 @@ public class PredefinedZoneLoader extends FileHandler
 				}
 			}
 		}
-		
+
 		if (zoneBands.get(fileName) == null)
 			Logger.error("No level band defined within " + fileName);
-		
+
 		if (zoneName == "")
 			Logger.error("No zone name defined within " + fileName);
 	}
@@ -167,7 +170,7 @@ public class PredefinedZoneLoader extends FileHandler
 		{
 			if (line.isEmpty())
 				continue;
-			
+
 			if (STATE_KEY_PLAN.equals(line))
 			{
 				currentState = ZoneDataState.PLAN;
@@ -189,7 +192,7 @@ public class PredefinedZoneLoader extends FileHandler
 				currentState = ZoneDataState.ATTRIBUTES;
 				continue;
 			}
-			
+
 			List<String> lineElements = tokenizeLine(line);
 
 			if (currentState == ZoneDataState.PLAN)
@@ -216,12 +219,13 @@ public class PredefinedZoneLoader extends FileHandler
 	{
 		char tileIcon = lineElements.get(0).charAt(0);
 		TileType tileType = TileType.valueOf(lineElements.get(1));
-		
+
 		if (lineElements.size() > 2)
 		{
 			FeatureType featureType = FeatureType.valueOf(lineElements.get(2));
 			predefinedZoneBuilder.defineTile(tileIcon, tileType, featureType);
-		} else {
+		} else
+		{
 			predefinedZoneBuilder.defineTile(tileIcon, tileType);
 		}
 	}
@@ -231,7 +235,7 @@ public class PredefinedZoneLoader extends FileHandler
 		int row = Integer.valueOf(lineElements.get(0));
 		int col = Integer.valueOf(lineElements.get(1));
 		ActorType actorType = ActorType.valueOf(lineElements.get(2));
-		
+
 		predefinedZoneBuilder.defineActor(row, col, actorType);
 	}
 
@@ -239,13 +243,23 @@ public class PredefinedZoneLoader extends FileHandler
 	{
 		int row = Integer.valueOf(lineElements.get(0));
 		int col = Integer.valueOf(lineElements.get(1));
-		ItemType itemType = ItemType.valueOf(lineElements.get(2));
-		
+		ItemType itemType = null;
+
+		try
+		{
+			itemType = ItemType.valueOf(lineElements.get(2));
+		} catch (IllegalArgumentException iae)
+		{
+			Logger.error("No item type exists named " + lineElements.get(2) + "; no item will be added to the zone here.");
+			return;
+		}
+
 		if (lineElements.size() > 3)
 		{
 			int amount = Integer.valueOf(lineElements.get(3));
 			predefinedZoneBuilder.defineItem(row, col, itemType, amount);
-		} else {
+		} else
+		{
 			predefinedZoneBuilder.defineItem(row, col, itemType);
 		}
 	}
@@ -254,7 +268,7 @@ public class PredefinedZoneLoader extends FileHandler
 	{
 		String key = lineElements.get(0);
 		String value = lineElements.get(1);
-		
+
 		predefinedZoneBuilder.defineAttribute(key, value);
 	}
 

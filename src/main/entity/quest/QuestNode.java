@@ -100,6 +100,7 @@ public class QuestNode implements Comparable<QuestNode>
 	public void activate()
 	{
 		status = QuestNodeStatus.ACTIVE;
+		checkForCompletion();
 	}
 	
 	public void deactivate()
@@ -121,6 +122,8 @@ public class QuestNode implements Comparable<QuestNode>
 	{
 		if (status == QuestNodeStatus.COMPLETE)
 			complete();
+		else if (status == QuestNodeStatus.ACTIVE)
+			activate();
 		else
 			this.status = status;
 	}
@@ -141,6 +144,11 @@ public class QuestNode implements Comparable<QuestNode>
 	{
 		objectiveCompletionCount = newCount;
 		checkForCompletion();
+	}
+	
+	public int getObjectiveCompletionCount()
+	{
+		return objectiveCompletionCount;
 	}
 	
 	private void checkForCompletion()

@@ -18,6 +18,7 @@ public abstract class RequirementTester
 		String comparison = requirement.getComparison();
 		
 		String valueToCheck = "";
+		QuestNode nodeToCheck = null;
 		
 		switch (reqType)
 		{
@@ -31,13 +32,28 @@ public abstract class RequirementTester
 			valueToCheck = RequirementValidator.getInstance().getValueToCheckForActorHasItem(modifier, value);
 			break;
 		case QUEST_NODE_ACTIVE:
-			QuestNode nodeToCheck = QuestManager.getInstance().getNodeForCombinedQuestNodeTag(comparison);
+			nodeToCheck = QuestManager.getInstance().getNodeForCombinedQuestNodeTag(value);
 			if (nodeToCheck.isActive())
 				return true;
 			return false;
+		case QUEST_NODE_INACTIVE:
+			nodeToCheck = QuestManager.getInstance().getNodeForCombinedQuestNodeTag(value);
+			if (nodeToCheck.isActive())
+				return false;
+			return true;
+		case QUEST_NODE_COMPLETE:
+			nodeToCheck = QuestManager.getInstance().getNodeForCombinedQuestNodeTag(value);
+			if (nodeToCheck.isComplete())
+				return true;
+			return false;
 		case QUEST_NOT_STARTED:
-			boolean questStarted = QuestManager.getInstance().isQuestStarted(comparison);
+			boolean questStarted = QuestManager.getInstance().isQuestStarted(value);
 			if (questStarted)
+				return false;
+			return true;
+		case QUEST_NOT_KNOWN:
+			boolean questKnown = QuestManager.getInstance().isQuestKnown(value);
+			if (questKnown)
 				return false;
 			return true;
 		//$CASES-OMITTED$

@@ -12,6 +12,8 @@ public interface Equipment
 	public EquipmentSlotType getTypeOfSlot(int slotIndex);
 	public void equipItem(Item item, int slotIndex);
 	public int getIndexOfItem(Item item);
+	public int getTotalBulk();
+	public int getEquippedItemCount();
 	
 	public boolean isEmpty();
 	public boolean hasEmptySlotAvailable(EquipmentSlotType slotType);

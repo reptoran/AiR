@@ -86,6 +86,11 @@ public class Quest
 		return nodes;
 	}
 	
+	public QuestNode getNode(String nodeTag)
+	{
+		return nodes.get(nodeTag);
+	}
+	
 	@JsonIgnore
 	public Set<QuestNode> getActiveNodes()
 	{

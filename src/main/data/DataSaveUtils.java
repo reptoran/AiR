@@ -30,7 +30,7 @@ import main.presentation.Logger;
 
 public class DataSaveUtils
 {
-	public static final String VERSION = "0.9.1d";
+	public static final String VERSION = "0.9.1g";
 	private static final String NULL_STRING = "null";
 	
 	private SaveHandler saveHandler;

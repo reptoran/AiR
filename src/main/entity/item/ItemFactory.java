@@ -4,7 +4,7 @@ import java.text.ParseException;
 
 import main.entity.item.equipment.EquipmentSlotType;
 import main.entity.save.EntityMap;
-import main.presentation.curses.CursesGuiScreen;
+import main.presentation.curses.Colors;
 
 public class ItemFactory
 {
@@ -18,10 +18,10 @@ public class ItemFactory
 		{
 		case DEBUG_GEM_DOWN:
 			return ItemBuilder.generateItem(itemType).setName("gem of descent").setPlural("gems of descent")
-					.setSlot(EquipmentSlotType.MAGIC).setIcon('*').setColor(CursesGuiScreen.COLOR_LIGHT_CYAN).setMaterial(ItemMaterial.CRYSTAL).build();
+					.setSlot(EquipmentSlotType.MAGIC).setIcon('*').setColor(Colors.LIGHT_CYAN).setMaterial(ItemMaterial.CRYSTAL).build();
 		case DEBUG_GEM_UP:
 			return ItemBuilder.generateItem(itemType).setName("gem of ascent").setPlural("gems of ascent").setSlot(EquipmentSlotType.MAGIC)
-					.setIcon('*').setColor(CursesGuiScreen.COLOR_LIGHT_MAGENTA).setMaterial(ItemMaterial.CRYSTAL).build();
+					.setIcon('*').setColor(Colors.LIGHT_MAGENTA).setMaterial(ItemMaterial.CRYSTAL).build();
 		case THICK_SHIRT:
 			return ItemBuilder.generateArmor(itemType).setNames("thick shirt").setColor(10).setAR(1).setMaterial(ItemMaterial.NATURAL).setHP(10).build();
 		case QUILTED_SHIRT:
@@ -43,7 +43,7 @@ public class ItemFactory
 		case KNIFE:
 			return ItemBuilder.generateWeapon(itemType, "1d3").setName("knife").setPlural("knives").setColor(7).setHP(10).setMaterial(ItemMaterial.METAL).addTrait(ItemTrait.SHARP).build();
 		case AXE:
-			return ItemBuilder.generateWeapon(itemType, "2d4").setNames("axe").setColor(8).setHP(20).setMaterial(ItemMaterial.METAL).addTrait(ItemTrait.SHARP).build();
+			return ItemBuilder.generateWeapon(itemType, "2d4").setNames("axe").setArticle("an").setColor(8).setHP(20).setMaterial(ItemMaterial.METAL).addTrait(ItemTrait.SHARP).build();
 		case SWORD:
 			return ItemBuilder.generateWeapon(itemType, "1d8").setNames("sword").setColor(8).setHP(20).setMaterial(ItemMaterial.METAL).addTrait(ItemTrait.SHARP).build();
 		case CLUB:
@@ -66,18 +66,26 @@ public class ItemFactory
 		case TOWER_SHIELD:
 			return ItemBuilder.generateShield(itemType).setNames("tower shield").setColor(8).setCR(90).setAR(5).setHP(100).setMaterial(ItemMaterial.METAL)
 					.build();
-		case MEDICINAL_FUNGUS:
-			return ItemBuilder.generateMaterial(itemType).setName("medicinal fungus").setPlural("medicinal fungi").setIcon(',').setColor(4)
+		case HERB:
+			return ItemBuilder.generateComponent(itemType).setName("herb").setPlural("herbs").setArticle("an").setIcon(',').setColor(Colors.DARK_RED)
 					.setMaterial(ItemMaterial.NATURAL).build();
-		case METAL_SHARD:
-			return ItemBuilder.generateMaterial(itemType).setName("metal shard").setPlural("metal shards").setIcon('\'').setColor(7)
+		case SCRAP:
+			return ItemBuilder.generateComponent(itemType).setName("piece of scrap").setPlural("pieces of scrap").setIcon('\'').setColor(Colors.LIGHT_GREY)
 					.setMaterial(ItemMaterial.METAL).build();
 		case VALUABLE:
-			return ItemBuilder.generateMaterial(itemType).setName("valuable").setPlural("valuables").setIcon('`').setColor(14)
+			return ItemBuilder.generateComponent(itemType).setName("valuable").setPlural("valuables").setIcon('`').setColor(Colors.YELLOW)
 					.setMaterial(ItemMaterial.CRYSTAL).build();
+		case FUEL:
+			return ItemBuilder.generateComponent(itemType).setName("unit of fuel").setPlural("units of fuel").setIcon('~').setColor(Colors.BROWN)
+					.setMaterial(ItemMaterial.NATURAL).build();
+		case AMMO:
+			return ItemBuilder.generateComponent(itemType).setName("piece of ammunition").setPlural("pieces of ammunition").setIcon('-').setColor(Colors.DARK_GREY)
+					.setMaterial(ItemMaterial.NATURAL).build();
 		case HEALING_SALVE:
 			return ItemBuilder.generateMagicItem(itemType).setName("jar of healing salve").setPlural("jars of healing salve")
-					.setIcon('*').setColor(CursesGuiScreen.COLOR_LIGHT_RED).setMaterial(ItemMaterial.NATURAL).build();
+					.setIcon('*').setColor(Colors.LIGHT_RED).setMaterial(ItemMaterial.NATURAL).build();
+		case ANCIENT_TABLET:
+			return ItemBuilder.generateItem(itemType).setName("ancient tablet").setArticle("an").setIcon('\"').setColor(5).build();
 		case VIRTUAL_ITEM:
 			return ItemBuilder.generateItem(itemType).setMaterial(ItemMaterial.VIRTUAL).build();
 		case NO_TYPE: // these all fall through

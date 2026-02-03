@@ -8,12 +8,12 @@ public class DisplayTile
 	
 	public DisplayTile(char icon)
 	{
-		this(icon, CursesGuiScreen.COLOR_LIGHT_GREY);
+		this(icon, Colors.LIGHT_GREY);
 	}
 
 	public DisplayTile(char icon, int foregroundColor)
 	{
-		this(icon, foregroundColor, CursesGuiScreen.COLOR_BLACK);
+		this(icon, foregroundColor, Colors.BLACK);
 	}
 
 	public DisplayTile(char icon, int foregroundColor, int backgroundColor)

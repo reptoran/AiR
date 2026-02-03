@@ -5,8 +5,11 @@ import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
+import main.data.GameSettings;
 import main.data.PlayerAdvancementManager;
+import main.data.SettingType;
 import main.data.event.ActorCommand;
+import main.entity.FieldCoord;
 import main.entity.actor.Actor;
 import main.entity.item.Item;
 import main.entity.item.equipment.EquipmentSlot;
@@ -17,23 +20,23 @@ import main.entity.world.WorldTile;
 import main.entity.zone.Zone;
 import main.logic.Direction;
 import main.logic.Engine;
-import main.logic.RPGlib;
 import main.presentation.GuiState;
 import main.presentation.Logger;
 import main.presentation.curses.inventory.CursesGuiCompleteInventory;
 import main.presentation.curses.inventory.InventoryState;
 import main.presentation.message.MessageBuffer;
 
-public class CursesGuiMainGameDisplay extends CursesGuiScreen
+public class CursesGuiMainGameDisplay extends ColorSchemeCursesGuiUtil
 {
-	private static final int BORDER_COLOR = COLOR_LIGHT_GREY;
-//	private static final int PLAYER_INFO_LABEL_COLOR = COLOR_DARK_GREY;
-	private static final int PLAYER_INFO_COLOR = COLOR_LIGHT_GREY;
+	//TODO: base the colors on the color scheme
+	private static final int BORDER_COLOR = Colors.LIGHT_GREY;
+//	private static final int PLAYER_INFO_LABEL_COLOR = Colors.DARK_GREY;
+	public static final int PLAYER_INFO_COLOR = Colors.LIGHT_GREY;
 
-	private int displayStartRow = 2;
-	private int displayStartCol = 0;
-	private int displayHeight = 21;
-	private int displayWidth = 80;
+	public static final int DISPLAY_START_ROW = 2;
+	public static final int DISPLAY_START_COL = 0;
+	public static final int DISPLAY_HEIGHT = 21;
+	public static final int DISPLAY_WIDTH = 80;
 	
 	private CursesGui parentGui;
 	private CursesGuiCompleteInventory inventoryScreen;
@@ -41,9 +44,9 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 	
 //	private ActorCommand pendingCommand = null;
 	
-	public CursesGuiMainGameDisplay(CursesGui parentGui, CursesGuiCompleteInventory inventoryScreen, Engine engine)
+	public CursesGuiMainGameDisplay(CursesGui parentGui, CursesGuiCompleteInventory inventoryScreen, Engine engine, ColorScheme colorScheme)
 	{
-		super();
+		super(colorScheme);
 		this.parentGui = parentGui;
 		this.inventoryScreen = inventoryScreen;
 		this.engine = engine;
@@ -81,25 +84,34 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		else
 			center = engine.getCurrentZone().getCoordsOfActor(engine.getData().getPlayer());
 		
-		int widthRadius = displayWidth / 2;
-		int heightRadius = displayHeight / 2;
+		int widthRadius = DISPLAY_WIDTH / 2;
+		int heightRadius = DISPLAY_HEIGHT / 2;
 		int mapStartRow = center.x - heightRadius;
 		int mapStartCol = center.y - widthRadius;
 
-		for (int i = displayStartRow; i < displayStartRow + displayHeight; i++)
+		for (int i = DISPLAY_START_ROW; i < DISPLAY_START_ROW + DISPLAY_HEIGHT; i++)
 		{
-			for (int j = displayStartCol; j < displayStartCol + displayWidth; j++)
+			for (int j = DISPLAY_START_COL; j < DISPLAY_START_COL + DISPLAY_WIDTH; j++)
 			{
 				// make sure we're in the window
 				if (i < 0 || j < 0 || i > 24 || j > 79)
 					continue;
-
+				
+				Point windowCoords = new Point(i, j);
+				Point mapCoords = new Point(i + mapStartRow - DISPLAY_START_ROW, j + mapStartCol - DISPLAY_START_COL);
+				
 				// updateTile() is assumed to do bounds checking for the field itself
 				if (engine.isWorldTravel())
-					updateWorldTile(new Point(i, j), new Point(i + mapStartRow - displayStartRow, j + mapStartCol - displayStartCol));
+					updateWorldTile(windowCoords, mapCoords);
 				else
-					updateLocalTile(new Point(i, j), new Point(i + mapStartRow - displayStartRow, j + mapStartCol - displayStartCol));
+					updateLocalTile(windowCoords, mapCoords);
 			}
+		}
+		
+		if (engine.isWorldTravel())
+		{
+			Actor player = engine.getData().getPlayer();
+			addText(12, 40, String.valueOf(player.getIcon()), player.getColor(), Colors.BLACK);
 		}
 	}
 
@@ -110,8 +122,23 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		int row = windowCoords.x;
 		int col = windowCoords.y;
 
-		Tile tile = localMap.getTile(zoneCoords.x, zoneCoords.y);
-
+		Tile tile = localMap.getTile(zoneCoords);
+		updateTile(row, col, tile);
+	}
+	
+	private void updateWorldTile(Point windowCoords, Point worldCoords)
+	{
+		Overworld overworld = engine.getData().getOverworld();
+		
+		int row = windowCoords.x;
+		int col = windowCoords.y;
+		
+		WorldTile tile = overworld.getTile(worldCoords);
+		updateTile(row, col, tile);
+	}
+	
+	private void updateTile(int row, int col, FieldCoord tile)
+	{
 		// display nothing by default
 		int fg = 0;
 		int bg = 0;
@@ -127,46 +154,13 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		addText(row, col, icon, fg, bg);
 	}
 
-	private void updateWorldTile(Point windowCoords, Point worldCoords)
-	{
-		Overworld overworldMap = engine.getOverworld();
-
-		int row = windowCoords.x;
-		int col = windowCoords.y;
-
-		WorldTile tile = overworldMap.getTile(worldCoords.x, worldCoords.y);
-
-		// display nothing by default
-		int fg = 0;
-		int bg = 0;
-		String icon = " ";
-
-		// print the tile at this location
-		if (tile != null)
-		{
-			fg = tile.getColor();
-			icon = "" + tile.getIcon();
-			
-			Actor player = engine.getData().getPlayer();
-			Point playerCoords = overworldMap.getPlayerCoords();
-			
-			if (playerCoords.x == worldCoords.x && playerCoords.y == worldCoords.y)
-			{
-				fg = player.getColor();
-				icon = "" + player.getIcon();
-			}
-		}
-
-		addText(row, col, icon, fg, bg);
-	}
-
 	private void clearPlayerInfoArea()
 	{
 		for (int i = 23; i < 24; i++)
 		{
 			for (int j = 0; j < 80; j++)
 			{
-				addText(i, j, " ", COLOR_BLACK);
+				addText(i, j, " ", Colors.BLACK);
 			}
 		}
 	}
@@ -178,8 +172,16 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		Actor player = engine.getData().getPlayer();
 		Zone localMap = engine.getCurrentZone();
 		
-		int hpColor = getHpColor(player);
-		if (hpColor == COLOR_LIGHT_GREEN && player.getCurHp() == player.getMaxHp())
+		String depth = "SURFACE";
+		
+		if (localMap != null)
+		{
+			depth = String.valueOf(localMap.getDepth());
+			displayTargetHitpoints();
+		}
+		
+		int hpColor = player.getHpColor();
+		if (hpColor == Colors.LIGHT_GREEN && player.getCurHp() == player.getMaxHp())
 			hpColor = PLAYER_INFO_COLOR;
 		
 		addText(23, 0, player.getName(), PLAYER_INFO_COLOR);
@@ -190,58 +192,24 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		addText(23, 40, "Level:", PLAYER_INFO_COLOR);
 		addText(23, 47, String.valueOf(PlayerAdvancementManager.getInstance().getCharacterLevel()), PLAYER_INFO_COLOR);
 		addText(24, 0, "Depth:", PLAYER_INFO_COLOR);
-		addText(24, 7, String.valueOf(localMap.getDepth()), PLAYER_INFO_COLOR);
+		addText(24, 7, depth, PLAYER_INFO_COLOR);
 		
 		//TODO: add character level, change XP color based on how close you are to next level
 		
 		displayEquipmentCondition(player);
 		displayMagicItems(player);
-		displayTargetHitpoints();
-	}
-	
-	private int getHpPercentage(int curHp, int totalHp)
-	{
-		int percentage = (int)(((((double)curHp) / ((double)totalHp)) * 10) + .5);
-		if (percentage < 1 && curHp > 0)
-			percentage = 1;
-		
-		return percentage;
-	}
-	
-	private int getHpColor(Actor target)
-	{
-		int curHp = 0;
-		int totalHp = 1;
-		
-		if (target != null)
-		{
-			curHp = target.getCurHp();
-			totalHp = target.getMaxHp();
-		}
-		
-		int percentage = getHpPercentage(curHp, totalHp);
-			
-		Logger.debug("Target HP is " + curHp + "/" + totalHp + "; percentage is " + percentage + ".");
-		
-		if (percentage > 8)
-			return COLOR_LIGHT_GREEN;
-		if (percentage > 6)
-			return COLOR_DARK_GREEN;
-		if (percentage > 4)
-			return COLOR_YELLOW;
-		if (percentage > 2)
-			return COLOR_LIGHT_RED;
-		
-		return COLOR_DARK_RED;
 	}
 
 	private void displayTargetHitpoints()
 	{
-		Actor target = engine.getTarget();
-		int percentage = 0;
+		addText(23, 68, "[          ]", PLAYER_INFO_COLOR);
 		
-		if (target != null)
-			percentage = getHpPercentage(target.getCurHp(), target.getMaxHp());
+		Actor target = engine.getTarget();
+		
+		if (target == null)
+			return;
+		
+		int percentage = target.getHpPercentage();
 		
 		String hpGraph = "";
 		StringBuilder builder = new StringBuilder(hpGraph);
@@ -249,8 +217,7 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		    builder.append("*");
 		}
 		
-		addText(23, 68, "[          ]", PLAYER_INFO_COLOR);
-		addText(23, 69, builder.toString(), getHpColor(target));
+		addText(23, 69, builder.toString(), target.getHpColor());
 	}
 	
 	private void displayEquipmentCondition(Actor player)
@@ -304,15 +271,15 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 			return PLAYER_INFO_COLOR;
 		
 		if (item.getConditionModifer() > .75)
-			return COLOR_LIGHT_GREEN;
+			return Colors.LIGHT_GREEN;
 		
 		if (item.getConditionModifer() > .5)
-			return COLOR_DARK_GREEN;
+			return Colors.DARK_GREEN;
 		
 		if (item.getConditionModifer() > .25)
-			return COLOR_YELLOW;
+			return Colors.YELLOW;
 		
-		return COLOR_LIGHT_RED;
+		return Colors.LIGHT_RED;
 	}
 
 	@Override
@@ -325,7 +292,17 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		{
 			parentGui.setPendingCommand(null);
 			parentGui.refreshInterface();
-		} else if (code == KeyEvent.VK_NUMPAD1 || code == KeyEvent.VK_END)
+		} else if (code == KeyEvent.VK_1)
+		{
+			changeDisplay(DisplayType.STANDARD);
+		} else if (code == KeyEvent.VK_2)
+		{
+			changeDisplay(DisplayType.FOG);
+		} else if (code == KeyEvent.VK_3)
+		{
+			changeDisplay(DisplayType.TACTICAL);
+		}
+		else if (code == KeyEvent.VK_NUMPAD1 || code == KeyEvent.VK_END)
 		{
 			handleDirection(Direction.DIRSW);
 		} else if (code == KeyEvent.VK_NUMPAD2 || code == KeyEvent.VK_KP_DOWN || code == KeyEvent.VK_DOWN)
@@ -376,6 +353,9 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 		} else if (keyChar == 'g')
 		{
 			engine.receiveCommand(ActorCommand.pickUp());
+		} else if (keyChar == 't')
+		{
+			handleTarget();
 		} else if (keyChar == 'C')
 		{
 			handleChatInput();
@@ -398,22 +378,46 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 			parentGui.endGame();
 		}
 	}
-	
+
+	private void changeDisplay(DisplayType displayType)
+	{
+		switch(displayType)
+		{
+		case STANDARD:
+			GameSettings.updateSetting(SettingType.SHOW_FOG, false);
+			GameSettings.updateSetting(SettingType.SHOW_AWARENESS, false);
+			GameSettings.updateSetting(SettingType.SHOW_FACING, false);
+			break;
+		case FOG:
+			GameSettings.updateSetting(SettingType.SHOW_FOG, true);
+			GameSettings.updateSetting(SettingType.SHOW_AWARENESS, false);
+			GameSettings.updateSetting(SettingType.SHOW_FACING, false);
+			break;
+		case TACTICAL:
+			GameSettings.updateSetting(SettingType.SHOW_FOG, true);
+			GameSettings.updateSetting(SettingType.SHOW_AWARENESS, true);
+			GameSettings.updateSetting(SettingType.SHOW_FACING, true);
+			break;
+		default:
+			return;
+		}
+		
+		parentGui.refreshInterface();
+	}
+
 	private void handleDirection(Direction direction)
 	{
 		Point coordChange = direction.getCoordChange();
-		handleDirection(coordChange.x, coordChange.y);
-	}
-
-	private void handleDirection(int rowChange, int colChange)
-	{
+		int rowChange = coordChange.x;
+		int colChange = coordChange.y;
+		
 		ActorCommand pendingCommand = parentGui.getPendingCommand();
 		parentGui.setPendingCommand(null);
 		
 		if (pendingCommand == null)
 			pendingCommand = ActorCommand.move(null);	//default to move if there's nothing we're prompting a direction for
 
-		String directionString = RPGlib.convertCoordChangeToDirection(rowChange, colChange).name();
+		String directionString = Direction.fromCoords(rowChange, colChange).name();
 		engine.receiveCommand(pendingCommand.addArgument(directionString));
 	}
 
@@ -427,7 +431,7 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 	{
 		Actor player = engine.getData().getPlayer();
 
-		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty() && player.getMaterials().isEmpty() && player.getReadiedItems().isEmpty() && player.getMagicItems().isEmpty())
+		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty() && player.getComponents().isEmpty() && player.getReadiedItems().isEmpty() && player.getMagicItems().isEmpty())
 		{
 			MessageBuffer.addMessage("You aren't carrying anything!");
 			parentGui.refreshInterface();
@@ -442,7 +446,7 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 	{
 		Actor player = engine.getData().getPlayer();
 
-		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty() && player.getMaterials().isEmpty() && player.getReadiedItems().isEmpty() && player.getMagicItems().isEmpty())
+		if (player.getStoredItems().isEmpty() && player.getEquipment().isEmpty() && player.getComponents().isEmpty() && player.getReadiedItems().isEmpty() && player.getMagicItems().isEmpty())
 		{
 			MessageBuffer.addMessage("You have no items to use!");
 			parentGui.refreshInterface();
@@ -451,6 +455,20 @@ public class CursesGuiMainGameDisplay extends CursesGuiScreen
 
 		inventoryScreen.setState(InventoryState.USE);
 		parentGui.setSingleLayer(GuiState.INVENTORY);
+	}
+	
+	private void handleTarget()
+	{
+		if (engine.isWorldTravel())
+		{
+			MessageBuffer.addMessage("Cannot target on the overworld.");		//TODO: for now
+			parentGui.refreshInterface();
+			return;
+		}
+		
+		parentGui.addLayer(GuiState.TARGET, true);
+		CursesGuiTargeting targetingGui = (CursesGuiTargeting) parentGui.getScreen(GuiState.TARGET);
+		targetingGui.startTargeting();
 	}
 
 	private void handleChatInput()

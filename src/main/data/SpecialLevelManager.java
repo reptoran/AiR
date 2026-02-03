@@ -43,6 +43,9 @@ public class SpecialLevelManager implements SaveableDataManager
 	@Override
 	public String saveState()
 	{
+		if (generatedZones.keySet().isEmpty())
+			return "";
+		
 		String saveString = "";
 		
 		for (String zoneFileName : generatedZones.keySet())

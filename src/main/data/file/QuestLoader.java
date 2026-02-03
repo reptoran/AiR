@@ -54,6 +54,10 @@ private static QuestLoader instance = null;
 	
 	public List<Quest> defineQuests()
 	{
+		//Something to remember when defining quest nodes: A node with NO objectives can only be completed by an external trigger, like a chat event or 
+		//another quest node.  A node WITH objectives can self-complete immediately after it's activated, since its requirements are checked upon activation.
+		//Note that nodes can also be completed externally even if their requirements aren't met.
+		
 		List<Quest> quests = new ArrayList<Quest>();
 		
 		Quest fungusFinder = new QuestBuilder().setName("Fungus Finder").setTag("FUNGUS").build();
@@ -76,7 +80,7 @@ private static QuestLoader instance = null;
 				.addTrigger(TriggerFactory.setQuestNodeStatus("FUNGUS", "COLLECT", QuestNodeStatus.ACTIVE))
 				.build();
 		QuestNode fungusCollect = new QuestNodeBuilder().setTag("COLLECT").setDescription("Collect some medicinal fungi.")
-				.setObjective(RequirementFactory.actorHasItem(ActorType.PLAYER, ItemType.MEDICINAL_FUNGUS, CompareOperator.GREATER_THAN, 0))
+				.setObjective(RequirementFactory.actorHasItem(ActorType.PLAYER, ItemType.HERB, CompareOperator.GREATER_THAN, 0))
 				.addTrigger(TriggerFactory.setQuestNodeStatus("FUNGUS", "RETURN", QuestNodeStatus.ACTIVE))
 				.build();
 		QuestNode fungusReturn = new QuestNodeBuilder().setTag("RETURN").setDescription("Return to the surface.")
@@ -89,6 +93,30 @@ private static QuestLoader instance = null;
 		fungusFinder.addNode(fungusCollect);
 		fungusFinder.addNode(fungusReturn);
 		quests.add(fungusFinder);
+		
+		Quest riskyResearch = new QuestBuilder().setName("Risky Research").setTag("RISKYR").build();
+		QuestNode researchStart = new QuestNodeBuilder().setTag("START").setDescription("activating quest")
+				.addTrigger(TriggerFactory.setQuestNodeStatus("RISKYR", "CLEAR_GOBLINS", QuestNodeStatus.ACTIVE))
+				.addTrigger(TriggerFactory.setQuestNodeStatus("RISKYR", "CLEAR_GOBLIN_CARVERS", QuestNodeStatus.ACTIVE))
+				.build();
+		
+		//TODO: I don't think these will have any explicit triggers; rather, the archeo's dialogue will simply update based on the nodes being completed,
+		//		and THAT'S what will kick off the next node.  It would be nice to have a "return to the archeo" node, but since nodes don't have requirements,
+		//		only triggers, I think that's impossible.
+		QuestNode researchClearLevelOfGoblins = new QuestNodeBuilder().setTag("CLEAR_GOBLINS").setDescription("Kill all goblins in the area.")
+				.setObjective(RequirementFactory.actorCountInZone("TOWN", ActorType.HUMAN, CompareOperator.EQUAL, 0))
+				.build();
+		QuestNode researchClearLevelOfGoblinCarvers = new QuestNodeBuilder().setTag("CLEAR_GOBLIN_CARVERS").setDescription("Kill all goblin carvers in the area.")
+				.setObjective(RequirementFactory.actorCountInZone("TOWN", ActorType.GOBLIN_CARVER, CompareOperator.EQUAL, 0))	//UNDER_GAL
+				.build();
+		QuestNode researchElder = new QuestNodeBuilder().setTag("ELDER").setDescription("Ask the village elder if she knows anything about an ancient race.")
+				.build();
+		
+		riskyResearch.addStartNode(researchStart);
+		riskyResearch.addNode(researchClearLevelOfGoblins);
+		riskyResearch.addNode(researchClearLevelOfGoblinCarvers);
+		riskyResearch.addNode(researchElder);
+		quests.add(riskyResearch);
 		
 		return quests;
 	}

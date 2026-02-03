@@ -63,6 +63,6 @@ public class RecipeManager
 	{
 		allRecipes = new ArrayList<Recipe>();
 		
-		allRecipes.add(new RecipeBuilder().setResultingItem(ItemType.HEALING_SALVE).addComponent(ItemType.MEDICINAL_FUNGUS, 2).addRequiredSkill(SkillType.HERBALISM, 2).build());
+		allRecipes.add(new RecipeBuilder().setResultingItem(ItemType.HEALING_SALVE).addComponent(ItemType.HERB, 2).addRequiredSkill(SkillType.ALCHEMY, 2).build());
 	}
 }

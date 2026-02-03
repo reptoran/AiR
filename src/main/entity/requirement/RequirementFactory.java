@@ -26,4 +26,11 @@ public class RequirementFactory
 		requirement.setDetails(actor.name(), item.name(), compare, String.valueOf(quantity));
 		return requirement;
 	}
+	
+	public static Requirement actorCountInZone(String zoneId, ActorType actor, CompareOperator compare, int quantity)
+	{
+		Requirement requirement = new Requirement(RequirementType.ACTOR_COUNT_IN_ZONE);
+		requirement.setDetails(zoneId, actor.name(), compare, String.valueOf(quantity));
+		return requirement;
+	}
 }

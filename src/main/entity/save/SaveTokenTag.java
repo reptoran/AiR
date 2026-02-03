@@ -4,6 +4,7 @@ public enum SaveTokenTag
 {
 	A_UID,	//actor unique identifier
 	A_TYP,	//actor type
+	A_CAT,	//actor category
 	A_NAM,	//actor name
 	A_GEN,	//actor gender
 	A_UNQ,	//actor unique flag
@@ -14,7 +15,7 @@ public enum SaveTokenTag
 	A_AI_,	//actor ai
 	A_ATT,	//actor attributes
 	A_INV,	//actor stored items (pack inventory)
-	A_MAT,	//actor material inventory
+	A_CMP,	//actor component inventory
 	A_EQP,	//actor equipment
 	A_RDY,	//actor readied items
 	A_MAG,	//actor magic items
@@ -24,6 +25,7 @@ public enum SaveTokenTag
 	A_DAR,	//actor default armor
 	A_TLK,	//actor default talk response
 	A_FAC,	//actor facing
+	A_NOI,	//actor noise made last turn
 	
 	C_NAM,	//fieldcoord name
 	C_ICO,	//fieldcoord icon
@@ -54,12 +56,13 @@ public enum SaveTokenTag
 	I_UID,	//item unique identifier
 	I_NAM,	//item name
 	I_PLR,	//item plural
+	I_ART,	//item article
 	I_TYP,	//item type
 	I_ICO,	//item icon
 	I_CLR,	//item color
 	I_DAM,	//item damage string
 	I_SIZ,	//item size
-	I_AMT,	//item size
+	I_AMT,	//item amount
 	I_INV,	//item inventory slot
 	I_MHP,	//item max hp
 	I_CHP,	//item current hp

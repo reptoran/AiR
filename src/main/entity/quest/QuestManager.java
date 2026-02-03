@@ -96,7 +96,28 @@ public class QuestManager extends RequirementTester implements EventObserver, Sa
 			return;
 		}
 		
+		if (newStatus == QuestNodeStatus.ACTIVE)
+			setInitialObjectiveCompletionCount(quest, nodeTag);
+		
 		quest.updateNodeStatus(nodeTag, newStatus);
+	}
+
+	private void setInitialObjectiveCompletionCount(Quest quest, String nodeTag)
+	{
+		QuestNode node = quest.getNode(nodeTag);
+		
+		if (node.getObjective() == null)
+			return;
+		
+		switch (node.getObjective().getType())
+		{
+		case ACTOR_COUNT_IN_ZONE:	//right now we only care about setting the initial values for actor counts, so trigger that with a dummy death event
+			checkZoneActorRequirement(node, InternalEvent.deathInternalEvent(-1));
+			break;
+			//$CASES-OMITTED$
+		default:
+			return;
+		}
 	}
 
 	public void activateQuest(String questTag)
@@ -139,6 +160,16 @@ public class QuestManager extends RequirementTester implements EventObserver, Sa
 			return true;
 		
 		return false;
+	}
+	
+	public boolean isQuestKnown(String questTag)
+	{
+		Quest quest = allQuestsByTag.get(questTag);
+		
+		if (quest == null)
+			return false;
+		
+		return quest.isKnown();
 	}
 	
 	public QuestNode getNodeForCombinedQuestNodeTag(String combinedTag)
@@ -199,6 +230,9 @@ public class QuestManager extends RequirementTester implements EventObserver, Sa
 		case ACTOR_HAS_ITEM:
 			checkActorItemRequirement(node);
 			break;
+		case ACTOR_COUNT_IN_ZONE:
+			checkZoneActorRequirement(node, internalEvent);
+			break;
 			//$CASES-OMITTED$
 		default:
 			return;
@@ -227,6 +261,21 @@ public class QuestManager extends RequirementTester implements EventObserver, Sa
 		Requirement objective = node.getObjective();
 		String ownedItemCount = RequirementValidator.getInstance().getValueToCheckForActorHasItem(objective.getModifier(), objective.getValue());
 		node.setObjectiveCompletionCount(Integer.parseInt(ownedItemCount));
+	}
+	
+	private void checkZoneActorRequirement(QuestNode node, InternalEvent internalEvent)
+	{
+		//TODO: These are the four event types I can think of that would change the actor count for a given zone.  Practically speaking, only DEATH events
+		//		should really factor into most use cases.
+		if (internalEvent.getInternalEventType() != InternalEventType.DEATH &&
+			internalEvent.getInternalEventType() != InternalEventType.ZONE_TRANSITION &&
+			internalEvent.getInternalEventType() != InternalEventType.ENTER_WORLD &&
+			internalEvent.getInternalEventType() != InternalEventType.ENTER_LOCAL)
+			return;
+		
+		Requirement objective = node.getObjective();
+		String actorCountInZone = RequirementValidator.getInstance().getValueToCheckForActorCountInZone(objective.getModifier(), objective.getValue());
+		node.setObjectiveCompletionCount(Integer.parseInt(actorCountInZone));
 	}
 	
 	@Override

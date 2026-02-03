@@ -3,7 +3,6 @@ package main.data.event;
 import java.util.ArrayList;
 import java.util.List;
 
-import main.data.event.environment.InterruptionEvent;
 import main.entity.Queueable;
 import main.presentation.Logger;
 

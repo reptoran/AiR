@@ -9,7 +9,7 @@ import main.presentation.message.MessageBuffer;
 
 public class CursesGuiMessages extends CursesGuiScreen
 {
-	private static final int DEFAULT_MESSAGE_COLOR = COLOR_LIGHT_GREY;
+	private static final int DEFAULT_MESSAGE_COLOR = Colors.LIGHT_GREY;
 	
 	private int messageStartRow;
 	private int messageStartCol;
@@ -56,7 +56,7 @@ public class CursesGuiMessages extends CursesGuiScreen
 					if (index < messageLine.length())
 						symbol = messageLine.charAt(index);
 					
-					addCharacter(i, j, new DisplayTile(symbol, DEFAULT_MESSAGE_COLOR, COLOR_BLACK));
+					addCharacter(i, j, new DisplayTile(symbol, DEFAULT_MESSAGE_COLOR, Colors.BLACK));
 				}
 			}
 		}

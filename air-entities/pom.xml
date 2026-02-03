@@ -5,7 +5,7 @@
 
 	<groupId>adventures-in-reptoran</groupId>
 	<artifactId>air-entities</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>air-entities</name>
@@ -13,8 +13,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<jackson.version>2.11.0</jackson.version>
-		<log4j2.version>2.17.1</log4j2.version>
+		<jackson.version>2.15.0</jackson.version>
+		<log4j2.version>2.25.3</log4j2.version>
 	</properties>
 
 	<build>
@@ -60,7 +60,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.9</version>
+			<version>3.18.0</version>
 		</dependency>
 
 		<dependency>

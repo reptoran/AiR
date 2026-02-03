@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import main.data.DataAccessor;
 import main.data.GameSettings;
 import main.data.SettingType;
 import main.entity.EntityType;
@@ -30,9 +31,14 @@ import main.entity.save.EntityMap;
 import main.entity.save.SaveStringBuilder;
 import main.entity.save.SaveToken;
 import main.entity.save.SaveTokenTag;
+import main.entity.zone.Zone;
+import main.logic.ActorSightUtil;
+import main.logic.AwarenessStatus;
 import main.logic.Direction;
 import main.logic.AI.AiType;
 import main.presentation.Logger;
+import main.presentation.curses.Colors;
+import main.presentation.curses.CursesGuiScreen;
 
 public class Actor extends SaveableEntity
 {
@@ -58,13 +64,14 @@ public class Actor extends SaveableEntity
 	private int maxHp;
 	private int curHp;
 	private AiType AI;
+	private ActorCategory category;
 
 	private int attributes[] = new int[TOTAL_ATTRIBUTES];
 	private Map<SkillType, Integer> skills;
 	
 	private Set<ActorTrait> traits = new HashSet<ActorTrait>();
 	private Inventory storedItems = new Inventory();
-	private Inventory materials = new Inventory();
+	private Inventory components = new Inventory();
 	private EquipmentType equipmentType = EquipmentType.NONE;
 	private Equipment equipment;
 	private Equipment readiedItems = new ReadyEquipmentImpl(DEFAULT_READY_SLOTS);  		//TODO: or perhaps make it monster by monster, like the main equipment
@@ -78,6 +85,7 @@ public class Actor extends SaveableEntity
 	private String defaultTalkResponse = "There's no response.";
 	
 	private Direction facing = Direction.DIRN;
+	private int noiseMadeLastTurn = 0;
 
 	public Actor()
 	{
@@ -88,6 +96,7 @@ public class Actor extends SaveableEntity
 		unique = false;
 
 		type = ActorType.NO_TYPE;
+		category = ActorCategory.NATURAL;
 
 		for (int i = 0; i < TOTAL_ATTRIBUTES; i++)
 		{
@@ -137,13 +146,14 @@ public class Actor extends SaveableEntity
 	{
 		Actor toRet = new Actor(type, name, icon, color, attributes, AI);
 
+		toRet.category = category;
 		toRet.gender = gender;
 		toRet.maxHp = maxHp;
 		toRet.curHp = curHp;
 		toRet.hashModifier = hashModifier; // if we're truly cloning this, then they need the same unique identifier as well.
 		toRet.equipmentType = equipmentType;
 		toRet.storedItems = storedItems.clone();
-		toRet.materials = materials.clone();
+		toRet.components = components.clone();
 		toRet.equipment = equipment.clone();
 		toRet.readiedItems = readiedItems.clone();
 		toRet.magicItems = magicItems.clone();
@@ -151,6 +161,7 @@ public class Actor extends SaveableEntity
 		toRet.defaultArmor = defaultArmor;
 		toRet.defaultTalkResponse = defaultTalkResponse;
 		toRet.facing = facing;
+		toRet.noiseMadeLastTurn = noiseMadeLastTurn;
 		
 		for (ActorTrait trait : traits)
 		{
@@ -173,6 +184,7 @@ public class Actor extends SaveableEntity
 		Actor baseActor = ActorFactory.generateNewActor(actorType);
 
 		this.type = baseActor.type;
+		this.category = baseActor.category;
 		this.name = baseActor.name;
 		this.gender = baseActor.gender;
 		this.icon = baseActor.icon;
@@ -188,7 +200,7 @@ public class Actor extends SaveableEntity
 		}
 		
 		this.storedItems = new Inventory();
-		this.materials = new Inventory();
+		this.components = new Inventory();
 		this.setEquipment(baseActor.equipmentType);
 		this.magicItems = new MagicEquipmentImpl(DEFAULT_MAGIC_SLOTS);
 		this.readiedItems = new ReadyEquipmentImpl(DEFAULT_READY_SLOTS);
@@ -208,6 +220,7 @@ public class Actor extends SaveableEntity
 		this.defaultTalkResponse = baseActor.defaultTalkResponse;
 		
 		this.facing = baseActor.facing;
+		this.noiseMadeLastTurn = baseActor.noiseMadeLastTurn;
 	}
 
 	public void damage(int damageAmount)
@@ -225,6 +238,9 @@ public class Actor extends SaveableEntity
 
 	public char getIcon()
 	{
+//		NOISE DEBUG
+//		return (char)(48 + getNoiseMadeLastTurn());
+		
 		if (GameSettings.getBoolean(SettingType.SHOW_FACING))
 			return facing.getFacingIcon();
 		
@@ -238,7 +254,25 @@ public class Actor extends SaveableEntity
 
 	public int getColor()
 	{
-		return color;
+		if (!GameSettings.getBoolean(SettingType.SHOW_AWARENESS))
+			return color;
+		
+		DataAccessor data = DataAccessor.getInstance();
+		Actor player = data.getPlayer();
+		
+		if (this == player)
+			return color;
+		
+		Zone currentZone = data.getCurrentZone();
+		AwarenessStatus awareness = new AwarenessStatus(currentZone, this, player);
+		
+		if (awareness.isTargetActorVisible())
+			return Colors.LIGHT_RED;
+		
+		if (awareness.isTargetActorHeard())
+			return Colors.YELLOW;
+		
+		return Colors.LIGHT_GREEN;
 	}
 
 	public void setName(String name)
@@ -281,6 +315,16 @@ public class Actor extends SaveableEntity
 		return type;
 	}
 
+	public void setCategory(ActorCategory newCategory)
+	{
+		category = newCategory;
+	}
+
+	public ActorCategory getCategory()
+	{
+		return category;
+	}
+
 	public void setAI(AiType newAI)
 	{
 		AI = newAI;
@@ -293,8 +337,8 @@ public class Actor extends SaveableEntity
 	
 	public boolean hasSpaceForItem(Item item)
 	{
-		if (item.getInventorySlot().equals(EquipmentSlotType.MATERIAL))
-			return materials.hasSpaceForItem(item);
+		if (item.getInventorySlot().equals(EquipmentSlotType.COMPONENT))
+			return components.hasSpaceForItem(item);
 		else if (item.getInventorySlot().equals(EquipmentSlotType.MAGIC))
 			return (magicItems.hasEmptySlotAvailable(EquipmentSlotType.MAGIC) || storedItems.hasSpaceForItem(item));
 		else if (item.getInventorySlot().equals(EquipmentSlotType.ARMAMENT) && readiedItems.hasEmptySlotAvailable(EquipmentSlotType.ARMAMENT))
@@ -308,9 +352,9 @@ public class Actor extends SaveableEntity
 		return storedItems;
 	}
 	
-	public Inventory getMaterials()
+	public Inventory getComponents()
 	{
-		return materials;
+		return components;
 	}
 	
 	public Equipment getReadiedItems()
@@ -325,9 +369,9 @@ public class Actor extends SaveableEntity
 	
 	public boolean receiveItem(Item item)
 	{
-		if (item.getInventorySlot().equals(EquipmentSlotType.MATERIAL) && materials.hasSpaceForItem(item))
+		if (item.getInventorySlot().equals(EquipmentSlotType.COMPONENT) && components.hasSpaceForItem(item))
 		{
-			materials.add(item);
+			components.add(item);
 			return true;
 		}
 		else if (item.getInventorySlot().equals(EquipmentSlotType.MAGIC) && magicItems.hasEmptySlotAvailable(EquipmentSlotType.MAGIC))
@@ -357,9 +401,9 @@ public class Actor extends SaveableEntity
 		return storedItems.remove(itemIndex);
 	}
 	
-	public Item removeMaterial(int itemIndex)
+	public Item removeComponent(int itemIndex)
 	{
-		return materials.remove(itemIndex);
+		return components.remove(itemIndex);
 	}
 	
 	public Item removeStoredItem(int itemIndex, int quantity)
@@ -367,9 +411,9 @@ public class Actor extends SaveableEntity
 		return storedItems.remove(itemIndex, quantity);
 	}
 	
-	public Item removeMaterial(int itemIndex, int quantity)
+	public Item removeComponent(int itemIndex, int quantity)
 	{
-		return materials.remove(itemIndex, quantity);
+		return components.remove(itemIndex, quantity);
 	}
 
 	public void setAttribute(int index, int value)
@@ -397,6 +441,11 @@ public class Actor extends SaveableEntity
 		skills.put(skill, level);
 	}
 	
+	public void setSkill(SkillType skill, SkillRank rank)
+	{
+		skills.put(skill, rank.getLevel());
+	}
+	
 	public Set<SkillType> getSkills()
 	{
 		return skills.keySet();
@@ -410,6 +459,14 @@ public class Actor extends SaveableEntity
 		return skills.get(skill);
 	}
 	
+	public SkillRank getSkillRank(SkillType skill)
+	{
+		if (!skills.containsKey(skill))
+			return SkillRank.UNKNOWN;
+		
+		return SkillRank.rankName(skills.get(skill));
+	}
+	
 	public void gainSkillLevel(SkillType skill)
 	{
 		int currentLevel = 0;
@@ -418,6 +475,11 @@ public class Actor extends SaveableEntity
 			currentLevel = skills.get(skill);
 		
 		skills.put(skill, currentLevel++);
+	}
+	
+	public boolean hasSkill(SkillType skill, SkillRank rank)
+	{
+		return hasSkill(skill, rank.getLevel());
 	}
 	
 	public boolean hasSkill(SkillType skill, int level)
@@ -521,6 +583,23 @@ public class Actor extends SaveableEntity
 		return facing;
 	}
 	
+	public int getNoiseMadeLastTurn()
+	{
+		SkillRank stealth = getSkillRank(SkillType.STEALTH);
+		return noiseMadeLastTurn + ActorSightUtil.getInstance().getStealthNoiseModifier(stealth);
+	}
+	
+	public void resetNoiseMadeLastTurn()
+	{
+		noiseMadeLastTurn = 0;
+	}
+	
+	public void makeNoise(int volume)
+	{
+		if (volume > noiseMadeLastTurn)
+			noiseMadeLastTurn = volume;
+	}
+	
 	public NaturalWeapons getNaturalWeapons()
 	{
 		return naturalWeapons;
@@ -566,9 +645,9 @@ public class Actor extends SaveableEntity
 		return magicItems.getIndexOfItem(item);
 	}
 	
-	public int getIndexOfMaterial(Item item)
+	public int getIndexOfComponent(Item item)
 	{
-		return materials.indexOf(item); 
+		return components.indexOf(item); 
 	}
 	
 	public int getIndexOfStoredItem(Item item)
@@ -589,8 +668,8 @@ public class Actor extends SaveableEntity
 			return equipment.getItem(itemIndex);
 		case MAGIC:
 			return magicItems.getItem(itemIndex);
-		case MATERIAL:
-			return materials.get(itemIndex);
+		case COMPONENT:
+			return components.get(itemIndex);
 		case PACK:
 			return storedItems.get(itemIndex);
 		case READY:
@@ -623,8 +702,8 @@ public class Actor extends SaveableEntity
 			Item item = new Item(ItemType.VIRTUAL_ITEM);
 			item.setAmount(0);
 			
-			if (itemSource == ItemSource.MATERIAL)
-				item = copy.removeMaterial(itemIndex, itemsLeftToRemove);
+			if (itemSource == ItemSource.COMPONENT)
+				item = copy.removeComponent(itemIndex, itemsLeftToRemove);
 			else if (itemSource == ItemSource.PACK)
 				item = copy.removeStoredItem(itemIndex, itemsLeftToRemove);
 			else if (itemSource == ItemSource.MAGIC)
@@ -656,8 +735,8 @@ public class Actor extends SaveableEntity
 		
 		switch (itemSource)	//TODO: add more if they become relevant
 		{
-		case MATERIAL:
-			retInventory = getMaterials();
+		case COMPONENT:
+			retInventory = getComponents();
 			break;
 		case PACK:
 			retInventory = getStoredItems();
@@ -675,12 +754,12 @@ public class Actor extends SaveableEntity
 		return retInventory.indexOf(item);
 	}
 	
-	//TODO: right now this doesn't check held or ready items - only materials, magic items, and items in the pack
+	//TODO: right now this doesn't check held or ready items - only components, magic items, and items in the pack
 	public int getTotalItemCount(ItemType itemType)
 	{
 		int totalItemCount = 0;
 		
-		totalItemCount += materials.getTotalItemsOfType(itemType);
+		totalItemCount += components.getTotalItemsOfType(itemType);
 		totalItemCount += magicItems.getTotalItemsOfType(itemType);
 		totalItemCount += storedItems.getTotalItemsOfType(itemType);
 		
@@ -689,8 +768,8 @@ public class Actor extends SaveableEntity
 	
 	public ItemSource getFirstAvailableSourceForItem(ItemType itemType)
 	{
-		if (materials.getTotalItemsOfType(itemType) != 0)
-			return ItemSource.MATERIAL;
+		if (components.getTotalItemsOfType(itemType) != 0)
+			return ItemSource.COMPONENT;
 		if (magicItems.getTotalItemsOfType(itemType) != 0)
 			return ItemSource.MAGIC;
 		if (storedItems.getTotalItemsOfType(itemType) != 0)
@@ -701,6 +780,33 @@ public class Actor extends SaveableEntity
 			return ItemSource.EQUIPMENT;
 		
 		return null;
+	}
+	
+	public int getHpColor()
+	{
+		int percentage = getHpPercentage();
+			
+		Logger.debug("Target HP is " + curHp + "/" + maxHp + "; percentage is " + percentage + ".");
+		
+		if (percentage > 8)
+			return Colors.LIGHT_GREEN;
+		if (percentage > 6)
+			return Colors.DARK_GREEN;
+		if (percentage > 4)
+			return Colors.YELLOW;
+		if (percentage > 2)
+			return Colors.LIGHT_RED;
+		
+		return Colors.DARK_RED;
+	}
+	
+	public int getHpPercentage()
+	{
+		int percentage = (int)(((((double)curHp) / ((double)maxHp)) * 10) + .5);
+		if (percentage < 1 && curHp > 0)
+			percentage = 1;
+		
+		return percentage;
 	}
 
 	@Override
@@ -719,6 +825,7 @@ public class Actor extends SaveableEntity
 		// will be saved with every actor
 		ssb.addToken(new SaveToken(SaveTokenTag.A_UID, actorUid));
 		ssb.addToken(new SaveToken(SaveTokenTag.A_TYP, type.toString()));
+		ssb.addToken(new SaveToken(SaveTokenTag.A_CAT, category.toString()));
 
 		// will be saved only if they differ from the default actor of this type
 		if (!name.equals(baseActor.name))
@@ -745,14 +852,16 @@ public class Actor extends SaveableEntity
 			ssb.addToken(new SaveToken(SaveTokenTag.A_TLK, defaultTalkResponse));
 		if (facing != baseActor.facing)
 			ssb.addToken(new SaveToken(SaveTokenTag.A_FAC, facing.toString()));
+		if (noiseMadeLastTurn != baseActor.noiseMadeLastTurn)
+			ssb.addToken(new SaveToken(SaveTokenTag.A_NOI, String.valueOf(noiseMadeLastTurn)));
 
 		saveAttributes(baseActor, ssb);
 		
 		if (storedItems != null && !storedItems.isEmpty())
 			ssb.addToken(new SaveToken(SaveTokenTag.A_INV, convertInventoryToList(storedItems)));
 		
-		if (materials != null && !materials.isEmpty())
-			ssb.addToken(new SaveToken(SaveTokenTag.A_MAT, convertInventoryToList(materials)));
+		if (components != null && !components.isEmpty())
+			ssb.addToken(new SaveToken(SaveTokenTag.A_CMP, convertInventoryToList(components)));
 
 		if (!equipment.isEmpty())
 			ssb.addToken(new SaveToken(SaveTokenTag.A_EQP, convertEquipmentObjectToList(equipment)));
@@ -794,6 +903,7 @@ public class Actor extends SaveableEntity
 		String toRet = getContentsForTag(ssb, SaveTokenTag.A_UID); // assumed to be defined
 
 		setMember(ssb, SaveTokenTag.A_TYP);
+		setMember(ssb, SaveTokenTag.A_CAT);
 		setMember(ssb, SaveTokenTag.A_NAM);
 		setMember(ssb, SaveTokenTag.A_GEN);
 		setMember(ssb, SaveTokenTag.A_UNQ);
@@ -804,7 +914,7 @@ public class Actor extends SaveableEntity
 		setMember(ssb, SaveTokenTag.A_AI_);
 		setMember(ssb, SaveTokenTag.A_ATT);
 		setMember(ssb, SaveTokenTag.A_INV);
-		setMember(ssb, SaveTokenTag.A_MAT);
+		setMember(ssb, SaveTokenTag.A_CMP);
 		setMember(ssb, SaveTokenTag.A_EQP);
 		setMember(ssb, SaveTokenTag.A_RDY);
 		setMember(ssb, SaveTokenTag.A_MAG);
@@ -814,6 +924,7 @@ public class Actor extends SaveableEntity
 		setMember(ssb, SaveTokenTag.A_TLK);
 		setMember(ssb, SaveTokenTag.A_SKL);
 		setMember(ssb, SaveTokenTag.A_FAC);
+		setMember(ssb, SaveTokenTag.A_NOI);
 
 		return toRet;
 	}
@@ -917,6 +1028,11 @@ public class Actor extends SaveableEntity
 			if (!(actorType.equals(this.type)))
 				convertToType(actorType);
 			break;
+			
+		case A_CAT:
+			ActorCategory actorCategory = ActorCategory.valueOf(contents);
+			this.category = actorCategory;
+			break;
 
 		case A_NAM:
 			this.name = contents;
@@ -968,13 +1084,13 @@ public class Actor extends SaveableEntity
 			}
 			break;
 
-		case A_MAT:
-			materials = new Inventory();
+		case A_CMP:
+			components = new Inventory();
 			
 			for (String value : strVals)
 			{
 				referenceKey = "I" + value;
-				materials.add(EntityMap.getItem(referenceKey).clone());
+				components.add(EntityMap.getItem(referenceKey).clone());
 			}
 			break;
 
@@ -1062,6 +1178,10 @@ public class Actor extends SaveableEntity
 			this.facing = direction;
 			break;
 			
+		case A_NOI:
+			this.noiseMadeLastTurn = intContents;
+			break;
+			
 		//$CASES-OMITTED$
 		default:
 			throw new IllegalArgumentException("Actor - Unhandled token: " + saveTokenTag.toString());
@@ -1080,9 +1200,9 @@ public class Actor extends SaveableEntity
 		else
 			return false;
 
-		if (!type.equals(actor.type) || icon != actor.icon || color != actor.color || !name.equals(actor.name)
+		if (!type.equals(actor.type) || !category.equals(actor.category) || icon != actor.icon || color != actor.color || !name.equals(actor.name)
 				|| !gender.equals(actor.gender) || unique != actor.unique || maxHp != actor.maxHp || curHp != actor.curHp
-				|| AI != actor.AI || hashModifier != actor.hashModifier || facing != actor.facing
+				|| AI != actor.AI || hashModifier != actor.hashModifier || facing != actor.facing || noiseMadeLastTurn != actor.noiseMadeLastTurn
 				|| !naturalWeapons.equals(actor.naturalWeapons) || defaultArmor != actor.defaultArmor || !defaultTalkResponse.equals(actor.defaultTalkResponse))
 			return false;
 
@@ -1095,7 +1215,7 @@ public class Actor extends SaveableEntity
 		if (!storedItems.equals(actor.storedItems))
 			return false;
 		
-		if (!materials.equals(actor.materials))
+		if (!components.equals(actor.components))
 			return false;
 		
 		if (!equipment.equals(actor.equipment))
@@ -1122,6 +1242,7 @@ public class Actor extends SaveableEntity
 		int hash = 7;
 
 		hash = 31 * hash + type.toString().hashCode();
+		hash = 31 * hash + category.toString().hashCode();
 		hash = 31 * hash + (int) icon;
 		hash = 31 * hash + color;
 		hash = 31 * hash + name.hashCode();
@@ -1136,7 +1257,7 @@ public class Actor extends SaveableEntity
 		}
 
 		hash = 31 * hash + storedItems.hashCode();
-		hash = 31 * hash + materials.hashCode();
+		hash = 31 * hash + components.hashCode();
 		hash = 31 * hash + equipment.hashCode();
 		hash = 31 * hash + readiedItems.hashCode();
 		hash = 31 * hash + magicItems.hashCode();
@@ -1146,6 +1267,7 @@ public class Actor extends SaveableEntity
 		hash = 31 * hash + defaultArmor;
 		hash = 31 * hash + defaultTalkResponse.hashCode();
 		hash = 31 * hash + facing.toString().hashCode();
+		hash = 31 * hash + noiseMadeLastTurn;
 		
 		hash = 31 * hash + hashModifier;
 

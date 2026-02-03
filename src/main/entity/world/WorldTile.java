@@ -21,6 +21,11 @@ public class WorldTile extends FieldCoord
 		this(ZoneType.NO_TYPE, "Undefined World Tile", 'W', 15, false, false, 10000, ""); // note the large value; overworld tiles take a while to cross
 																							// (multiply by 100)
 	}
+	
+	public WorldTile(String name, char icon, int color)
+	{
+		this(ZoneType.NO_TYPE, name, icon, color, false, false, 10000, "");
+	}
 
 	public WorldTile(ZoneType zoneType, String name, char icon, int color, boolean sightObstruct, boolean moveObstruct, double moveCostModifier,
 			String blockedMessage)

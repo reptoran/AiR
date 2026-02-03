@@ -8,6 +8,8 @@ import java.util.Map;
 
 import javax.swing.JOptionPane;
 
+import org.apache.commons.lang3.StringUtils;
+
 import main.data.chat.ChatManager;
 import main.data.chat.EventTriggerExecutor;
 import main.data.event.EventObserver;
@@ -159,9 +161,13 @@ public class Data implements EventObserver
 		
 		overworld = new Overworld();
 		currentZone = getZoneAtLocation(playerWorldCoords);
+//		worldTravel = true;
 		
 		for (Actor actor : currentZone.getActors())
 		{
+			if (actor == null)
+				continue;
+			
 			if (actor.getType() == profession)
 			{
 				actor.setAI(AiType.HUMAN_CONTROLLED);
@@ -191,6 +197,7 @@ public class Data implements EventObserver
 		List<String> professionNames = new ArrayList<String>();
 		professionNames.add("Physician");
 		professionNames.add("Blacksmith");
+		professionNames.add("Huntress");
 		professionNames.add("Wanderer");
 		return professionNames;
 	}
@@ -200,6 +207,7 @@ public class Data implements EventObserver
 		Map<Integer, ActorType> professionMap = new HashMap<Integer, ActorType>();
 		professionMap.put(0, ActorType.PC_PHYSICIAN);
 		professionMap.put(1, ActorType.PC_SMITH);
+		professionMap.put(2, ActorType.PC_HUNTRESS);
 		profession = professionMap.get(professionIndex);
 		setProfessionBackground(professionIndex);
 	}
@@ -209,6 +217,7 @@ public class Data implements EventObserver
 		List<String> professionBackgroundKeys = new ArrayList<String>();
 		professionBackgroundKeys.add("PROF_BG_PHYS");
 		professionBackgroundKeys.add("PROF_BG_SMITH");
+		professionBackgroundKeys.add("PROF_BG_HUNTRESS");
 		
 		if (professionBackgroundKeys.size() <= professionIndex)
 			return;
@@ -335,11 +344,34 @@ public class Data implements EventObserver
 		
 		for (Actor actor : actorsInZone)
 		{
-			if (actor.getType() == actorType)
+			if (actor != null && actor.getType() == actorType)
 				return actor;
 		}
 		
 		return null;
+	}
+	
+	public int getCountOfActorOfType(String zoneId, ActorType actorType)
+	{
+		if (worldTravel)
+			return -1;
+		
+		if (currentZone == null)
+			return -1;
+		
+		if (!StringUtils.equals(currentZone.getUniqueId(), zoneId))
+			return -1;
+		
+		int actorCount = 0;
+		List<Actor> actorsInZone = currentZone.getActors();
+		
+		for (Actor actor : actorsInZone)
+		{
+			if (actor != null && actor.getType() == actorType)
+				actorCount++;
+		}
+		
+		return actorCount;
 	}
 
 	public Zone getCurrentZone()
@@ -453,8 +485,7 @@ public class Data implements EventObserver
 		return band;
 	}
 
-	// events are assumed to be checked and sanitized by the logic layer, so just
-	// act dumbly on whatever comes through
+	// events are assumed to be checked and sanitized by the logic layer, so just act dumbly on whatever comes through
 	@Override
 	public void receiveInternalEvent(InternalEvent internalEvent)
 	{
@@ -473,6 +504,9 @@ public class Data implements EventObserver
 		case WAIT:
 			//TODO: the actor should turn to face the nearest seen enemy...though that should be done by the engine, not the data
 			break;	//the only thing that happens here is the action cost reduction, which is already done
+		case MAKE_NOISE:
+			makeNoise(actor, internalEvent.getFlag(1));
+			break;
 		case DEATH:
 			killActor(actor);
 			break;
@@ -648,8 +682,8 @@ public class Data implements EventObserver
 		{
 			item.setAmount(currentAmount - amountToDelete);
 			
-			if (itemSource == ItemSource.MATERIAL)
-				actor.getMaterials().condense();
+			if (itemSource == ItemSource.COMPONENT)
+				actor.getComponents().condense();
 			else if (itemSource == ItemSource.PACK)
 				actor.getStoredItems().condense();
 			
@@ -846,8 +880,8 @@ public class Data implements EventObserver
 		{
 		case PACK:
 			return actor.removeStoredItem(itemIndex, quantity);
-		case MATERIAL:
-			return actor.removeMaterial(itemIndex, quantity);
+		case COMPONENT:
+			return actor.removeComponent(itemIndex, quantity);
 		case EQUIPMENT:
 			return actor.getEquipment().removeItem(itemIndex);
 		case READY:
@@ -871,8 +905,8 @@ public class Data implements EventObserver
 		{
 		case PACK:
 			return actor.removeStoredItem(itemIndex);
-		case MATERIAL:
-			return actor.removeMaterial(itemIndex);
+		case COMPONENT:
+			return actor.removeComponent(itemIndex);
 		case EQUIPMENT:
 			return actor.getEquipment().removeItem(itemIndex);
 		case MAGIC:
@@ -894,8 +928,8 @@ public class Data implements EventObserver
 		{
 		case PACK:
 			return actor.getStoredItems().get(itemIndex);
-		case MATERIAL:
-			return actor.getMaterials().get(itemIndex);
+		case COMPONENT:
+			return actor.getComponents().get(itemIndex);
 		case EQUIPMENT:
 			return actor.getEquipment().getItem(itemIndex);
 		case READY:
@@ -962,16 +996,45 @@ public class Data implements EventObserver
 
 	private void enterLocalZoneFromWorldTravel()
 	{
+		worldTravel = false;
+		
+		//right now, we only null out the current zone upon moving
+		if (currentZone != null)
+			return;
+		
 		Actor actor = player;
 		currentZone = getZoneAtLocation(overworld.getPlayerCoords());
 		currentZone.addActor(actor, new Point(12, 35));
-		worldTravel = false;
 		EventInterruptionManager.getInstance().setEventQueue(currentZone.getEventQueue());
+	}
+
+	private void enterWorldTravelFromLocalZone()
+	{
+		worldTravel = true;		//currentZone is offloaded only once the player moves, so this is all that needs to be done
+	}
+	
+	private int getMoveNoise(Actor actor)
+	{
+		int moveNoise = 0;
+		int packBulk = actor.getStoredItems().getBulk();
+		
+		moveNoise += packBulk / 4;
+		moveNoise += actor.getEquipment().getEquippedItemCount();
+		moveNoise += actor.getReadiedItems().getEquippedItemCount();
+		
+		return moveNoise;
+	}
+	
+	private void makeNoise(Actor actor, int noiseAmount)
+	{
+		Logger.info("Data - Actor " + actor.getName() + " has made " + noiseAmount + " noise.");
+		actor.makeNoise(noiseAmount);
 	}
 
 	private void updateActorLocalCoords(Actor actor, int x, int y)
 	{
 		Logger.info("Data - Moving actor " + actor.getName() + " to (" + x + ", " + y + ").");
+		makeNoise(actor, getMoveNoise(actor));
 		currentZone.updateActorCoords(actor, new Point(x, y));
 	}
 
@@ -987,13 +1050,18 @@ public class Data implements EventObserver
 			dataSaveUtils.cacheZone(currentZone);
 			currentZone = null;
 		}
+		else if (currentZone != null)
+		{
+			currentZone = null;
+		}
 		
 		overworld.setPlayerCoords(new Point(x, y));
 	}
 
 	private void damageActor(Actor actor, int damage)
 	{
-		actor.setCurHp(actor.getCurHp() - damage);
+		if (actor != null)
+			actor.setCurHp(actor.getCurHp() - damage);
 	}
 	
 	//TODO: since this doesn't check for LOS, it's possible for items to get dropped behind solid wall.  generate a sight map and treat all blocked tiles as obstructions

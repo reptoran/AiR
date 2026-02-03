@@ -30,6 +30,11 @@ public class RPGlib
 	
 	public static int roll(String diceString)
 	{
+		return roll(diceString, false);
+	}
+	
+	public static int roll(String diceString, boolean maxValue)
+	{
 		int dice = 0;
 		int sides = 0;
 		int modifier = 0;
@@ -59,10 +64,28 @@ public class RPGlib
 		dice = Integer.parseInt(diceString.substring(0, dIndex));
 		sides = Integer.parseInt(diceString.substring(dIndex + 1, plusIndex));
 		
+		if (maxValue)
+			return dice * sides;
+		
 		for (int i = 1; i <= dice; i++)
 			total += randInt(1, sides);
 		
 		return total + modifier;
+	}
+	
+	public static int tileDistance(Point point1, Point point2)
+	{
+	    return tileDistance(point1.x, point1.y, point2.x, point2.y);
+	}
+	
+	public static int tileDistance(int x1, int y1, int x2, int y2)
+	{
+	    return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+	}
+	
+	public static int distance(Point point1, Point point2)
+	{
+	    return distance(point1.x, point1.y, point2.x, point2.y);
 	}
 	
 	public static int distance(int x1, int y1, int x2, int y2)
@@ -70,46 +93,19 @@ public class RPGlib
 	    return (int)Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 	}
 	
+	public static double trueDistance(Point point1, Point point2)
+	{
+	    return trueDistance(point1.x, point1.y, point2.x, point2.y);
+	}
+	
+	public static double trueDistance(int x1, int y1, int x2, int y2)
+	{
+	    return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+	}
+	
 	public static void setRandomSeed(long seed)
 	{
 		random.setSeed(seed);
-	}
-	
-	public static Direction convertCoordChangeToDirection(int rowChange, int colChange)
-	{
-		String direction = "DIR";
-		if (rowChange < 0)
-			direction = direction + "N";
-		if (rowChange > 0)
-			direction = direction + "S";
-		if (colChange < 0)
-			direction = direction + "W";
-		if (colChange > 0)
-			direction = direction + "E";
-		
-		if (direction.equals("DIR"))
-			return Direction.DIRNONE;
-
-		return Direction.fromString(direction);
-	}
-	
-	public static Point convertDirectionToCoordChange(Direction directionEnum)
-	{
-		String direction = directionEnum.name();
-		
-		int x = 0;
-		int y = 0;
-		
-		if (direction.equals("DIRNW") || direction.equals("DIRN") || direction.equals("DIRNE"))
-			x--;
-		if (direction.equals("DIRSW") || direction.equals("DIRS") || direction.equals("DIRSE"))
-			x++;
-		if (direction.equals("DIRNW") || direction.equals("DIRW") || direction.equals("DIRSW"))
-			y--;
-		if (direction.equals("DIRNE") || direction.equals("DIRE") || direction.equals("DIRSE"))
-			y++;
-		
-		return new Point(x, y);	
 	}
 	
 	public static double truncateDouble(double value, int decimalPlaces)

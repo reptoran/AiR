@@ -64,9 +64,7 @@ public enum Direction
 	
 	public Point getCoordChange()
 	{
-		Direction direction = Direction.fromString(this.name());		//holy cow this is clunky
-		
-		switch (direction)
+		switch (this)
 		{
 		case DIRE:
 			return new Point(0, 1);
@@ -89,5 +87,42 @@ public enum Direction
 		default:
 			return null;
 		}
+	}
+	
+	public Direction getOppositeDirection()
+	{
+		switch (this)
+		{
+		case DIRE:
+			return DIRW;
+		case DIRN:
+			return DIRS;
+		case DIRNE:
+			return DIRSW;
+		case DIRNONE:
+			return DIRNONE;
+		case DIRNW:
+			return DIRSE;
+		case DIRS:
+			return DIRN;
+		case DIRSE:
+			return DIRNW;
+		case DIRSW:
+			return DIRNE;
+		case DIRW:
+			return DIRE;
+		default:
+			return null;
+		}
+	}
+	
+	public boolean isDiagonal()
+	{
+		return this.name().length() == 5;
+	}
+	
+	public boolean isOrthagonal()
+	{
+		return this.name().length() == 4;
 	}
 }

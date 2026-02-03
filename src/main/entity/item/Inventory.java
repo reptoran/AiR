@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import main.entity.item.equipment.EquipmentSlotType;
-import main.logic.RPGlib;
 
 public class Inventory implements Collection<Item>
 {

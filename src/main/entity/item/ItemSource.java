@@ -2,7 +2,7 @@ package main.entity.item;
 
 public enum ItemSource
 {
-	EQUIPMENT('E'), PACK('I'), READY('R'), GROUND('G'), MATERIAL('M'), MAGIC('m'), NONE('~');
+	EQUIPMENT('E'), PACK('I'), READY('R'), GROUND('G'), COMPONENT('C'), MAGIC('M'), NONE('~');
 	
 	private char sourceCharacter;
 	

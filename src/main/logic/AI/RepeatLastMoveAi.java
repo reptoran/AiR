@@ -5,7 +5,8 @@ import java.awt.Point;
 import main.data.event.ActorCommand;
 import main.data.event.GuiCommandType;
 import main.entity.actor.Actor;
-import main.entity.actor.ActorTrait;
+import main.entity.actor.SkillRank;
+import main.entity.actor.SkillType;
 import main.entity.tile.Tile;
 import main.entity.tile.TileType;
 import main.entity.zone.Zone;
@@ -33,7 +34,7 @@ public class RepeatLastMoveAi extends CoalignedFactionAi
 	public ActorCommand getNextCommand(Zone zone, Actor actor)
 	{
 		//if the actor doesn't regenerate hitpoints, don't let them rest
-		if (isResting() && !actor.hasTrait(ActorTrait.HP_REGEN))
+		if (isResting() && !actor.hasSkill(SkillType.HEALING, SkillRank.NOVICE))
 		{
 			MessageBuffer.addMessage("You don't have the medical skills to recover from resting.");
 			return new ActorCommand(GuiCommandType.DEACTIVATE_REPEAT_AI);

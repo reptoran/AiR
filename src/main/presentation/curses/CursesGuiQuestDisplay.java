@@ -9,6 +9,7 @@ import main.entity.quest.Quest;
 import main.entity.quest.QuestBuilder;
 import main.entity.quest.QuestManager;
 import main.entity.quest.QuestNode;
+import main.entity.requirement.RequirementType;
 import main.presentation.GuiState;
 
 public class CursesGuiQuestDisplay extends ColorSchemeCursesGuiUtil
@@ -74,10 +75,29 @@ public class CursesGuiQuestDisplay extends ColorSchemeCursesGuiUtil
 			for (QuestNode node : activeNodes)
 			{
 				currentLine++;
-				addText(currentLine, 0, node.getDescription(), getTextColor());
+				String objective = getNodeObjectiveCount(node);
+				addText(currentLine, 1, node.getDescription() + objective, getTextColor());
 			}
 			
 			currentLine += 2;	
+		}
+		
+		if (currentLine == 1)
+			addText(1, 0, "You have no active quests.", getHighlightColor());
+	}
+
+	private String getNodeObjectiveCount(QuestNode node)
+	{
+		if (node.getObjective() == null || node.getObjective().getType() == RequirementType.PLAYER_ENTERS_ZONE)
+			return "";
+		
+		switch (node.getObjective().getType())
+		{
+		case ACTOR_COUNT_IN_ZONE:
+			return " (" + node.getObjectiveCompletionCount() + "/" + node.getObjective().getComparison() + ")";
+			//$CASES-OMITTED$
+		default:
+			return "";
 		}
 	}
 

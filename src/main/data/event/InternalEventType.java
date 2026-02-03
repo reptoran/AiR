@@ -3,6 +3,7 @@ package main.data.event;
 public enum InternalEventType
 {
 	WAIT,
+	MAKE_NOISE,
 	UPDATE_FACING,
 	LOCAL_MOVE,
 	WORLD_MOVE,
@@ -18,7 +19,6 @@ public enum InternalEventType
 	CHANGE_ACTOR_AI,
 	CHANGE_ACTOR_TYPE,
 	CHANGE_ITEM_HP,
-	CHANGE_ITEM_COORDS,
 	CREATE_ITEM,
 	DELETE_ITEM,
 	MOVE_ITEM,

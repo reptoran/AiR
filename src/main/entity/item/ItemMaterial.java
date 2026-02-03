@@ -5,6 +5,7 @@ public enum ItemMaterial
 	NATURAL(0),		//wood/cloth/leather
 	METAL(1),
 	CRYSTAL(2),
+	STONE(3),
 	VIRTUAL(1000);
 	
 	private int materialDR;

@@ -7,7 +7,6 @@ import main.entity.actor.Actor;
 import main.entity.zone.Zone;
 import main.logic.Direction;
 import main.logic.Line;
-import main.logic.RPGlib;
 import main.logic.AI.faction.ShadowFactionAi;
 
 public class ZombieAI extends ShadowFactionAi
@@ -24,7 +23,7 @@ public class ZombieAI extends ShadowFactionAi
 		Point target = zone.getCoordsOfActor(nearestEnemy);
 		Point nextMove = nextPointToApproachTarget(zone, actor, target);
 		
-		Direction direction = RPGlib.convertCoordChangeToDirection(nextMove.x - origin.x, nextMove.y - origin.y);
+		Direction direction = Direction.fromCoords(nextMove.x - origin.x, nextMove.y - origin.y);
 		return ActorCommand.move(direction);
 	}
 	

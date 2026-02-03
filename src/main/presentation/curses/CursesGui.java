@@ -72,11 +72,12 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 		
 		CursesGuiProfessionSelect professionSelectUtil = new CursesGuiProfessionSelect(this, engine.getData());
 		CursesGuiCompleteInventory completeInventory = new CursesGuiCompleteInventory(this, engine, defaultColorScheme);
-		CursesGuiScreen mainGameUtil = new CursesGuiMainGameDisplay(this, completeInventory, engine);
+		CursesGuiScreen mainGameUtil = new CursesGuiMainGameDisplay(this, completeInventory, engine, ColorScheme.monochromeScheme());
 		CursesGuiScreen gameStartHelper = new GameStartHelper(this, engine);
 		CursesGuiChat chatUtil = new CursesGuiChat(this, defaultColorScheme);
 		CursesGuiRecipeSelect recipeUtil = new CursesGuiRecipeSelect(this, engine);
 		CursesGuiQuestDisplay questUtil = new CursesGuiQuestDisplay(this, defaultColorScheme);
+		CursesGuiTargeting targetUtil = new CursesGuiTargeting(this, engine, defaultColorScheme);
 
 		guiScreens.put(GuiState.SELECT_PROFESSION, professionSelectUtil);
 		guiScreens.put(GuiState.MAIN_GAME, mainGameUtil);
@@ -85,6 +86,7 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 		guiScreens.put(GuiState.RECIPE, recipeUtil);
 		guiScreens.put(GuiState.INVENTORY, completeInventory);
 		guiScreens.put(GuiState.QUEST, questUtil);
+		guiScreens.put(GuiState.TARGET, targetUtil);
 	}
 
 	public void initializeNewGame()
@@ -188,6 +190,11 @@ public class CursesGui extends AbstractGui implements KeyListener, EventObserver
 			return null;
 
 		return layers.remove(layers.size() - 1);
+	}
+	
+	public CursesGuiScreen getScreen(GuiState guiState)
+	{
+		return guiScreens.get(guiState);
 	}
 	
 	public CursesGuiScreen getTopLayer()

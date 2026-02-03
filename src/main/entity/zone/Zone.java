@@ -200,13 +200,28 @@ public class Zone extends SaveableEntity
 		if (actors.contains(actor))
 			throw new IllegalArgumentException("Actor is already present in the zone.");
 
-		actors.add(actor);
 		eventQueue.add(actor);
 		actorAtPoint.put(new Point(coords.x, coords.y), actor);
 		pointOfActor.put(actor, new Point(coords.x, coords.y));
 		getTile(coords).setActorHere(actor);
 
-		return actors.size() - 1; // the actor index
+		return addActorToActorList(actor); // returns the actor index
+	}
+	
+	//in order to maintain actor indexes, removed actors can't change the list size, so they leave nulls behind, and we fill those first
+	private int addActorToActorList(Actor actor)
+	{
+		for (int i = 0; i < actors.size(); i++)
+		{
+			if (actors.get(i) == null)
+			{
+				actors.set(i, actor);
+				return i;
+			}
+		}
+		
+		actors.add(actor);
+		return actors.size() - 1;
 	}
 	
 	public void removeActor(Actor actor)
@@ -214,13 +229,26 @@ public class Zone extends SaveableEntity
 		if (actor == null || !actors.contains(actor))
 			return;
 		
-		actors.remove(actor);
+		removeActorFromActorList(actor);
 		eventQueue.remove(actor);
 		
 		Point actorLocation = pointOfActor.get(actor);
 		pointOfActor.remove(actor);
 		actorAtPoint.remove(actorLocation);
 		getTile(actorLocation).setActorHere(null);
+	}
+	
+	//in order to maintain actor indexes, removed actors can't change the list size, so set that index to null instead; future actor additions fill nulls first
+	private void removeActorFromActorList(Actor actor)
+	{
+		for (int i = 0; i < actors.size(); i++)
+		{
+			if (actors.get(i) == actor)
+			{
+				actors.set(i, null);
+				return;
+			}
+		}
 	}
 
 	public Actor getActor(int index)
@@ -265,11 +293,6 @@ public class Zone extends SaveableEntity
 		Logger.debug("Zone - Getting actor index for actor " + actor.getName() + ", returning index of [" + index + "].  Total actors: " + actors.size());
 
 		return index;
-	}
-
-	public int getTotalActors()
-	{
-		return actors.size();
 	}
 
 	public EnvironmentEventQueue getEventQueue()
@@ -411,6 +434,12 @@ public class Zone extends SaveableEntity
 
 		for (Actor actor : actors)
 		{
+			if (actor == null)
+			{
+				actorList.add("");
+				continue;
+			}
+			
 			String actorUid = actor.getUniqueId();
 
 			if (EntityMap.getActor(actorUid) == null)
@@ -544,6 +573,12 @@ public class Zone extends SaveableEntity
 			actors.clear();
 			for (String val : strVals)
 			{
+				if (val.isEmpty())
+				{
+					actors.add(null);
+					continue;
+				}
+				
 				referenceKey = "A" + val;
 				Actor actor = EntityMap.getActor(referenceKey);
 				actors.add(actor);

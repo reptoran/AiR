@@ -46,7 +46,7 @@ public class ZonePopulationGenerator
 				try
 				{
 					actorsForLevels.get(i).add(actorType);
-				} catch (ArrayIndexOutOfBoundsException aioobe) 
+				} catch (IndexOutOfBoundsException ioobe) 
 				{
 					Logger.debug("Actor type " + actorType + " could not be included to be generated on level " + i + ".");
 					break;

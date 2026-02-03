@@ -17,7 +17,7 @@ public class DesertGenerator extends WorldZoneGenerator
 	{
 		String name = zoneKey.getId();
 		
-		//should persist is true right now only because this zone leads to a dungeon and should be available when going upstairs fomr level 1
+		//should persist is true right now only because this zone leads to a dungeon and should be available when going upstairs from level 1
 		Zone zone = new Zone(ZoneType.DESERT, name, 40, 160, true, canTransitionToOverworld());
 		
 		int height = zone.getHeight();

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import main.data.chat.EventTriggerExecutor;
 import main.data.event.environment.ActorTypeChangeEvent;
 import main.data.event.environment.ConsumeInventoryItemEvent;
 import main.data.event.environment.EnvironmentEvent;
@@ -49,6 +50,8 @@ public class ItemUsageEventGenerator
 			
 			if (event != null)
 				events.add(event);
+			else						//execute immediately if no environment event is generated
+				EventTriggerExecutor.getInstance().executeTrigger(trigger);
 		}
 		
 		return events;
@@ -178,7 +181,7 @@ public class ItemUsageEventGenerator
 		triggers = new ArrayList<>();
 		triggers.add(TriggerFactory.changeActorHp(ActorType.TARGET_ACTOR, 3));
 		triggers.add(TriggerFactory.consumeItem(ActorType.SOURCE_ACTOR, ItemType.SOURCE_ITEM, 1));
-		usageMap.put(new ItemUsageKey(ItemType.MEDICINAL_FUNGUS, ActorType.ANY_ACTOR), triggers);
+		usageMap.put(new ItemUsageKey(ItemType.HERB, ActorType.ANY_ACTOR), triggers);
 		
 		triggers = new ArrayList<>();
 		triggers.add(TriggerFactory.changeActorHp(ActorType.TARGET_ACTOR, 10));
@@ -188,10 +191,11 @@ public class ItemUsageEventGenerator
 		triggers = new ArrayList<>();
 		triggers.add(TriggerFactory.upgradeWeapon(ActorType.SOURCE_ACTOR, ItemType.TARGET_ITEM));
 		triggers.add(TriggerFactory.consumeItem(ActorType.SOURCE_ACTOR, ItemType.SOURCE_ITEM, 1));
-		usageMap.put(new ItemUsageKey(ItemType.METAL_SHARD, ItemGroup.weapons()), triggers);
+		usageMap.put(new ItemUsageKey(ItemType.SCRAP, ItemGroup.weapons()), triggers);
 		
 		triggers = new ArrayList<>();
 		triggers.add(TriggerFactory.changeActorType(ActorType.BOUND_ARCHEO, ActorType.ARCHAEOLOGIST));
+		triggers.add(TriggerFactory.activateQuest("RISKYR"));
 		usageMap.put(new ItemUsageKey(ItemGroup.bladedWeapons(), ActorType.BOUND_ARCHEO), triggers);
 	}
 }

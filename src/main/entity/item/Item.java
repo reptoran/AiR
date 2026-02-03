@@ -25,6 +25,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	
 	private String name = "";
 	private String plural = "";
+	private String article = "a";
 	private char icon = '%';
 	private int color = 15;
 	
@@ -50,6 +51,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		
 		toRet.name = name;
 		toRet.plural = plural;
+		toRet.article = article;
 		toRet.icon = icon;
 		toRet.color = color;
 		toRet.damage = damage;
@@ -94,6 +96,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		this.type = baseItem.type;
 		this.name = baseItem.name;
 		this.plural = baseItem.plural;
+		this.article = baseItem.article;
 		this.icon = baseItem.icon;
 		this.color = baseItem.color;
 		this.damage = baseItem.damage;
@@ -120,10 +123,48 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		this.traits.clear();
 	}
 	
+	public int getValue()
+	{
+		int value = 0;
+		
+		switch(inventorySlot)
+		{
+		case ARMAMENT:
+			value = 1;
+			break;
+		case ARMOR:
+			value = 2;
+			break;
+		case MAGIC:
+			value = 3;
+			break;
+			//$CASES-OMITTED$
+		default:
+			return 0;
+		}
+		
+		value += material.getDR();
+		value += getValueFromDamage();
+		value += getValueFromArmor();
+		
+		return value;
+	}
+	
+	private int getValueFromDamage()
+	{
+		int maxDamage = RPGlib.roll(damage, true);
+		return (int)Math.ceil(maxDamage / 4.0);	//always round up
+	}
+	
+	private int getValueFromArmor()
+	{
+		return (int)Math.ceil(AR / 2.0);		//always round up
+	}
+	
 	public String getNameOnGround()
 	{
 		if (amount == 1)
-			return "a " + getName() + getNameSuffix();
+			return article + " " + getName() + getNameSuffix();
 		
 		return "a pile of " + amount + " " + getPlural() + getNameSuffix();
 	}
@@ -156,11 +197,21 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		this.plural = plural;
 	}
 	
+	public String getArticle()
+	{
+		return article;
+	}
+	
+	public void setArticle(String article)
+	{
+		this.article = article;
+	}
+	
 	private String getNameSuffix()
 	{
 		String suffix = "";
 		
-		if (inventorySlot == EquipmentSlotType.MATERIAL || inventorySlot == EquipmentSlotType.MAGIC)
+		if (inventorySlot == EquipmentSlotType.COMPONENT || inventorySlot == EquipmentSlotType.MAGIC)
 			return suffix;
 		else if (!getDamage().equals(ZERO_DAMAGE))
 			suffix = " (" + getDamage() + ")";
@@ -254,7 +305,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 	{
 		switch (inventorySlot)
 		{
-			case MATERIAL:
+			case COMPONENT:
 				return 5;
 			//$CASES-OMITTED$
 		default:
@@ -493,6 +544,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		//will be saved only if they differ from the default item of this type
 		if (!name.equals(baseItem.name)) ssb.addToken(new SaveToken(SaveTokenTag.I_NAM, name));
 		if (!plural.equals(baseItem.plural)) ssb.addToken(new SaveToken(SaveTokenTag.I_PLR, plural));
+		if (!article.equals(baseItem.article)) ssb.addToken(new SaveToken(SaveTokenTag.I_ART, article));
 		if (icon != baseItem.icon) ssb.addToken(new SaveToken(SaveTokenTag.I_ICO, String.valueOf(icon)));
 		if (color != baseItem.color) ssb.addToken(new SaveToken(SaveTokenTag.I_CLR, String.valueOf(color)));
 		if (!damage.equals(baseItem.damage)) ssb.addToken(new SaveToken(SaveTokenTag.I_DAM, damage));
@@ -523,6 +575,7 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		setMember(ssb, SaveTokenTag.I_TYP);
 		setMember(ssb, SaveTokenTag.I_NAM);
 		setMember(ssb, SaveTokenTag.I_PLR);
+		setMember(ssb, SaveTokenTag.I_ART);
 		setMember(ssb, SaveTokenTag.I_ICO);
 		setMember(ssb, SaveTokenTag.I_CLR);
 		setMember(ssb, SaveTokenTag.I_DAM);
@@ -571,6 +624,10 @@ public class Item extends SaveableEntity implements Comparable<Item>
 				
 			case I_PLR:
 				this.plural = contents;
+				break;
+				
+			case I_ART:
+				this.article = contents;
 				break;
 				
 			case I_ICO:
@@ -655,6 +712,8 @@ public class Item extends SaveableEntity implements Comparable<Item>
 		result = prime * result + ((inventorySlot == null) ? 0 : inventorySlot.hashCode());
 		result = prime * result + maxHp;
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((plural == null) ? 0 : plural.hashCode());
+		result = prime * result + ((article == null) ? 0 : article.hashCode());
 		result = prime * result + size;
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		result = prime * result + (isUpgraded ? 1 : 0);
@@ -700,6 +759,18 @@ public class Item extends SaveableEntity implements Comparable<Item>
 			if (other.name != null)
 				return false;
 		} else if (!name.equals(other.name))
+			return false;
+		if (plural == null)
+		{
+			if (other.plural != null)
+				return false;
+		} else if (!plural.equals(other.plural))
+			return false;
+		if (article == null)
+		{
+			if (other.article != null)
+				return false;
+		} else if (!article.equals(other.article))
 			return false;
 		if (size != other.size)
 			return false;

@@ -7,6 +7,7 @@ import main.entity.CompareOperator;
 import main.entity.actor.Actor;
 import main.entity.actor.ActorType;
 import main.entity.item.ItemType;
+import main.entity.zone.predefined.PredefinedZoneLoader;
 import main.presentation.Logger;
 
 public class RequirementValidator
@@ -32,10 +33,10 @@ public class RequirementValidator
 	
 	public String getValueToCheckForActorHasItem(String actorTypeString, String itemTypeString)
 	{
+		Logger.debug("Checking how many items of type [" + itemTypeString + "] actor [" + actorTypeString + "] has.");
 		ActorType actorType = ActorType.fromString(actorTypeString);
 		Actor actor = data.getFirstActorOfType(actorType);
 		ItemType itemType = ItemType.fromString(itemTypeString);
-		Logger.debug("Checking how many items of type [" + itemTypeString + "] actor [" + actorTypeString + "] has.");
 		return getValueToCheckForActorHasItem(actor, itemType);
 	}
 	
@@ -44,6 +45,18 @@ public class RequirementValidator
 		int itemCount =  actor.getTotalItemCount(itemType);
 		Logger.debug("Item count is " + itemCount);
 		return String.valueOf(itemCount);
+	}
+	
+	//note that this automatically fails (returns -1) if the requested zone isn't the current zone
+	public String getValueToCheckForActorCountInZone(String zoneId, String actorTypeString)
+	{
+		ActorType actorType = ActorType.fromString(actorTypeString);
+		String cacheName = PredefinedZoneLoader.getInstance().getCacheNameOfZone(zoneId);
+		Logger.debug("Checking how many actors of type [" + actorTypeString + "] zone [" + zoneId + "](" + cacheName + ") has.");
+		Logger.debug("Current zone is [" + data.getCurrentZone().getName() + "].");
+		int totalActorsOfType = data.getCountOfActorOfType(cacheName, actorType);
+		Logger.debug("Actor count is " + totalActorsOfType);
+		return String.valueOf(totalActorsOfType);
 	}
 	
 	public boolean checkRequirement(CompareOperator operator, String requiredValue, String valueToCheck)

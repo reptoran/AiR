@@ -12,7 +12,7 @@ public class PhysicianAI extends CoalignedAI
 	@Override
 	public ActorCommand getNextCommand(Zone zone, Actor actor)
 	{
-		if (RequirementValidator.getInstance().doesActorHaveItem(actor, ItemType.MEDICINAL_FUNGUS, 2))
+		if (RequirementValidator.getInstance().doesActorHaveItem(actor, ItemType.HERB, 2))
 			return ActorCommand.recipe(RecipeManager.getInstance().getRecipeForItem(ItemType.HEALING_SALVE));
 		
 		return getRandomLegalMoveCommand(zone, actor);

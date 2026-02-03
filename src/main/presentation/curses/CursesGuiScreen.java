@@ -10,23 +10,6 @@ public abstract class CursesGuiScreen
 	protected CursesGuiMessages messageHandler = null;
 	protected Map<Point, DisplayTile> characterMap;
 	
-	public static final int COLOR_BLACK = 0;
-	public static final int COLOR_DARK_BLUE = 1;
-	public static final int COLOR_DARK_GREEN = 2;
-	public static final int COLOR_DARK_CYAN = 3;
-	public static final int COLOR_DARK_RED = 4;
-	public static final int COLOR_DARK_MAGENTA = 5;
-	public static final int COLOR_BROWN = 6;
-	public static final int COLOR_LIGHT_GREY = 7;
-	public static final int COLOR_DARK_GREY = 8;
-	public static final int COLOR_LIGHT_BLUE = 9;
-	public static final int COLOR_LIGHT_GREEN = 10;
-	public static final int COLOR_LIGHT_CYAN = 11;
-	public static final int COLOR_LIGHT_RED = 12;
-	public static final int COLOR_LIGHT_MAGENTA = 13;
-	public static final int COLOR_YELLOW = 14;
-	public static final int COLOR_WHITE = 15;
-	
 	public CursesGuiScreen()
 	{
 		this.characterMap = new HashMap<Point, DisplayTile>();
@@ -42,7 +25,7 @@ public abstract class CursesGuiScreen
 	
 	protected void addText(int row, int col, String text, int foreground)
 	{
-		addText(row, col, text, foreground, COLOR_BLACK);
+		addText(row, col, text, foreground, Colors.BLACK);
 	}
 	
 	protected void addText(int row, int col, String text, int foreground, int background)
@@ -55,6 +38,12 @@ public abstract class CursesGuiScreen
 	{
 		Point point = new Point(row, col);
 		characterMap.put(point, tile);
+	}
+	
+	protected void clearCharacter(int row, int col)
+	{
+		Point point = new Point(row, col);
+		characterMap.remove(point);
 	}
 	
 	public DisplayTile getCharacter(Point point)

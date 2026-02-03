@@ -91,7 +91,7 @@ public class Animation implements ActionListener
 		for (int i = 0; i < 10; i++)
 		{
 			AnimationFrame frame = animation.new AnimationFrame();
-			frame.addCharacter(new Point(i, i), new DisplayTile('*', CursesGuiScreen.COLOR_DARK_RED));
+			frame.addCharacter(new Point(i, i), new DisplayTile('*', Colors.DARK_RED));
 			animation.addFrame(frame);
 		}
 		return animation;
